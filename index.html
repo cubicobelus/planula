@@ -23,6 +23,7 @@
   #looklist .row { display: flex; justify-content: space-between; gap: 14px; }
   #looklist kbd { font: inherit; display: inline-block; min-width: 11px; margin-right: 5px; padding: 0 3px; text-align: center; border-radius: 3px; background: rgba(255,255,255,0.16); color: #fff; }
   #looklist .on { color: #8ff0c0; } #looklist .off { color: #8aa0b2; } #looklist .na { color: #667788; }
+  #muteNote { margin-top: 3px; font-size: 11px; opacity: 0.5; letter-spacing: 0.02em; }
   #treeNote { display: none; margin-top: 4px; font-size: 11px; letter-spacing: 0.02em; color: #ffe2b0; animation: tnote 2.4s ease-in-out infinite; }
   #treeNote kbd { font: inherit; display: inline-block; min-width: 11px; padding: 0 4px; margin-right: 4px; text-align: center; border-radius: 3px; background: rgba(255,226,176,0.2); color: #fff3d6; }
   @keyframes tnote { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
@@ -85,6 +86,7 @@
   <div class="row" id="rowCa" style="display:none"><span>Calcium</span><b id="hCa">0</b></div>
   <div class="row"><span>Species</span><b id="hSpecies">0</b></div>
   <div class="row"><span>Light</span><b id="hLight">-</b></div>
+  <div id="muteNote"></div>
   <div id="treeNote"><kbd>T</kbd>opens the tree</div>
 </div>
 <div id="hint"></div>
@@ -129,6 +131,11 @@ const CONFIG = {
   longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
   algaeSunMult: 3,
   calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
+  // sound (everything is synthesised; gap = shortest time between two plays of the same sound)
+  audio: {
+    master: 0.5, ambience: 0.5, maxVoices: 14, pitchVar: 0.07, bubbleMin: 4000, bubbleMax: 11000,
+    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, buy: 0.3, whoosh: 0.4, clown: 2 },
+  },
   // look test (visual only)
   look: {
     causticStrength: 1.9, causticScale: 1 / 170, causticDepthPow: 1.3, shaftStrength: 0.42, bloomStrength: 0.8, bloomLow: 0.82, bloomHigh: 0.6, bloomKnee: 0.16,
@@ -246,7 +253,7 @@ function checkReveals() {
   for (const d of TREE) {
     if (game.tree.state[d.id] || !d.ok()) continue;
     game.tree.state[d.id] = 'revealed'; game.tree.fresh[d.id] = true;
-    toast(`The reef is learning: ${d.name}`);
+    toast(`The reef is learning: ${d.name}`); sfx('reveal');
     if (game.tree.open) renderTree();
   }
 }
@@ -269,7 +276,7 @@ function buy(id) {
   game.energy -= c.e; game.calcium -= c.ca || 0;
   game.tree.state[id] = 'owned';
   if (d.on) d.on();
-  toast(d.done, true);
+  toast(d.done, true); sfx('buy');
   if (game.tree.open) renderTree();
   return true;
 }
@@ -400,7 +407,7 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; gain(CONFIG.autoEnergy, c.x, c.y - 14); }
+        if (d < 6) { p.dead = true; gain(CONFIG.autoEnergy, c.x, c.y - 14); sfx('auto', c.x, c.y); }
         continue;
       }
     }
@@ -475,6 +482,7 @@ function trySettle() {
   if (!game.progress.settled) { game.progress.settled = true; toast('Settled. Hold the mouse to catch plankton'); }
   else toast('Settled');
   game.fx.push({ kind: 'ring', x: (t.c + 0.5) * CELL, y: (t.r + 0.5) * CELL, t: 0, life: 0.6 });
+  sfx('thud');
   return true;
 }
 function toSkeleton(p) {
@@ -515,6 +523,7 @@ function bail() {
   const L = game.larva;
   L.x = cc.x; L.y = cc.y; L.vx = 0; L.vy = -30; L.inv = 1.0;
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.6 });
+  sfx('whoosh');
   toast('You swim free, leaving a skeleton behind');
 }
 
@@ -569,6 +578,7 @@ function updateBud(dt) {
   setActive(p);
   game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
   game.fx.push({ kind: 'ring', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.6 });
+  sfx('budDone');
   toast(`${anem ? 'New anemone' : 'New polyp'} (${game.polyps.length})`);
 }
 
@@ -650,6 +660,7 @@ function doSting() {
   for (const n of game.nibblers) {
     if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
   }
+  sfx('sting');
   game.fx.push({ kind: 'sting', x: cc.x, y: sy, x1: ex, y1: ey, t: 0, life: 0.5, hit: hit > 0 });
 }
 
@@ -678,6 +689,7 @@ function spawnClowns() {
     game.clown.fish.push({ x, y: Math.max(60, y), vx: 0, vy: 0, head: dir > 0 ? Math.PI : 0, mode: 'home', cool: 0, seed: Math.random() * 10, orbit: i * Math.PI });
   }
   game.species.push('Clownfish');
+  sfx('clown');
   toast('A pair of clownfish moved in. Species: ' + game.species.length);
 }
 function updateClown(dt) {
@@ -887,6 +899,7 @@ function updateNibblers(dt) {
               const p = n.tgt;
               if (game.polyps.length <= CONFIG.nibblerSpare) { n.mode = 'leave'; n.tgt = null; continue; }
               p.hp -= CONFIG.nibblerBite; p.hurt = 0.5; p.lastHit = game.time;
+              sfx('bite', cc.x, cc.y);
               game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
               if (game.stats.nibbles++ === 0) toast('A nibbler is eating your polyps');
               if (p.hp <= 0) { killPolyp(p); n.mode = 'leave'; n.tgt = null; N.timer = Math.max(N.timer || 0, CONFIG.nibblerGrace); }   // a meal buys the colony a quiet spell
@@ -937,7 +950,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy, tx, ty - 8); game.progress.tentacled = true; game.stats.handPlankton++; }
+          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy, tx, ty - 8); sfx('catch', tx, ty); game.progress.tentacled = true; game.stats.handPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
@@ -978,6 +991,124 @@ function toast(msg, now) {
   setTimeout(() => el.remove(), 2900);
 }
 function flushToasts() { const q = toastQueue.splice(0); q.forEach((m, i) => setTimeout(() => { if (!game.tree.open) toast(m); else toastQueue.push(m); }, i * 350)); }
+
+/* ---------- sound: all synthesised with Web Audio (nothing is loaded); it starts on the first input ---------- */
+const audio = {
+  ctx: null, master: null, bus: null, send: null, muted: false, voices: 0, dropped: 0, last: {}, played: {}, tried: {}, amb: null, budV: null, tick: 0,
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    const c = this.ctx = new AC();
+    this.master = c.createGain(); this.master.gain.value = this.muted ? 0 : CONFIG.audio.master;
+    const comp = c.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
+    this.master.connect(comp); comp.connect(c.destination);
+    this.bus = c.createGain(); this.bus.connect(this.master);
+    const dl = c.createDelay(1), fb = c.createGain(), lp = c.createBiquadFilter();   // a soft echo that the chimes lean on
+    dl.delayTime.value = 0.23; fb.gain.value = 0.34; lp.type = 'lowpass'; lp.frequency.value = 1900;
+    this.send = c.createGain(); this.send.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(this.bus);
+    const n = c.sampleRate * 4;
+    this.white = c.createBuffer(1, n, c.sampleRate); this.brown = c.createBuffer(1, n, c.sampleRate);
+    const w = this.white.getChannelData(0), b = this.brown.getChannelData(0);
+    for (let i = 0, y = 0; i < n; i++) { const r = Math.random() * 2 - 1; w[i] = r; y = (y + 0.02 * r) / 1.02; b[i] = y * 3.5; }
+    this.startAmbience();
+    if (c.state === 'suspended') c.resume();
+  },
+  setMuted(m) {
+    this.muted = m;
+    if (this.master) this.master.gain.setTargetAtTime(m ? 0 : CONFIG.audio.master, this.ctx.currentTime, 0.05);
+  },
+  pv() { return 1 + (Math.random() * 2 - 1) * CONFIG.audio.pitchVar; },
+  near(x, y) { return x === undefined ? 1 : clamp(1.2 - Math.hypot(x - game.cam.x, y - game.cam.y) / 1100, 0.2, 1); },
+  startAmbience() {   // a muffled bed: slow brown-noise swells, a deep rumble and a faint shimmer, plus rare far bubbles
+    const c = this.ctx, A = CONFIG.audio, out = c.createGain(); out.gain.value = A.ambience; out.connect(this.master);
+    const loop = (buf, rate) => { const s = c.createBufferSource(); s.buffer = buf; s.loop = true; s.playbackRate.value = rate; s.start(0, Math.random() * 3); return s; };
+    const lfo = (f, depth, target) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.value = depth; o.connect(g); g.connect(target); o.start(); };
+    const filt = (type, f, q) => { const x = c.createBiquadFilter(); x.type = type; x.frequency.value = f; x.Q.value = q; return x; };
+    const wash = loop(this.brown, 1), lp = filt('lowpass', 420, 0.6), wg = c.createGain(); wg.gain.value = 1.3;
+    wash.connect(lp); lp.connect(wg); wg.connect(out); lfo(0.05, 140, lp.frequency); lfo(0.031, 0.35, wg.gain);
+    const deep = loop(this.brown, 0.6), lp2 = filt('lowpass', 130, 0.5), dg = c.createGain(); dg.gain.value = 1.6;
+    deep.connect(lp2); lp2.connect(dg); dg.connect(out); lfo(0.023, 0.5, dg.gain);
+    const sh = loop(this.white, 1), bp = filt('bandpass', 1500, 0.7), sg = c.createGain(); sg.gain.value = 0.03;
+    sh.connect(bp); bp.connect(sg); sg.connect(out); lfo(0.07, 0.02, sg.gain); lfo(0.043, 400, bp.frequency);
+    this.amb = { lp };
+    const bubbles = () => {
+      if (this.ctx.state === 'running' && !this.muted) for (let i = 0, n = 1 + Math.floor(Math.random() * 3); i < n; i++) this.tone({ f: 380 * this.pv() * (1 + Math.random() * 0.7), f2: 900 * this.pv(), d: 0.11, v: 0.03, t: i * (0.1 + Math.random() * 0.12) });
+      setTimeout(bubbles, A.bubbleMin + Math.random() * (A.bubbleMax - A.bubbleMin));
+    };
+    setTimeout(bubbles, 2500);
+  },
+  tone(o) {   // f (to f2 over glide or d), type, t offset, a attack, d decay, v volume, lp cutoff, send echo level
+    const c = this.ctx, t = c.currentTime + (o.t || 0), g = c.createGain(), os = c.createOscillator();
+    os.type = o.type || 'sine'; os.frequency.setValueAtTime(o.f, t);
+    if (o.f2) os.frequency.exponentialRampToValueAtTime(o.f2, t + (o.glide || o.d));
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(o.v, t + (o.a || 0.006)); g.gain.exponentialRampToValueAtTime(0.0001, t + o.d);
+    let n = os;
+    if (o.lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; os.connect(f); n = f; }
+    n.connect(g); g.connect(this.bus);
+    if (o.send) { const s = c.createGain(); s.gain.value = o.send; g.connect(s); s.connect(this.send); }
+    this.voices++; os.onended = () => { this.voices--; }; os.start(t); os.stop(t + o.d + 0.05);
+  },
+  noise(o) {   // filtered noise burst: type, f (to f2), q, a, d, v, t offset
+    const c = this.ctx, t = c.currentTime + (o.t || 0), g = c.createGain(), s = c.createBufferSource(), f = c.createBiquadFilter();
+    s.buffer = o.brown ? this.brown : this.white; f.type = o.type || 'bandpass'; f.Q.value = o.q || 1; f.frequency.setValueAtTime(o.f, t);
+    if (o.f2) f.frequency.exponentialRampToValueAtTime(o.f2, t + (o.glide || o.d));
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(o.v, t + (o.a || 0.004)); g.gain.exponentialRampToValueAtTime(0.0001, t + o.d);
+    s.connect(f); f.connect(g); g.connect(this.bus);
+    this.voices++; s.onended = () => { this.voices--; }; s.start(t, Math.random() * 3); s.stop(t + o.d + 0.05);
+  },
+  rec: {   // one recipe per sound; each is short, soft and a little different every time
+    catch(x, y) { const p = this.pv(), v = 0.22 * this.near(x, y);   // a wet pop with a small slurp after it
+      this.tone({ f: 330 * p, f2: 800 * p, d: 0.11, v, lp: 2400 }); this.tone({ f: 620 * p, f2: 1100 * p, d: 0.07, v: v * 0.45, t: 0.06, lp: 2400 }); },
+    auto(x, y) { const p = this.pv(); this.tone({ f: 560 * p, f2: 1000 * p, d: 0.07, v: 0.07 * this.near(x, y), lp: 2200 }); },
+    budDone() { const p = this.pv();   // a round bloop and a quiet bell
+      this.tone({ f: 190 * p, f2: 330 * p, d: 0.24, v: 0.3, lp: 900, a: 0.02 }); this.tone({ f: 660 * p, d: 0.7, v: 0.07, t: 0.1, send: 0.5, a: 0.02 }); },
+    bubble() { this.tone({ f: 420 * this.pv() * (1 + Math.random() * 0.6), f2: 950 * this.pv(), d: 0.08, v: 0.05, lp: 2000 }); },
+    thud() { const p = this.pv();   // a deep settle: falling sine plus a muffled thump of brown noise
+      this.tone({ f: 128 * p, f2: 42, d: 0.5, v: 0.6, a: 0.004, glide: 0.35 }); this.noise({ type: 'lowpass', f: 240, d: 0.2, v: 0.3, brown: true, q: 0.7 }); },
+    sting() { const p = this.pv();   // a short soft zap: falling saw through a lowpass and a few crackles
+      this.tone({ f: 1100 * p, f2: 170, type: 'sawtooth', d: 0.2, v: 0.1, lp: 2000 });
+      for (let i = 0; i < 4; i++) this.noise({ f: 2600 * (0.8 + Math.random() * 0.5), q: 1.2, d: 0.03, v: 0.06, t: 0.02 + i * 0.035 + Math.random() * 0.02 }); },
+    bite(x, y) { const p = this.pv(), v = this.near(x, y);   // a dry click and a tiny tick
+      this.noise({ f: 1900 * p, q: 3, d: 0.035, v: 0.22 * v }); this.tone({ f: 420 * p, f2: 170, d: 0.05, v: 0.1 * v, lp: 1500 }); },
+    reveal() { const b = [659.25, 783.99, 880][Math.floor(Math.random() * 3)];   // two soft bell notes in a fifth
+      this.tone({ f: b, d: 1.0, v: 0.11, a: 0.01, send: 0.6 }); this.tone({ f: b * 1.5, d: 1.2, v: 0.09, t: 0.13, a: 0.01, send: 0.6 }); },
+    buy() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {   // a richer rising arpeggio of triangle and sine
+        this.tone({ f, type: 'triangle', d: 1.1, v: 0.11, t: i * 0.075, a: 0.01, send: 0.55, lp: 3000 }); this.tone({ f: f * 2, d: 0.8, v: 0.035, t: i * 0.075, a: 0.01, send: 0.4 }); }); },
+    whoosh() { this.noise({ f: 250, f2: 1400, q: 1.2, d: 0.2, v: 0.2, a: 0.1, glide: 0.2 }); this.noise({ f: 1400, f2: 350, q: 1.2, d: 0.5, v: 0.14, t: 0.18, a: 0.04 }); },
+    clown() { for (let i = 0; i < 6; i++) this.tone({ f: (360 + Math.random() * 260) * this.pv(), f2: 1000 * this.pv(), d: 0.1, v: 0.07, t: i * 0.12 + Math.random() * 0.06, lp: 2200 });   // a few bubbles rising
+      this.tone({ f: 150, f2: 260, d: 0.25, v: 0.1, lp: 700, a: 0.02 }); },
+  },
+  play(name, ...a) {
+    if (!this.ctx || this.muted || this.ctx.state !== 'running') return;
+    this.tried[name] = (this.tried[name] || 0) + 1;
+    const now = this.ctx.currentTime, gap = (CONFIG.audio.gap[name] || 0) * (0.8 + Math.random() * 0.5);
+    if (now - (this.last[name] === undefined ? -9 : this.last[name]) < gap || this.voices >= CONFIG.audio.maxVoices) { this.dropped++; return; }
+    this.last[name] = now; this.played[name] = (this.played[name] || 0) + 1;
+    this.rec[name].apply(this, a);
+  },
+  update(dt) {   // per frame: the bed gets duller with depth, and the budding creak follows the hold
+    if (!this.ctx) return;
+    const c = this.ctx, now = c.currentTime, b = game.bud;
+    if ((this.tick += dt) > 0.4) { this.tick = 0; this.amb.lp.frequency.setTargetAtTime(230 + 330 * light(playerPos().y), now, 0.6); }
+    const p = !game.tree.open && game.stage === 'polyp' && b.armed && b.t > 0 && game.facing ? clamp(b.t / CONFIG.budTime, 0, 1) : -1;
+    if (p >= 0 && !this.budV && !this.muted && c.state === 'running') {   // creak: a slow saw, wobbled, plus a squeaking band of noise
+      const o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(), l = c.createOscillator(), lg = c.createGain();
+      const s = c.createBufferSource(), bp = c.createBiquadFilter(), ng = c.createGain();
+      o.type = 'sawtooth'; lp.type = 'lowpass'; lp.frequency.value = 420; g.gain.value = 0; l.frequency.value = 7; lg.gain.value = 0.03;
+      l.connect(lg); lg.connect(g.gain); o.connect(lp); lp.connect(g); g.connect(this.bus);
+      s.buffer = this.white; s.loop = true; bp.type = 'bandpass'; bp.Q.value = 7; ng.gain.value = 0; s.connect(bp); bp.connect(ng); ng.connect(this.bus);
+      o.start(); l.start(); s.start(0, Math.random() * 3);
+      this.budV = { o, l, s, g, ng, bp, idle: 0 };
+    }
+    const v = this.budV; if (!v) return;
+    const q = Math.max(p, 0), k = 0.05;
+    v.g.gain.setTargetAtTime(p >= 0 ? 0.015 + 0.06 * q : 0, now, k); v.ng.gain.setTargetAtTime(p >= 0 ? 0.01 + 0.05 * q : 0, now, k);
+    v.o.frequency.setTargetAtTime(70 + 110 * q, now, 0.05); v.l.frequency.setTargetAtTime(6 + 12 * q, now, 0.05); v.bp.frequency.setTargetAtTime(700 + 900 * q, now, 0.05);
+    if (p >= 0) { v.idle = 0; if (Math.random() < (0.03 + 0.25 * q) * dt * 60) this.play('bubble'); }
+    else if ((v.idle += dt) > 1) { v.o.stop(); v.l.stop(); v.s.stop(); this.budV = null; }
+  },
+};
+const sfx = (name, ...a) => audio.play(name, ...a);
 
 /* ---------- camera ---------- */
 function screenToWorld(sx, sy) {
@@ -2172,6 +2303,8 @@ function render() {
 /* ---------- HUD ---------- */
 const el = id => document.getElementById(id);
 const hud = { stage: el('hStage'), energy: el('hEnergy'), polyps: el('hPolyps'), light: el('hLight'), bar: el('barfill'), hint: el('hint'), rowCa: el('rowCa'), calcium: el('hCa'), species: el('hSpecies'), note: el('treeNote') };
+function updateMuteLabel() { el('muteNote').innerHTML = `<kbd style="font:inherit;padding:0 4px;border-radius:3px;background:rgba(255,255,255,0.18)">M</kbd> sound ${audio.muted ? 'off' : 'on'}`; }
+updateMuteLabel();
 function currentHint() {
   const pr = game.progress, n = game.polyps.length;
   if (game.stage === 'larva') return pr.settled ? 'Find rock or your colony and press Space to settle again' : 'Swim (WASD) and find rock to settle on. Eat plankton for energy';
@@ -2197,7 +2330,10 @@ function updateHud() {
 
 /* ---------- input ---------- */
 const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE', 'KeyQ']);
+for (const ev of ['keydown', 'mousedown', 'pointerdown', 'touchstart']) window.addEventListener(ev, () => audio.init(), { capture: true });   // browsers only allow sound after an input
+function toggleMute() { audio.setMuted(!audio.muted); updateMuteLabel(); }
 window.addEventListener('keydown', e => {
+  if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleMute(); return; }
   if (lookKey(e)) return;
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
@@ -2251,6 +2387,7 @@ let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   step(dt);
+  audio.update(dt);
   render();
   updateHud();
   requestAnimationFrame(frame);
