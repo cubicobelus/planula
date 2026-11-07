@@ -131,7 +131,7 @@ const CONFIG = {
   look: {
     causticStrength: 1.9, causticScale: 1 / 170, causticDepthPow: 1.3, shaftStrength: 0.42, bloomStrength: 0.8, bloomLow: 0.82, bloomHigh: 0.6, bloomKnee: 0.16,
     hazeStrength: 0.34, hazeFar: 0.22, vignette: 0.3, grade: 1, wobblePx: 1.6, wobbleClear: 120,
-    rockScale: 1.25, rockBlurNarrow: 9, rockBlurWide: 24, rockWobble: 90, rockRough: 30,
+    rockScale: 1.25, rockForm: 0.3, rockFine: 0.24, rockLight: 0.3, rockDetailDepth: 110, rockDeepDetail: 0.15, rockBlurNarrow: 9, rockBlurWide: 24, rockWobble: 90, rockRough: 30,
     coralScale: 2.5, coralBlurNarrow: 3.6, coralBlurWide: 8, coralWobble: 40,
     reefRef: 1100,
     reefLayers: [
@@ -1386,10 +1386,13 @@ function buildRockOrganic() {
       const nm = NZ[(((py * 0.5) | 0) & 511) * 512 + (((px * 0.5) | 0) & 511)];
       const nb = NZ[(((py * 0.2) | 0) & 511) * 512 + (((px * 0.2) | 0) & 511)];
       const nc = NZ[((((py * 0.4) | 0) + 97) & 511) * 512 + ((((px * 0.4) | 0) + 211) & 511)];
+            // calm rock: broad soft forms everywhere, finer detail only near surfaces and edges, quiet deep inside
       const dep = Math.max(0, wy - fl[px]);
-      let sh = (0.7 + 0.34 * lam) * (1 - 0.26 * (1 - Math.exp(-dep / 140)));
-      sh *= 1 + (n1 - 0.5) * 0.46 + (nm - 0.5) * 0.36 + 0.12 * Math.sin(wy * 0.075 + nb * 9);
-      sh *= 1 + (nc - 0.5) * 0.18 + (((px * 73856093) ^ (py * 19349663)) & 255) * 0.00035 - 0.045;   // fine grain
+      const nl = NZ[(((py * 0.07) | 0) & 511) * 512 + (((px * 0.07) | 0) & 511)];
+      const near = Math.max(Math.exp(-dep / K.rockDetailDepth), clamp((250 - d2[i << 2]) / 120, 0, 1)), dk = K.rockDeepDetail + (1 - K.rockDeepDetail) * near;
+      let sh = (0.7 + K.rockLight * lam) * (1 - 0.26 * (1 - Math.exp(-dep / 140)));
+      sh *= 1 + ((nl - 0.5) * K.rockForm + (nb - 0.5) * K.rockForm * 0.6 + 0.03 * Math.sin(wy * 0.02 + nl * 4)) + dk * ((n1 - 0.5) * K.rockFine + (nm - 0.5) * K.rockFine * 0.7 + (nc - 0.5) * 0.1);
+      sh *= 1 + dk * ((((px * 73856093) ^ (py * 19349663)) & 255) * 0.00035 - 0.045);   // fine grain
       const rimK = rim * 0.42 * (0.35 + l);
       const j = i << 2;
       o[j] = Math.min(255, base[0] * sh + 250 * rimK);
