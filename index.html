@@ -136,6 +136,8 @@ const CONFIG = {
   // moments: short beats that never block input (the slow-down ends at once on any input)
   moments: { slowSecs: 0.5, slowScale: 0.3, kickSecs: 1.1, kickZoom: 0.1, pulseSecs: 0.95, budSlow: 0.25, revealSlow: 0.18, nudgeSecs: 1.6, nudgeMax: 320, nudgeFrac: 0.5 },
   // sound (everything is synthesised; gap = shortest time between two plays of the same sound)
+  // juice: light particles and the squash of a new polyp
+  juice: { puffs: 6, autoPuffs: 3, dust: 12, squash: 0.18 },
   maxParts: 240,
   audio: {
     master: 0.5, ambience: 0.5, maxVoices: 14, pitchVar: 0.07, bubbleMin: 4000, bubbleMax: 11000,
@@ -420,7 +422,7 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; gain(CONFIG.autoEnergy, c.x, c.y - 14); sfx('auto', c.x, c.y); }
+        if (d < 6) { p.dead = true; gain(CONFIG.autoEnergy, c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
         continue;
       }
     }
@@ -512,6 +514,7 @@ function killPolyp(p) {
   const cc = cellCenter(p.c, p.r), was = p === game.active && game.stage === 'polyp';
   toSkeleton(p);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.7, red: true });
+  spawnParts('dust', cc.x, cc.y, CONFIG.juice.dust);
   if (!was) { toast('A polyp was eaten and left a skeleton'); return; }
   let nb = null;
   for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
@@ -969,7 +972,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy, tx, ty - 8); sfx('catch', tx, ty); game.progress.tentacled = true; game.stats.handPlankton++; }
+          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy, tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
@@ -1969,9 +1972,11 @@ function drawSurface(t) {
   for (let x = 0; x <= W; x += 40) { const y = 7 + Math.sin(x * 0.02 + t * 1.3) * 3 + Math.sin(x * 0.05 - t) * 1.5; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
   ctx.stroke();
 }
+// a new polyp stretches up, squashes and settles (the scale only wobbles while pop runs down)
+function popScale(p, s) { const w = Math.sin((1 - p.pop) * Math.PI * 3) * p.pop * CONFIG.juice.squash; ctx.scale(s * (1 - w), s * (1 + w)); }
 function drawPolypBodyOrganic(p, t, active) {   // the tissue itself comes from the cached layer
   const cc = cellCenter(p.c, p.r), s = 1 + 0.22 * p.pop, br = 1 + 0.08 * Math.sin(t * 1.6 + p.seed);
-  ctx.save(); ctx.translate(cc.x, cc.y); ctx.scale(s, s);
+  ctx.save(); ctx.translate(cc.x, cc.y); popScale(p, s);
   if (p.pop > 0.02) {
     ctx.strokeStyle = `rgba(255,236,210,${p.pop * 0.7})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 13 + 14 * (1 - p.pop), 0, 6.3); ctx.stroke();
   }
@@ -1994,7 +1999,7 @@ function drawPolypBody(p, t, active) {
   if (game.look.on.organic) return drawPolypBodyOrganic(p, t, active);
   const cc = cellCenter(p.c, p.r), l = light(cc.y);
   const s = 1 + 0.22 * p.pop;
-  ctx.save(); ctx.translate(cc.x, cc.y); ctx.scale(s, s);
+  ctx.save(); ctx.translate(cc.x, cc.y); popScale(p, s);
   if (active) {
     const pulse = 0.5 + 0.5 * Math.sin(t * 5);
     const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 34);
