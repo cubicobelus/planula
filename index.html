@@ -26,6 +26,8 @@
   #muteNote { margin-top: 3px; font-size: 11px; opacity: 0.5; letter-spacing: 0.02em; }
   #treeNote { display: none; margin-top: 4px; font-size: 11px; letter-spacing: 0.02em; color: #ffe2b0; animation: tnote 2.4s ease-in-out infinite; }
   #treeNote kbd { font: inherit; display: inline-block; min-width: 11px; padding: 0 4px; margin-right: 4px; text-align: center; border-radius: 3px; background: rgba(255,226,176,0.2); color: #fff3d6; }
+  @keyframes hflash { 0% { box-shadow: 0 0 0 0 rgba(255,226,176,0); } 25% { box-shadow: 0 0 22px 3px rgba(255,226,176,0.75); } 100% { box-shadow: 0 0 0 0 rgba(255,226,176,0); } }
+  #hud.flash { animation: hflash 1s ease-out; }
   @keyframes tnote { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
   #toasts { z-index: 30; }
   body.treeopen #toasts { top: auto; bottom: 18px; }
@@ -131,7 +133,10 @@ const CONFIG = {
   longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
   algaeSunMult: 3,
   calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
+  // moments: short beats that never block input (the slow-down ends at once on any input)
+  moments: { slowSecs: 0.5, slowScale: 0.3, kickSecs: 1.1, kickZoom: 0.1, pulseSecs: 0.95, budSlow: 0.25, revealSlow: 0.18, nudgeSecs: 1.6, nudgeMax: 320, nudgeFrac: 0.5 },
   // sound (everything is synthesised; gap = shortest time between two plays of the same sound)
+  maxParts: 240,
   audio: {
     master: 0.5, ambience: 0.5, maxVoices: 14, pitchVar: 0.07, bubbleMin: 4000, bubbleMax: 11000,
     gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, buy: 0.3, whoosh: 0.4, clown: 2 },
@@ -171,7 +176,8 @@ const game = {
   sting: { cd: 0 },
   nextAnemone: false, clown: { t: null, fish: [] },
   guide: null,               // { path, target, t, wait } while the colony grows by itself
-  fx: [],
+  fx: [], parts: [],
+  slow: null, kick: null, nudge: null,   // moment state: time scale, camera kick, camera nudge
   keys: new Set(),
   mouse: { sx: 0, sy: 0, down: false },
   cam: { x: 1300, y: 330, zoom: 1 },
@@ -249,11 +255,18 @@ const has = id => game.tree.state[id] === 'owned';
 const reach = () => has('F2') ? CONFIG.longReach : CONFIG.tentacleReach;
 const autoRadius = () => has('F2') ? CONFIG.longAutoRadius : CONFIG.autoRadius;
 const tentScale = () => has('F2') ? CONFIG.longTentacleScale : 1;
+// a brief hold of the world's clock (only the frame loop applies it, any input ends it)
+function beat(secs, scale) { if (!game.slow || game.slow.t < secs) game.slow = { t: secs, life: secs, scale }; }
+function revealBeat() {
+  const p = playerPos();
+  spawnParts('spark', p.x, p.y - 10, 12); beat(CONFIG.moments.revealSlow, 0.5);
+  const h = document.getElementById('hud'); h.classList.remove('flash'); void h.offsetWidth; h.classList.add('flash');
+}
 function checkReveals() {
   for (const d of TREE) {
     if (game.tree.state[d.id] || !d.ok()) continue;
     game.tree.state[d.id] = 'revealed'; game.tree.fresh[d.id] = true;
-    toast(`The reef is learning: ${d.name}`); sfx('reveal');
+    toast(`The reef is learning: ${d.name}`); sfx('reveal'); revealBeat();
     if (game.tree.open) renderTree();
   }
 }
@@ -481,7 +494,9 @@ function trySettle() {
   setActive(p);
   if (!game.progress.settled) { game.progress.settled = true; toast('Settled. Hold the mouse to catch plankton'); }
   else toast('Settled');
-  game.fx.push({ kind: 'ring', x: (t.c + 0.5) * CELL, y: (t.r + 0.5) * CELL, t: 0, life: 0.6 });
+  const M = CONFIG.moments;
+  game.fx.push({ kind: 'pulse', x: (t.c + 0.5) * CELL, y: (t.r + 0.5) * CELL, t: 0, life: M.pulseSecs });
+  game.slow = { t: M.slowSecs, life: M.slowSecs, scale: M.slowScale }; game.kick = { t: 0, life: M.kickSecs };
   sfx('thud');
   return true;
 }
@@ -576,9 +591,11 @@ function updateBud(dt) {
   const anem = game.nextAnemone; game.nextAnemone = false;
   const p = addPolyp(f.c, f.r, anem);
   setActive(p);
+  const first = !game.progress.budded;
   game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
   game.fx.push({ kind: 'ring', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.6 });
   sfx('budDone');
+  if (first) { beat(CONFIG.moments.budSlow, 0.5); game.fx.push({ kind: 'pulse', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.8, small: true }); spawnParts('spark', (f.c + 0.5) * CELL, (f.r + 0.5) * CELL, 10); }
   toast(`${anem ? 'New anemone' : 'New polyp'} (${game.polyps.length})`);
 }
 
@@ -690,6 +707,8 @@ function spawnClowns() {
   }
   game.species.push('Clownfish');
   sfx('clown');
+  const cf = game.clown.fish, v = game.view, mx = cf.reduce((a, f) => a + f.x, 0) / cf.length, my = cf.reduce((a, f) => a + f.y, 0) / cf.length;
+  if (cf.every(f => { const q = worldToScreen(f.x, f.y); return q.x < 0 || q.x > v.w || q.y < 0 || q.y > v.h; })) game.nudge = { x: mx, y: my, t: 0, life: CONFIG.moments.nudgeSecs };   // only when they arrive off screen
   toast('A pair of clownfish moved in. Species: ' + game.species.length);
 }
 function updateClown(dt) {
@@ -978,6 +997,19 @@ function updatePolyps(dt) {
 function updateFx(dt) {
   for (const f of game.fx) f.t += dt;
   game.fx = game.fx.filter(f => f.t < f.life);
+  for (const q of game.parts) {
+    q.t += dt; q.x += q.vx * dt; q.y += q.vy * dt; const d = Math.exp(-2.2 * dt); q.vx *= d; q.vy = q.vy * d + q.g * dt;
+  }
+  game.parts = game.parts.filter(q => q.t < q.life);
+}
+// small particles: 'puff' (catch), 'dust' (skeleton) and 'spark' (a twinkling beat); light on purpose
+function spawnParts(kind, x, y, n) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * 6.28, sp = kind === 'spark' ? 28 + Math.random() * 45 : kind === 'dust' ? 8 + Math.random() * 22 : 8 + Math.random() * 26;
+    game.parts.push({ kind, x: x + (Math.random() - 0.5) * 6, y: y + (Math.random() - 0.5) * 6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (kind === 'puff' ? 22 : 0), g: kind === 'dust' ? 16 : kind === 'puff' ? -10 : 0,
+      t: 0, life: kind === 'dust' ? 0.9 + Math.random() * 0.6 : kind === 'spark' ? 0.7 + Math.random() * 0.5 : 0.45 + Math.random() * 0.4, r: kind === 'dust' ? 1 + Math.random() * 1.4 : kind === 'spark' ? 1.6 + Math.random() * 1.6 : 1.6 + Math.random() * 1.8, rot: Math.random() * 3 });
+  }
+  while (game.parts.length > CONFIG.maxParts) game.parts.shift();
 }
 // game toasts wait in a queue while the tree screen is open; feedback for clicks inside the tree shows at once (low on the screen)
 const toastQueue = [];
@@ -1127,11 +1159,17 @@ function zoomTarget() {
 }
 function updateCamera(dt, snap) {
   const c = game.cam, v = game.view, p = playerPos();
-  const zt = zoomTarget();
+  const M = CONFIG.moments, kk = game.kick ? Math.sin(Math.PI * clamp(game.kick.t / game.kick.life, 0, 1)) : 0;
+  const zt = zoomTarget() * (1 + M.kickZoom * kk);
   c.zoom = snap ? zt : lerp(c.zoom, zt, 1 - Math.exp(-CONFIG.zoomSmooth * dt));
   c.zoom = Math.max(c.zoom, v.w / W, v.h / H);
-  const k = snap ? 1 : 1 - Math.exp(-CONFIG.camSmooth * dt);
-  c.x = lerp(c.x, p.x, k); c.y = lerp(c.y, p.y, k);
+  const k = snap ? 1 : 1 - Math.exp(-CONFIG.camSmooth * (1 - 0.45 * kk) * dt);
+  let tx = p.x, ty = p.y;
+  if (game.nudge && !snap) {   // a gentle lean toward the new arrivals that comes back by itself; the player is never moved
+    const n = game.nudge, b = Math.sin(Math.PI * clamp(n.t / n.life, 0, 1)), dx = n.x - p.x, dy = n.y - p.y, d = Math.hypot(dx, dy) || 1, m = Math.min(d * M.nudgeFrac, M.nudgeMax) * b;
+    tx += dx / d * m; ty += dy / d * m;
+  }
+  c.x = lerp(c.x, tx, k); c.y = lerp(c.y, ty, k);
   const hw = v.w / c.zoom / 2, hh = v.h / c.zoom / 2;
   c.x = hw * 2 >= W ? W / 2 : clamp(c.x, hw, W - hw);
   c.y = hh * 2 >= H ? H / 2 : clamp(c.y, hh, H - hh);
@@ -2211,6 +2249,14 @@ function drawFx() {
       ctx.strokeStyle = `rgba(${f.hit ? '255,240,150' : '190,240,255'},${1 - u})`; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(f.x1, f.y1, 6 + u * (f.hit ? 30 : 18), 0, 6.3); ctx.stroke();
       for (let k = 0; k < 6; k++) { const a = k * 1.047 + 0.5; ctx.beginPath(); ctx.moveTo(f.x1 + Math.cos(a) * 5, f.y1 + Math.sin(a) * 5); ctx.lineTo(f.x1 + Math.cos(a) * (10 + u * 14), f.y1 + Math.sin(a) * (10 + u * 14)); ctx.stroke(); }
+    } else if (f.kind === 'pulse') {   // settling: a soft glow and two rings spreading out
+      const e = 1 - Math.pow(1 - u, 3), R = f.small ? 0.6 : 1;
+      const gg = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, (24 + 70 * e) * R);
+      gg.addColorStop(0, `rgba(255,240,205,${0.5 * (1 - u)})`); gg.addColorStop(1, 'rgba(255,240,205,0)');
+      ctx.fillStyle = gg; ctx.beginPath(); ctx.arc(f.x, f.y, (24 + 70 * e) * R, 0, 6.3); ctx.fill();
+      ctx.lineWidth = 3.2 * (1 - u) + 0.6; ctx.strokeStyle = `rgba(255,248,230,${0.9 * (1 - u)})`; ctx.beginPath(); ctx.arc(f.x, f.y, (10 + 80 * e) * R, 0, 6.3); ctx.stroke();
+      const u2 = clamp((u - 0.15) / 0.85, 0, 1), e2 = 1 - Math.pow(1 - u2, 3);
+      ctx.lineWidth = 2 * (1 - u2) + 0.4; ctx.strokeStyle = `rgba(190,235,255,${0.7 * (1 - u2)})`; ctx.beginPath(); ctx.arc(f.x, f.y, (8 + 52 * e2) * R, 0, 6.3); ctx.stroke();
     } else if (f.kind === 'bite') {   // jaws snapping shut and a few flecks of tissue
       ctx.strokeStyle = `rgba(255,236,220,${1 - u})`; ctx.lineWidth = 2; ctx.lineCap = 'round';
       const j = 15 - 7 * Math.min(1, u * 3);
@@ -2219,6 +2265,17 @@ function drawFx() {
     } else {
       ctx.strokeStyle = f.red ? `rgba(255,110,90,${1 - u})` : `rgba(255,255,255,${1 - u})`; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(f.x, f.y, 8 + u * 34, 0, 6.3); ctx.stroke();
+    }
+  }
+  for (const q of game.parts) {
+    const u = q.t / q.life, a = 1 - u;
+    if (q.kind === 'spark') {
+      const L = q.r * 2.6 * (1 - u * 0.4); ctx.strokeStyle = `rgba(255,238,170,${a})`; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(q.x - L, q.y); ctx.lineTo(q.x + L, q.y); ctx.moveTo(q.x, q.y - L); ctx.lineTo(q.x, q.y + L); ctx.stroke();
+    } else if (q.kind === 'dust') {
+      ctx.fillStyle = `rgba(228,214,194,${a * 0.75})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1 + u * 0.5), 0, 6.3); ctx.fill();
+    } else {
+      ctx.strokeStyle = `rgba(215,247,255,${a * 0.85})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.6 + u * 1.2), 0, 6.3); ctx.stroke();
     }
   }
   if (game.hop && game.active) {
@@ -2340,6 +2397,7 @@ window.addEventListener('keydown', e => {
   if (game.tree.open) return;
   if (!GAME_KEYS.has(e.code)) return;
   e.preventDefault();
+  game.slow = null;   // input is never held back: any key ends a slow-down
   game.keys.add(e.code);
   if (e.repeat) return;
   if (e.code === 'Space') pressSpace();
@@ -2356,6 +2414,7 @@ window.addEventListener('blur', () => { game.keys.clear(); game.mouse.down = fal
 canvas.addEventListener('mousedown', e => {
   game.mouse.sx = e.clientX; game.mouse.sy = e.clientY;
   if (game.tree.open) return;
+  game.slow = null;
   if (e.button === 2) { doSting(); return; }
   if (e.button === 0 && game.keys.has('KeyG') && has('G2')) { guideClick(); return; }   // G + click guides growth instead of catching plankton
   if (e.button === 0) game.mouse.down = true;
@@ -2381,12 +2440,19 @@ function step(dt) {
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   updateFx(dt);
+  if (game.kick && (game.kick.t += dt) >= game.kick.life) game.kick = null;
+  if (game.nudge && (game.nudge.t += dt) >= game.nudge.life) game.nudge = null;
   updateCamera(dt, false);
 }
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  step(dt);
+  let sc = 1;
+  if (game.slow) {   // settle and beats slow the world for a moment; direct calls to step() are never scaled
+    game.slow.t -= dt;
+    if (game.slow.t <= 0) game.slow = null; else { const u = 1 - game.slow.t / game.slow.life; sc = lerp(game.slow.scale, 1, u * u); }
+  }
+  step(dt * sc);
   audio.update(dt);
   render();
   updateHud();
