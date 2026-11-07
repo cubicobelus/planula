@@ -23,6 +23,53 @@
   #looklist .row { display: flex; justify-content: space-between; gap: 14px; }
   #looklist kbd { font: inherit; display: inline-block; min-width: 11px; margin-right: 5px; padding: 0 3px; text-align: center; border-radius: 3px; background: rgba(255,255,255,0.16); color: #fff; }
   #looklist .on { color: #8ff0c0; } #looklist .off { color: #8aa0b2; } #looklist .na { color: #667788; }
+  #treeNote { display: none; margin-top: 4px; font-size: 11px; letter-spacing: 0.02em; color: #ffe2b0; animation: tnote 2.4s ease-in-out infinite; }
+  #treeNote kbd { font: inherit; display: inline-block; min-width: 11px; padding: 0 4px; margin-right: 4px; text-align: center; border-radius: 3px; background: rgba(255,226,176,0.2); color: #fff3d6; }
+  @keyframes tnote { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+  #toasts { z-index: 30; }
+  #tree { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 20; color: #d6f2ff; cursor: default;
+    background: radial-gradient(ellipse at 50% 20%, rgba(18, 88, 118, 0.7), rgba(2, 10, 22, 0.94) 72%); backdrop-filter: blur(5px); }
+  #tree.open { display: flex; animation: tfade 0.25s ease-out; }
+  @keyframes tfade { from { opacity: 0; } to { opacity: 1; } }
+  .tpanel { width: min(1080px, 94vw); max-height: 94vh; overflow: auto; box-sizing: border-box; padding: 20px 26px 16px; border-radius: 18px;
+    background: linear-gradient(180deg, rgba(10, 46, 68, 0.8), rgba(3, 18, 34, 0.88)); border: 1px solid rgba(150, 220, 240, 0.22);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+  .thead { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(150, 220, 240, 0.16); }
+  .thead h2 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 0.01em; color: #ffe3d3; }
+  .thead p { margin: 3px 0 0; font-size: 13px; color: #9cc5d6; max-width: 640px; }
+  .tres { display: flex; gap: 8px; }
+  .tchip { padding: 5px 11px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); font-size: 12px; color: #9cc5d6; white-space: nowrap; }
+  .tchip b { color: #fff; font-weight: 600; margin-left: 6px; }
+  .tcols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .tcol h3 { margin: 0; padding-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: var(--ac); border-bottom: 2px solid var(--ac); }
+  .tnode { position: relative; margin-top: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(160, 200, 220, 0.18); background: rgba(255, 255, 255, 0.04); transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
+  .tnode + .tnode::before { content: ''; position: absolute; left: 22px; top: -17px; width: 2px; height: 17px; background: linear-gradient(var(--ac), rgba(255, 255, 255, 0.1)); opacity: 0.6; }
+  .tnode .nm { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #fff; }
+  .tnode .st { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; white-space: nowrap; }
+  .tnode .fxl { margin-top: 5px; font-size: 12.5px; line-height: 1.4; color: #bcdbe8; }
+  .tnode .cost { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .tnode .cost span { padding: 2px 8px; border-radius: 9px; background: rgba(2, 16, 32, 0.55); color: #8fe8bc; }
+  .tnode .cost span.no { color: #ff9f8c; }
+  .tnode .need { margin-top: 6px; font-size: 11.5px; color: #ffb59a; }
+  .tnode.hidden { border-style: dashed; background: rgba(255, 255, 255, 0.025); }
+  .tnode.hidden .nm { color: #6f8ea2; letter-spacing: 0.2em; }
+  .tnode.hidden .st { background: rgba(255, 255, 255, 0.07); color: #6f8ea2; }
+  .tnode.hidden .fxl { color: #7d98aa; font-style: italic; }
+  .tnode.revealed { cursor: pointer; border-color: rgba(255, 205, 170, 0.6); background: linear-gradient(180deg, rgba(255, 214, 190, 0.15), rgba(255, 170, 140, 0.07)); box-shadow: 0 0 18px rgba(255, 190, 150, 0.12); }
+  .tnode.revealed:hover { transform: translateY(-2px); background: linear-gradient(180deg, rgba(255, 224, 204, 0.22), rgba(255, 180, 150, 0.11)); box-shadow: 0 6px 22px rgba(255, 190, 150, 0.22); }
+  .tnode.revealed .st { background: rgba(255, 205, 170, 0.22); color: #ffe3d3; }
+  .tnode.revealed.fresh { animation: tfresh 1.6s ease-in-out infinite; }
+  @keyframes tfresh { 0%, 100% { box-shadow: 0 0 10px rgba(255, 190, 150, 0.15); } 50% { box-shadow: 0 0 24px rgba(255, 210, 170, 0.5); } }
+  .tnode.revealed.locked { cursor: not-allowed; opacity: 0.8; }
+  .tnode.owned { border-color: rgba(123, 227, 176, 0.5); background: linear-gradient(180deg, rgba(123, 227, 176, 0.13), rgba(40, 140, 120, 0.06)); }
+  .tnode.owned .st { background: rgba(123, 227, 176, 0.22); color: #a8f5cf; }
+  .tnode.shake { animation: tshake 0.28s; }
+  @keyframes tshake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  .tspecies { margin-top: 16px; padding: 9px 12px; border-radius: 12px; background: rgba(2, 16, 32, 0.4); font-size: 12px; color: #9cc5d6; line-height: 1.45; }
+  .tspecies b { color: #ffe3d3; }
+  .tfoot { margin-top: 18px; padding-top: 10px; border-top: 1px solid rgba(150, 220, 240, 0.12); display: flex; justify-content: space-between; font-size: 12px; color: #7fa6b8; }
+  .tfoot kbd { font: inherit; padding: 0 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); color: #fff; }
+  @media (max-width: 900px) { .tcols { grid-template-columns: repeat(2, 1fr); } }
   @keyframes tin { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
@@ -33,11 +80,15 @@
   <div class="row"><span>Energy</span><b id="hEnergy">0</b></div>
   <div id="bar"><div id="barfill"></div></div>
   <div class="row"><span>Polyps</span><b id="hPolyps">0</b></div>
+  <div class="row" id="rowCa" style="display:none"><span>Calcium</span><b id="hCa">0</b></div>
+  <div class="row"><span>Species</span><b id="hSpecies">0</b></div>
   <div class="row"><span>Light</span><b id="hLight">-</b></div>
+  <div id="treeNote"><kbd>T</kbd>opens the tree</div>
 </div>
 <div id="hint"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
+<div id="tree"></div>
 <script>
 "use strict";
 
@@ -63,6 +114,12 @@ const CONFIG = {
   tentacleReach: 120, tentacleIdleLen: 32, tentacleSpeed: 7, pullRadius: 36, pullSpeed: 230, eatDist: 9,
   budTime: 1.2, budCostBase: 10, budCostPerPolyp: 0.8,
   automationAt: 5, autoRadius: 75, autoInterval: 2.6, autoPullTime: 0.4, autoEnergy: 2,
+  // tech tree: what reveals each unlock, what it costs and what it does
+  revealHandPlankton: 25, revealFairSeconds: 60, revealBuds: 3, revealHandBuds: 12, revealAnemonePolyps: 10,
+  cost: { F1: { e: 8 }, F2: { e: 20 }, F3: { e: 30 }, G1: { e: 25 }, G2: { e: 30, ca: 8 }, D1: { e: 15 }, R1: { e: 25 } },
+  longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
+  algaeSunMult: 3,
+  calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
   // look test (visual only)
   look: {
     causticStrength: 1.9, causticScale: 1 / 170, causticDepthPow: 1.3, shaftStrength: 0.42, bloomStrength: 0.8, bloomLow: 0.82, bloomHigh: 0.6, bloomKnee: 0.16,
@@ -104,7 +161,11 @@ const game = {
   tent: { ext: 0, hx: 0, hy: -60 },
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
-  unlocked: false,
+  unlocked: false,            // self-feeding owned
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0 },
+  tree: { open: false, state: {}, fresh: {} },   // state: id -> 'revealed' | 'owned' (missing = hidden)
+  calcium: 0, calciumOn: false,
+  species: [],
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
@@ -132,7 +193,113 @@ function playerPos() {
   if (game.stage === 'polyp' && game.active) return cellCenter(game.active.c, game.active.r);
   return { x: game.larva.x, y: game.larva.y };
 }
-function budCost() { return CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, game.polyps.length - 1); }
+function budCost() {
+  const c = CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, game.polyps.length - 1);
+  return has('G1') ? c * CONFIG.budEnergyFactor : c;
+}
+function budCalcium() { return has('G1') ? CONFIG.budCalcium : 0; }
+// null when the bud can be paid for, otherwise what is missing
+function budShort() {
+  if (game.energy < budCost()) return `Need ${Math.ceil(budCost())} energy to bud`;
+  if (game.calcium < budCalcium()) return `Need ${budCalcium()} calcium to bud`;
+  return null;
+}
+
+/* ---------- tech tree: doing a job by hand reveals its upgrade, then it can be bought ---------- */
+const TREE = [
+  { id: 'F1', branch: 'Feeding', name: 'Self-feeding', hint: 'It stirs once the colony is five strong',
+    fx: () => 'Idle polyps catch nearby plankton on their own', done: 'Polyps now feed themselves', ok: () => game.polyps.length >= CONFIG.automationAt, on: () => { game.unlocked = true; } },
+  { id: 'F2', branch: 'Feeding', name: 'Long tentacles', hint: 'Keep catching plankton by hand',
+    fx: () => `Hand reach ${CONFIG.tentacleReach} to ${CONFIG.longReach}, and polyps feed from further away`, done: 'Tentacles grow longer', ok: () => game.stats.handPlankton >= CONFIG.revealHandPlankton },
+  { id: 'F3', branch: 'Feeding', name: 'Algae partnership', hint: 'Spend a long while basking in good light',
+    fx: () => `Sunlight income x${CONFIG.algaeSunMult}. Polyps turn golden-brown`, done: 'Algae now live in your polyps', ok: () => game.polyps.some(p => p.fairT >= CONFIG.revealFairSeconds) },
+  { id: 'G1', branch: 'Growth', name: 'Calcium pull', hint: 'Keep budding new polyps',
+    fx: () => `Polyps slowly make calcium. Buds cost ${Math.round((1 - CONFIG.budEnergyFactor) * 100)}% less energy plus ${CONFIG.budCalcium} calcium`, done: 'Polyps now draw calcium from the water',
+    ok: () => game.stats.buds >= CONFIG.revealBuds, on: () => { game.calciumOn = true; game.calcium = Math.max(game.calcium, CONFIG.calciumStart); } },
+  { id: 'G2', branch: 'Growth', name: 'Guided growth', hint: 'Practise growing by hand, a lot', needs: 'G1',
+    fx: () => 'Hold G and click a spot nearby: the colony grows a path to it by itself, slowly', done: 'Hold G and click to guide growth', ok: () => game.stats.handBuds >= CONFIG.revealHandBuds },
+  { id: 'R1', branch: 'Residents', name: 'Anemone', hint: 'A bigger colony might shelter someone',
+    fx: () => 'Q picks an anemone as the next bud. A pair of clownfish moves in soon after', done: 'Press Q to bud an anemone', ok: () => game.polyps.length >= CONFIG.revealAnemonePolyps },
+  { id: 'D1', branch: 'Defense', name: 'Sting', hint: 'Something may come to nibble',
+    fx: () => 'Right mouse or E stings toward the cursor. Stung nibblers flee', done: 'Right mouse or E stings', ok: () => game.stats.nibbles >= 1 },
+];
+const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff']];
+const has = id => game.tree.state[id] === 'owned';
+const reach = () => has('F2') ? CONFIG.longReach : CONFIG.tentacleReach;
+const autoRadius = () => has('F2') ? CONFIG.longAutoRadius : CONFIG.autoRadius;
+const tentScale = () => has('F2') ? CONFIG.longTentacleScale : 1;
+function checkReveals() {
+  for (const d of TREE) {
+    if (game.tree.state[d.id] || !d.ok()) continue;
+    game.tree.state[d.id] = 'revealed'; game.tree.fresh[d.id] = true;
+    toast(`The reef is learning: ${d.name}`);
+    if (game.tree.open) renderTree();
+  }
+}
+function costShort(id) {
+  const c = CONFIG.cost[id];
+  if (game.energy < c.e) return `Need ${c.e} energy`;
+  if (game.calcium < (c.ca || 0)) return `Need ${c.ca} calcium`;
+  return null;
+}
+function canBuy(id) {
+  const d = TREE.find(x => x.id === id);
+  return !!d && game.tree.state[id] === 'revealed' && (!d.needs || has(d.needs)) && !costShort(id);
+}
+function buy(id) {
+  const d = TREE.find(x => x.id === id);
+  if (!d || game.tree.state[id] !== 'revealed') return false;
+  const why = d.needs && !has(d.needs) ? `Needs ${TREE.find(x => x.id === d.needs).name} first` : costShort(id);
+  if (why) { toast(why); return false; }
+  const c = CONFIG.cost[id];
+  game.energy -= c.e; game.calcium -= c.ca || 0;
+  game.tree.state[id] = 'owned';
+  if (d.on) d.on();
+  toast(d.done);
+  if (game.tree.open) renderTree();
+  return true;
+}
+function treeAffordable() { return TREE.some(d => canBuy(d.id)); }
+const treeEl = document.getElementById('tree');
+function renderTree() {
+  const st = game.tree.state;
+  const chip = (txt, ok) => `<span class="${ok ? '' : 'no'}">${txt}</span>`;
+  let h = `<div class="tpanel"><div class="thead"><div><h2>The reef is learning</h2><p>Doing a job by hand teaches the reef to do it better. Animals are never bought: they move in when their coral exists.</p></div>
+    <div class="tres"><div class="tchip">Energy<b>${Math.floor(game.energy)}</b></div>${game.calciumOn ? `<div class="tchip">Calcium<b>${Math.floor(game.calcium)}</b></div>` : ''}<div class="tchip">Species<b>${game.species.length}</b></div></div></div><div class="tcols">`;
+  for (const [br, ac] of BRANCHES) {
+    h += `<div class="tcol" style="--ac:${ac}"><h3>${br}</h3>`;
+    for (const d of TREE.filter(x => x.branch === br)) {
+      const s = st[d.id] || 'hidden', c = CONFIG.cost[d.id], locked = s === 'revealed' && d.needs && !has(d.needs);
+      if (s === 'hidden') h += `<div class="tnode hidden" data-id="${d.id}"><div class="nm"><span>???</span><span class="st">Hidden</span></div><div class="fxl">${d.hint}</div></div>`;
+      else {
+        h += `<div class="tnode ${s}${locked ? ' locked' : ''}${s === 'revealed' && game.tree.fresh[d.id] ? ' fresh' : ''}" data-id="${d.id}"><div class="nm"><span>${d.name}</span><span class="st">${s === 'owned' ? 'Owned' : 'Revealed'}</span></div><div class="fxl">${d.fx()}</div>`;
+        if (s === 'revealed') {
+          h += `<div class="cost">${chip(c.e + ' energy', game.energy >= c.e)}${c.ca ? chip(c.ca + ' calcium', game.calcium >= c.ca) : ''}</div>`;
+          if (locked) h += `<div class="need">Needs ${TREE.find(x => x.id === d.needs).name} first</div>`;
+        }
+        h += '</div>';
+      }
+    }
+    if (br === 'Residents') h += `<div class="tspecies">${game.species.length ? `Moved in: <b>${game.species.join(', ')}</b>` : 'No one has moved in yet.'}</div>`;
+    h += '</div>';
+  }
+  h += '</div><div class="tfoot"><span>Click a revealed idea to learn it</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>';
+  treeEl.innerHTML = h;
+}
+function openTree() {
+  if (game.tree.open) return;
+  game.tree.open = true; game.keys.clear(); game.mouse.down = false; game.bud.armed = false; game.bud.t = 0;
+  renderTree(); treeEl.classList.add('open');
+  game.tree.fresh = {};
+}
+function closeTree() {
+  if (!game.tree.open) return;
+  game.tree.open = false; treeEl.classList.remove('open');
+}
+treeEl.addEventListener('click', e => {
+  const n = e.target.closest('.tnode.revealed'); if (!n) return;
+  if (!buy(n.dataset.id)) { n.classList.remove('shake'); void n.offsetWidth; n.classList.add('shake'); }
+});
 
 /* ---------- world generation ---------- */
 const SHELF = { c0: 31, c1: 43, row: 38 };
@@ -245,13 +412,9 @@ function gain(a, x, y) {
 
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r) {
-  const p = { c, r, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10 };
+  const p = { c, r, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0 };
   game.polyps.push(p);
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
-  if (!game.unlocked && game.polyps.length >= CONFIG.automationAt) {
-    game.unlocked = true;
-    toast('Polyps now feed themselves');
-  }
   return p;
 }
 function setActive(p) {
@@ -345,8 +508,8 @@ function pressSpace() {
   if (game.stage === 'larva') { trySettle(); return; }
   const b = game.bud;
   if (!game.facing) { toast('Press a direction to pick a cell first'); return; }
-  const cost = budCost();
-  if (game.energy < cost) { b.fail = 0.9; b.armed = false; toast(`Need ${Math.ceil(cost)} energy to bud`); return; }
+  const short = budShort();
+  if (short) { b.fail = 0.9; b.armed = false; toast(short); return; }
   b.armed = true; b.t = 0;
 }
 function updateBud(dt) {
@@ -357,13 +520,13 @@ function updateBud(dt) {
   if (!b.armed || !game.keys.has('Space') || !game.facing) { b.t = 0; b.armed = false; return; }
   b.t += dt;
   if (b.t < CONFIG.budTime) return;
-  const cost = budCost(), f = game.facing;
+  const cost = budCost(), f = game.facing, short = budShort();
   b.t = 0; b.armed = false;
-  if (game.energy < cost) { b.fail = 0.9; toast(`Need ${Math.ceil(cost)} energy to bud`); return; }
-  game.energy -= cost;
+  if (short) { b.fail = 0.9; toast(short); return; }
+  game.energy -= cost; game.calcium -= budCalcium();
   const p = addPolyp(f.c, f.r);
   setActive(p);
-  game.progress.budded = true;
+  game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
   game.fx.push({ kind: 'ring', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.6 });
   toast(`New polyp (${game.polyps.length})`);
 }
@@ -468,10 +631,13 @@ function updateFish(dt) {
 /* ---------- polyp updates ---------- */
 function updatePolyps(dt) {
   const t = game.time;
+  const sunK = has('F3') ? CONFIG.algaeSunMult : 1;
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
-    const cc = cellCenter(p.c, p.r);
-    game.energy = Math.min(CONFIG.maxEnergy, game.energy + CONFIG.sunRate * light(cc.y) * dt);
+    const cc = cellCenter(p.c, p.r), l = light(cc.y);
+    game.energy = Math.min(CONFIG.maxEnergy, game.energy + CONFIG.sunRate * l * sunK * dt);
+    if (l >= CONFIG.dimBelow) p.fairT += dt;
+    if (game.calciumOn) game.calcium = Math.min(CONFIG.calciumMax, game.calcium + CONFIG.calciumRate * dt);
   }
   if (game.hop) { game.hop.t += dt; if (game.hop.t > 0.35) game.hop = null; }
   if (game.stage === 'polyp' && game.active) {
@@ -479,7 +645,8 @@ function updatePolyps(dt) {
     const w = screenToWorld(game.mouse.sx, game.mouse.sy);
     if (game.mouse.down) {
       let dx = w.x - cc.x, dy = w.y - cc.y; const m = Math.hypot(dx, dy);
-      if (m > CONFIG.tentacleReach) { dx *= CONFIG.tentacleReach / m; dy *= CONFIG.tentacleReach / m; }
+      const R = reach();
+      if (m > R) { dx *= R / m; dy *= R / m; }
       const k = 1 - Math.exp(-14 * dt);
       T.hx = lerp(T.hx, dx, k); T.hy = lerp(T.hy, dy, k);
     }
@@ -490,7 +657,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy, tx, ty - 8); game.progress.tentacled = true; }
+          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy, tx, ty - 8); game.progress.tentacled = true; game.stats.handPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
@@ -502,7 +669,7 @@ function updatePolyps(dt) {
       p.cd -= dt;
       if (p.cd > 0) continue;
       const cc = cellCenter(p.c, p.r);
-      let best = null, bd = CONFIG.autoRadius;
+      let best = null, bd = autoRadius();
       for (const q of game.plankton) {
         if (q.dead || q.cap) continue;
         const d = Math.hypot(q.x - cc.x, q.y - cc.y);
@@ -1033,7 +1200,8 @@ function refreshMask() {
 }
 
 /* ---------- look test: organic coral tissue and skeletons (rebuilt only when cells change) ---------- */
-const CORAL_PAL = { r: 12.2, bridge: 17, lit: [255, 188, 150], mid: [240, 124, 110], shade: [170, 60, 86], rim: [150, 44, 76], chalk: false };
+const CORAL_PAL = { r: 12.2, bridge: 17, lit: [255, 188, 150], mid: [240, 124, 110], shade: [170, 60, 86], rim: [150, 44, 76], cal: '150,48,76', chalk: false };
+const ALGAE_PAL = { r: 12.2, bridge: 17, lit: [244, 204, 128], mid: [204, 148, 70], shade: [128, 84, 46], rim: [108, 68, 38], cal: '112,70,32', chalk: false };   // zooxanthellae: warm golden-brown
 const SKEL_PAL = { r: 9.6, bridge: 10.5, lit: [250, 245, 232], mid: [226, 217, 197], shade: [160, 150, 134], rim: [128, 118, 102], chalk: true };
 function cellSig(list) { let s = list.length; for (const q of list) s = (s * 31 + q.c * 977 + q.r * 13) % 1000003; return s; }
 function buildBlobLayer(cells, pal) {
@@ -1094,8 +1262,8 @@ function buildBlobLayer(cells, pal) {
       gg.addColorStop(0, 'rgba(255,226,206,0.55)'); gg.addColorStop(1, 'rgba(255,226,206,0)');
       cg.fillStyle = gg; cg.beginPath(); cg.arc(cx, cy, 11, 0, 6.3); cg.fill();
       cg.strokeStyle = 'rgba(255,230,212,0.55)'; cg.lineWidth = 1.7; cg.beginPath(); cg.arc(cx, cy, 7.4, 0, 6.3); cg.stroke();
-      cg.strokeStyle = 'rgba(150,48,76,0.4)'; cg.lineWidth = 1.2; cg.beginPath(); cg.arc(cx, cy, 5.9, 0, 6.3); cg.stroke();
-      cg.fillStyle = 'rgba(150,48,76,0.22)'; cg.beginPath(); cg.arc(cx, cy, 5.4, 0, 6.3); cg.fill();
+      cg.strokeStyle = `rgba(${pal.cal},0.4)`; cg.lineWidth = 1.2; cg.beginPath(); cg.arc(cx, cy, 5.9, 0, 6.3); cg.stroke();
+      cg.fillStyle = `rgba(${pal.cal},0.22)`; cg.beginPath(); cg.arc(cx, cy, 5.4, 0, 6.3); cg.fill();
     } else {            // chalky twigs and pits
       const twig = (bx, by, ang, len, depth) => {
         const ex = bx + Math.cos(ang) * len, ey = by + Math.sin(ang) * len;
@@ -1113,7 +1281,7 @@ function buildBlobLayer(cells, pal) {
 }
 function ensureCoral() {
   const L = game.look;
-  if (L.sigP !== L.cellSigP) { L.cellSigP = L.sigP; L.polyLayer = game.polyps.length ? buildBlobLayer(game.polyps, CORAL_PAL) : null; }
+  if (L.sigP !== L.cellSigP) { L.cellSigP = L.sigP; L.polyLayer = game.polyps.length ? buildBlobLayer(game.polyps, has('F3') ? ALGAE_PAL : CORAL_PAL) : null; }
   if (L.sigS !== L.cellSigS) { L.cellSigS = L.sigS; L.skelLayer = game.skeletons.length ? buildBlobLayer(game.skeletons, SKEL_PAL) : null; }
 }
 function drawCoralLayer(l) { if (l) ctx.drawImage(l.cv, l.x0, l.y0, l.w, l.h); }
@@ -1379,9 +1547,10 @@ function drawPolypBody(p, t, active) {
     ctx.strokeStyle = `rgba(255,255,255,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 2.2;
     roundRectPath(-14.5, -14.5, 29, 29, 9); ctx.stroke();
   }
-  ctx.fillStyle = active ? '#ff9c86' : '#f27d73';
+  const gold = has('F3');
+  ctx.fillStyle = gold ? (active ? '#e6b265' : '#cf9650') : active ? '#ff9c86' : '#f27d73';
   roundRectPath(-10.5, -10.5, 21, 21, 7); ctx.fill();
-  ctx.fillStyle = active ? '#ffd6c8' : '#f9b3a4';
+  ctx.fillStyle = gold ? '#f3d9a0' : active ? '#ffd6c8' : '#f9b3a4';
   roundRectPath(-6, -9, 12, 7, 3); ctx.fill();
   ctx.fillStyle = '#7a2a3a'; ctx.beginPath(); ctx.arc(0, -1, 2.6, 0, 6.3); ctx.fill();
   ctx.restore();
@@ -1402,22 +1571,22 @@ function drawPolypTentacles(t) {
     if (p === act && game.stage === 'polyp') {
       const T = game.tent;
       for (let k = 0; k < 4; k++) {
-        const ia = -Math.PI / 2 + (k - 1.5) * 0.45 + Math.sin(t * 0.9 + k * 1.3) * 0.25, il = CONFIG.tentacleIdleLen + k * 4;
+        const ia = -Math.PI / 2 + (k - 1.5) * 0.45 + Math.sin(t * 0.9 + k * 1.3) * 0.25, il = (CONFIG.tentacleIdleLen + k * 4) * tentScale();
         const itx = cc.x + Math.cos(ia) * il, ity = cc.y + Math.sin(ia) * il;
         const m = Math.hypot(T.hx, T.hy) || 1, px = -T.hy / m * (k - 1.5) * 3.5, py = T.hx / m * (k - 1.5) * 3.5;
         const htx = cc.x + T.hx + px, hty = cc.y + T.hy + py;
         const e = T.ext * T.ext * (3 - 2 * T.ext);
-        tentacle(cc.x, cc.y - 6, lerp(itx, htx, e), lerp(ity, hty, e), k, lerp(3, 7, e), 2.4, game.mouse.down ? '#ffc0a8' : '#f9a493', t, lerp(2.5, 7, e));
+        tentacle(cc.x, cc.y - 6, lerp(itx, htx, e), lerp(ity, hty, e), k, lerp(3, 7, e), 2.4, has('F3') ? (game.mouse.down ? '#f2d197' : '#e6b872') : game.mouse.down ? '#ffc0a8' : '#f9a493', t, lerp(2.5, 7, e));
       }
     } else if (game.look.on.organic) {
       for (let k = 0; k < 5; k++) {
-        const a = -Math.PI / 2 + (k - 2) * 0.52 + Math.sin(t * 0.8 + p.seed + k) * 0.2, l = 15 + (k % 2) * 3 + 2 * Math.sin(t * 0.7 + p.seed * 2 + k);
-        tentacle(cc.x + Math.cos(a) * 4.5, cc.y + Math.sin(a) * 4.5 - 1, cc.x + Math.cos(a) * l, cc.y + Math.sin(a) * l - 1, k, 1.6, 2.6, '#f6a89c', t, 2.5);
+        const a = -Math.PI / 2 + (k - 2) * 0.52 + Math.sin(t * 0.8 + p.seed + k) * 0.2, l = (15 + (k % 2) * 3 + 2 * Math.sin(t * 0.7 + p.seed * 2 + k)) * tentScale();
+        tentacle(cc.x + Math.cos(a) * 4.5, cc.y + Math.sin(a) * 4.5 - 1, cc.x + Math.cos(a) * l, cc.y + Math.sin(a) * l - 1, k, 1.6, 2.6, has('F3') ? '#e8bf78' : '#f6a89c', t, 2.5);
       }
     } else {
       for (let k = 0; k < 3; k++) {
         const a = -Math.PI / 2 + (k - 1) * 0.6 + Math.sin(t * 0.8 + p.seed + k) * 0.25;
-        tentacle(cc.x, cc.y - 6, cc.x + Math.cos(a) * 16, cc.y + Math.sin(a) * 16, k, 2, 1.8, '#f6a89c', t, 2.5);
+        tentacle(cc.x, cc.y - 6, cc.x + Math.cos(a) * 16 * tentScale(), cc.y + Math.sin(a) * 16 * tentScale(), k, 2, 1.8, '#f6a89c', t, 2.5);
       }
     }
   }
@@ -1430,7 +1599,7 @@ function drawPolypTentacles(t) {
 function drawGhost(t) {
   const f = game.facing; if (!f || game.stage !== 'polyp') return;
   const cc = cellCenter(f.c, f.r), b = game.bud, cost = budCost();
-  const can = game.energy >= cost;
+  const can = !budShort();
   let shake = b.fail > 0 ? Math.sin(t * 60) * 2.5 * b.fail : 0;
   ctx.save(); ctx.translate(cc.x + shake, cc.y);
   ctx.setLineDash([5, 4]); ctx.lineDashOffset = -t * 12;
@@ -1449,7 +1618,8 @@ function drawGhost(t) {
   ctx.font = `600 ${12 * z}px "Segoe UI", sans-serif`; ctx.textAlign = 'center';
   // sits on the far side of the target from the active polyp, so it never covers that polyp's tentacles or the bud ring
   const a = game.active, up = a && f.r < a.r;
-  const txt = can ? `Space: bud (${Math.ceil(cost)})` : `Need ${Math.ceil(cost)} energy`, ly = cc.y + (up ? -37 : 41) * z * 0.9;
+  const short = budShort(), ca = budCalcium();
+  const txt = !short ? `Space: bud (${Math.ceil(cost)}${ca ? ` + ${ca} Ca` : ''})` : game.energy < cost ? `Need ${Math.ceil(cost)} energy` : `Need ${ca} calcium`, ly = cc.y + (up ? -37 : 41) * z * 0.9;
   const tw = ctx.measureText(txt).width + 14 * z;
   ctx.fillStyle = 'rgba(2,16,32,0.55)'; roundRectPath(cc.x - tw / 2, ly - 12 * z, tw, 17 * z, 8 * z); ctx.fill();
   ctx.fillStyle = can ? '#e8fbff' : '#ffb59a';
@@ -1553,7 +1723,7 @@ function worldTransform(g) {
 }
 function render() {
   const t = game.time, L = game.look, on = L.on;
-  L.sigP = cellSig(game.polyps); L.sigS = cellSig(game.skeletons);
+  L.sigP = cellSig(game.polyps) + (has('F3') ? 7 : 0); L.sigS = cellSig(game.skeletons);
   const sm = L.sigP + L.sigS * 7 + (on.organic ? 1 : 0);
   if (sm !== L.sigM) { L.sigM = sm; refreshMask(); }
   if (on.organic) ensureCoral();
@@ -1585,7 +1755,7 @@ function render() {
 
 /* ---------- HUD ---------- */
 const el = id => document.getElementById(id);
-const hud = { stage: el('hStage'), energy: el('hEnergy'), polyps: el('hPolyps'), light: el('hLight'), bar: el('barfill'), hint: el('hint') };
+const hud = { stage: el('hStage'), energy: el('hEnergy'), polyps: el('hPolyps'), light: el('hLight'), bar: el('barfill'), hint: el('hint'), rowCa: el('rowCa'), calcium: el('hCa'), species: el('hSpecies'), note: el('treeNote') };
 function currentHint() {
   const pr = game.progress, n = game.polyps.length;
   if (game.stage === 'larva') return pr.settled ? 'Find rock or your colony and press Space to settle again' : 'Swim (WASD) and find rock to settle on. Eat plankton for energy';
@@ -1601,6 +1771,10 @@ function updateHud() {
   hud.bar.style.width = (game.energy / CONFIG.maxEnergy * 100) + '%';
   hud.bar.style.background = game.energy < 8 ? '#ff8a7a' : '#7be3b0';
   hud.polyps.textContent = game.polyps.length;
+  hud.rowCa.style.display = game.calciumOn ? '' : 'none';
+  hud.calcium.textContent = Math.floor(game.calcium);
+  hud.species.textContent = game.species.length;
+  hud.note.style.display = treeAffordable() && !game.tree.open ? 'block' : 'none';
   hud.light.textContent = `${lightLabel(l)} (${Math.round(l * 100)}%)`;
   const h = currentHint(); if (hud.hint.textContent !== h) hud.hint.textContent = h;
 }
@@ -1609,6 +1783,9 @@ function updateHud() {
 const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR']);
 window.addEventListener('keydown', e => {
   if (lookKey(e)) return;
+  if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
+  if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
+  if (game.tree.open) return;
   if (!GAME_KEYS.has(e.code)) return;
   e.preventDefault();
   game.keys.add(e.code);
@@ -1629,6 +1806,7 @@ window.addEventListener('resize', resize);
 
 /* ---------- main loop ---------- */
 function step(dt) {
+  if (game.tree.open) return;   // the tree screen pauses the game
   game.time += dt;
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
   if (game.stage === 'larva') updateLarva(dt); else game.settleTarget = null;
@@ -1636,6 +1814,7 @@ function step(dt) {
   updatePlankton(dt);
   updatePolyps(dt);
   updateBud(dt);
+  checkReveals();
   updateFx(dt);
   updateCamera(dt, false);
 }
