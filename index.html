@@ -1447,8 +1447,13 @@ function drawGhost(t) {
   ctx.restore();
   const z = 1 / game.cam.zoom;
   ctx.font = `600 ${12 * z}px "Segoe UI", sans-serif`; ctx.textAlign = 'center';
+  // sits on the far side of the target from the active polyp, so it never covers that polyp's tentacles or the bud ring
+  const a = game.active, up = a && f.r < a.r;
+  const txt = can ? `Space: bud (${Math.ceil(cost)})` : `Need ${Math.ceil(cost)} energy`, ly = cc.y + (up ? -37 : 41) * z * 0.9;
+  const tw = ctx.measureText(txt).width + 14 * z;
+  ctx.fillStyle = 'rgba(2,16,32,0.55)'; roundRectPath(cc.x - tw / 2, ly - 12 * z, tw, 17 * z, 8 * z); ctx.fill();
   ctx.fillStyle = can ? '#e8fbff' : '#ffb59a';
-  ctx.fillText(can ? `Space: bud (${Math.ceil(cost)})` : `Need ${Math.ceil(cost)} energy`, cc.x, cc.y - 22);
+  ctx.fillText(txt, cc.x, ly);
 }
 function drawPlankton(t) {
   if (game.look.on.organic) return drawPlanktonOrganic(t);
