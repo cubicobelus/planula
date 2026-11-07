@@ -47,7 +47,7 @@ const CONFIG = {
   // camera
   zoomStart: 1.55, zoomEnd: 0.72, zoomPolypsFull: 16, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
   // water and light
-  lightPower: 1.15, dimBelow: 0.35, brightAbove: 0.65,
+  lightPower: 0.75, dimBelow: 0.35, brightAbove: 0.65,
   currentAmp: 22, currentLarvaFactor: 0.8,
   // plankton
   plankton: 170, planktonEnergy: 3, planktonRadius: 3.2,
@@ -65,8 +65,8 @@ const CONFIG = {
   automationAt: 5, autoRadius: 75, autoInterval: 2.6, autoPullTime: 0.4, autoEnergy: 2,
   // look test (visual only)
   look: {
-    causticStrength: 1.9, causticScale: 1 / 170, shaftStrength: 0.42, bloomStrength: 0.8, bloomLow: 0.82, bloomHigh: 0.6, bloomKnee: 0.16,
-    hazeStrength: 0.42, hazeFar: 0.22, vignette: 0.3, grade: 1, wobblePx: 1.6, wobbleClear: 120,
+    causticStrength: 1.9, causticScale: 1 / 170, causticDepthPow: 1.3, shaftStrength: 0.42, bloomStrength: 0.8, bloomLow: 0.82, bloomHigh: 0.6, bloomKnee: 0.16,
+    hazeStrength: 0.34, hazeFar: 0.22, vignette: 0.3, grade: 1, wobblePx: 1.6, wobbleClear: 120,
     rockScale: 1.25, rockBlurNarrow: 9, rockBlurWide: 24, rockWobble: 90, rockRough: 30,
     coralScale: 2.5, coralBlurNarrow: 3.6, coralBlurWide: 8, coralWobble: 40,
     reefRef: 1100,
@@ -135,17 +135,20 @@ function playerPos() {
 function budCost() { return CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, game.polyps.length - 1); }
 
 /* ---------- world generation ---------- */
+const SHELF = { c0: 31, c1: 43, row: 38 };
 function generateWorld() {
   const cols = game.cols, rows = game.rows;
   game.grid = new Uint8Array(cols * rows);
   game.floorRow = new Int16Array(cols);
   const outcrops = [
-    { c: 22, w: 5, h: 10 }, { c: 55, w: 7, h: 19 }, { c: 64, w: 3, h: 9 },
-    { c: 88, w: 3.2, h: 27 }, { c: 98, w: 5, h: 12 }, { c: 40, w: 2.5, h: 6 },
+    { c: 9, w: 2, h: 5 }, { c: 22, w: 5, h: 17 }, { c: 55, w: 7, h: 19 }, { c: 64, w: 3, h: 9 },
+    { c: 88, w: 3.2, h: 27 }, { c: 98, w: 5, h: 17 }, { c: 40, w: 2.5, h: 6 },
   ];
   for (let c = 0; c < cols; c++) {
-    let f = 47 + 2.0 * Math.sin(c * 0.09) + 0.9 * Math.sin(c * 0.23 + 2) + rand() * 0.6;
+    let f = 38 + 2.0 * Math.sin(c * 0.09) + 0.9 * Math.sin(c * 0.23 + 2) + rand() * 0.6;
     for (const o of outcrops) f -= o.h * Math.exp(-Math.pow((c - o.c) / o.w, 2)) * (0.9 + rand() * 0.2);
+    const k = clamp(1 - Math.max(0, SHELF.c0 - c, c - SHELF.c1) / 4, 0, 1);   // a flat sandy shelf with eased ends
+    if (k > 0) f = lerp(f, SHELF.row, k * k * (3 - 2 * k));
     game.floorRow[c] = clamp(Math.round(f), 6, rows - 4);
     for (let r = game.floorRow[c]; r < rows; r++) game.grid[r * cols + c] = 1;
   }
@@ -158,7 +161,7 @@ function generateWorld() {
     if (!game.grid[r * cols + c]) continue;
     const l = light(r * CELL);
     const n = (hr() - 0.5) * 14;
-    const k = 0.62 + 0.5 * l;
+    const k = 0.8 + 0.4 * l;
     g.fillStyle = `rgb(${Math.round(92 * k + n)},${Math.round(90 * k + n)},${Math.round(108 * k + n)})`;
     const open = !isRock(c, r - 1) || !isRock(c - 1, r) || !isRock(c + 1, r);
     if (open && r < rows - 1) { g.beginPath(); g.roundRect(c * CELL - 0.5, r * CELL - 0.5, CELL + 1, CELL + 1, 5); g.fill(); }
@@ -604,7 +607,7 @@ uniform vec4 uFx1;   // caustics, shafts, bloom, haze (0 or 1)
 uniform float uFx2;  // wobble
 uniform vec4 uT1;    // caustic strength, shaft strength, bloom strength, haze strength
 uniform vec4 uT2;    // wobble px, vignette, grade, caustic scale
-uniform vec2 uT3;    // haze far, wobble clear radius
+uniform vec3 uT3;    // haze far, wobble clear radius, caustic depth power
 
 float caustic(vec2 uv, float time) {
   vec2 p = uv * 6.28318530718 - 250.0;
@@ -634,7 +637,7 @@ void main() {
   float rock = m.r, coral = m.g, skel = m.b;
   float surf = clamp(rock + coral + skel, 0.0, 1.0);
   float lum0 = dot(col, vec3(0.299, 0.587, 0.114));
-  float lightD = pow(1.0 - dep, 2.2);
+  float lightD = pow(1.0 - dep, uT3.z);
 
   if (uFx1.x > 0.5) {
     float wat = (1.0 - surf) * (1.0 - smoothstep(0.0, 0.5, dep)) * 0.13;
@@ -657,7 +660,7 @@ void main() {
     float far = smoothstep(380.0, 1150.0, length(wp - uPlayer)) * uT3.x;
     h = clamp(h + far * (0.35 + 0.65 * dep), 0.0, 0.85);
     float warm = clamp((col.r - col.b) * 3.0, 0.0, 1.0);
-    h *= (1.0 - 0.6 * warm) * (1.0 - 0.4 * surf);
+    h *= (1.0 - 0.6 * warm) * (1.0 - 0.7 * surf);
     h *= 1.0 - 0.65 * smoothstep(0.78, 1.0, lum0);
     col = mix(col, deep, h);
   }
@@ -803,7 +806,7 @@ function present() {
     g.uniform1f(u.uFx2, L.wobble ? 1 : 0);
     g.uniform4f(u.uT1, K.causticStrength, K.shaftStrength, K.bloomStrength, K.hazeStrength);
     g.uniform4f(u.uT2, K.wobblePx * v.dpr, K.vignette, K.grade, K.causticScale);
-    g.uniform2f(u.uT3, K.hazeFar, K.wobbleClear * v.dpr);
+    g.uniform3f(u.uT3, K.hazeFar, K.wobbleClear * v.dpr, K.causticDepthPow);
   });
 }
 
@@ -887,7 +890,7 @@ function blurData(src, sigma, dx, dy, w, h) {
 const mix3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 /* ---------- look test: organic rock (built once, cached) ---------- */
-const ROCK_DEEP = [74, 84, 112], ROCK_MID = [134, 116, 120], ROCK_SHALLOW = [194, 164, 142];
+const ROCK_DEEP = [112, 114, 140], ROCK_MID = [148, 126, 126], ROCK_SHALLOW = [194, 164, 142];
 function buildRockOrganic() {
   const K = CONFIG.look, S = K.rockScale, cols = game.cols, rows = game.rows;
   const GW = cols * CELL, GH = rows * CELL, RW = Math.round(GW * S), RH = Math.round(GH * S);
@@ -939,8 +942,8 @@ function buildRockOrganic() {
       const nb = NZ[(((py * 0.2) | 0) & 511) * 512 + (((px * 0.2) | 0) & 511)];
       const nc = NZ[((((py * 0.4) | 0) + 97) & 511) * 512 + ((((px * 0.4) | 0) + 211) & 511)];
       const dep = Math.max(0, wy - fl[px]);
-      let sh = (0.7 + 0.34 * lam) * (1 - 0.4 * (1 - Math.exp(-dep / 140)));
-      sh *= 1 + (n1 - 0.5) * 0.4 + (nm - 0.5) * 0.2 + 0.07 * Math.sin(wy * 0.075 + nb * 9);
+      let sh = (0.7 + 0.34 * lam) * (1 - 0.26 * (1 - Math.exp(-dep / 140)));
+      sh *= 1 + (n1 - 0.5) * 0.46 + (nm - 0.5) * 0.36 + 0.12 * Math.sin(wy * 0.075 + nb * 9);
       sh *= 1 + (nc - 0.5) * 0.18 + (((px * 73856093) ^ (py * 19349663)) & 255) * 0.00035 - 0.045;   // fine grain
       const rimK = rim * 0.42 * (0.35 + l);
       const j = i << 2;
