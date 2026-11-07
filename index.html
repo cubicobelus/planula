@@ -117,7 +117,7 @@ const CONFIG = {
   stingCooldown: 1.2, stingRadius: 20,
   guideRange: 10, guideInterval: 3.2, guideWait: 6, guideMaxPath: 24,
   // nibblers
-  nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 40, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
+  nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 60, nibblerGrace: 120, nibblerSpare: 2, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
   nibblerSpeed: 70, nibblerFleeSpeed: 190, nibblerRadius: 8, nibblerBiteEvery: 1.6, nibblerBite: 0.8, nibblerFlee: 8,
   automationAt: 5, autoRadius: 75, autoInterval: 2.6, autoPullTime: 0.4, autoEnergy: 2,
   // tech tree: what reveals each unlock, what it costs and what it does
@@ -816,7 +816,7 @@ function updateNibblers(dt) {
               p.hp -= CONFIG.nibblerBite; p.hurt = 0.5; p.lastHit = game.time;
               game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
               if (game.stats.nibbles++ === 0) toast('A nibbler is eating your polyps');
-              if (p.hp <= 0) { killPolyp(p); n.mode = 'leave'; n.tgt = null; }
+              if (p.hp <= 0) { killPolyp(p); n.mode = 'leave'; n.tgt = null; N.timer = Math.max(N.timer || 0, CONFIG.nibblerGrace); }   // a meal buys the colony a quiet spell
             }
           } else { n.mode = 'seek'; n.bite = 0; }
         }
@@ -825,8 +825,9 @@ function updateNibblers(dt) {
     const dd = Math.hypot(tx - n.x, ty - n.y) || 1, k = 1 - Math.exp(-3 * dt);
     n.vx = lerp(n.vx, (tx - n.x) / dd * sp, k); n.vy = lerp(n.vy, (ty - n.y) / dd * sp, k);
     const nx = n.x + n.vx * dt, ny = n.y + n.vy * dt;
-    if (!blockedAt(nx, n.y, R, '')) n.x = nx; else { n.vx *= -0.3; n.vy -= 40; }
-    if (!blockedAt(n.x, ny, R, '')) n.y = ny; else { n.vy *= -0.3; n.vy -= 20; }
+    const out = n.mode === 'leave' && (nx < 36 || nx > W - 36);   // leaving fish swim off through the world edge
+    if (out || !blockedAt(nx, n.y, R, '')) n.x = nx; else { n.vx *= -0.3; n.vy -= 40; }
+    if (out || !blockedAt(n.x, ny, R, '')) n.y = ny; else { n.vy *= -0.3; n.vy -= 20; }
     if (n.mode !== 'bite' && Math.hypot(n.vx, n.vy) > 8) n.head = Math.atan2(n.vy, n.vx);
   }
   game.nibblers = game.nibblers.filter(n => !n.gone);
@@ -835,6 +836,7 @@ function updateNibblers(dt) {
 /* ---------- polyp updates ---------- */
 function updatePolyps(dt) {
   const t = game.time;
+  if (game.polyps.length <= CONFIG.nibblerSpare) return null;   // the last few polyps are left alone
   const sunK = has('F3') ? CONFIG.algaeSunMult : 1;
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
@@ -882,6 +884,7 @@ function updatePolyps(dt) {
         if (d < bd) { bd = d; best = q; }
       }
       if (best) { best.cap = { poly: p }; p.cd = CONFIG.autoInterval * (0.8 + Math.random() * 0.4); }
+              if (game.polyps.length <= CONFIG.nibblerSpare) { n.mode = 'leave'; n.tgt = null; continue; }
       else p.cd = 0.5;
     }
   }
