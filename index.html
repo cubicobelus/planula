@@ -1952,27 +1952,36 @@ function drawFish(f, t) {
   ctx.fillStyle = chase ? '#c00' : '#222'; ctx.beginPath(); ctx.arc(12, -2.5, 1.7, 0, 6.3); ctx.fill();
   ctx.restore();
 }
-function drawNibbler(n, t) {
+function drawNibbler(n, t) {   // a small striped butterflyfish: tall yellow body, black bars, black eye band, pointed snout
   ctx.save(); ctx.translate(n.x, n.y); ctx.rotate(n.head);
   if (Math.cos(n.head) < 0) ctx.scale(1, -1);
-  const fl = n.mode === 'flee', wag = Math.sin(t * (fl ? 20 : 10) + n.seed) * (fl ? 4.5 : 3);
-  const gold = n.stung > 0 ? '#cfe9ff' : '#ecc84c', deep = n.stung > 0 ? '#8fb6dc' : '#c79a2e';
-  ctx.fillStyle = deep;   // tail and fins
-  ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(-17, -6 + wag); ctx.quadraticCurveTo(-14, 0, -17, 6 + wag); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-5, -5); ctx.quadraticCurveTo(-1, -12, 4, -5.5); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(-3, 5); ctx.quadraticCurveTo(0, 10, 3, 5); ctx.closePath(); ctx.fill();
-  const g = ctx.createLinearGradient(0, -6.5, 0, 6.5);
-  g.addColorStop(0, gold); g.addColorStop(1, '#fff4c2');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, 0, 11, 6.4, 0, 0, 6.3); ctx.fill();
-  ctx.strokeStyle = 'rgba(40,36,30,0.75)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';   // dark eye band
-  ctx.beginPath(); ctx.moveTo(5.5, -6); ctx.quadraticCurveTo(7, 0, 5.5, 6); ctx.stroke();
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(7.6, -1.6, 1.9, 0, 6.3); ctx.fill();
-  ctx.fillStyle = '#1b1a24'; ctx.beginPath(); ctx.arc(8.0, -1.6, 1, 0, 6.3); ctx.fill();
-  const open = n.chomp > 0 ? 3.2 * Math.sin(n.chomp / 0.3 * Math.PI) : fl ? 0 : 0.8;   // snapping jaws
-  ctx.fillStyle = '#5a3a24';
-  ctx.beginPath(); ctx.moveTo(10.2, -0.6); ctx.lineTo(15, -open - 0.4); ctx.lineTo(11.4, 0.2); ctx.closePath(); ctx.fill();
-  ctx.beginPath(); ctx.moveTo(10.2, 0.8); ctx.lineTo(15, open + 1.2); ctx.lineTo(11.4, 0.2); ctx.closePath(); ctx.fill();
-  if (n.stung > 0) {   // stunned sparks
+  ctx.scale(1.3, 1.3);
+  const fl = n.mode === 'flee', wag = Math.sin(t * (fl ? 20 : 10) + n.seed) * (fl ? 4 : 2.6), st = n.stung > 0;
+  const gold = st ? '#cfe9ff' : '#ffd52e', pale = st ? '#f2fbff' : '#fff3a6', ink = st ? '#46607e' : '#1c1a1f', fin = st ? '#a9cbe8' : '#f2b81f';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.fillStyle = fin; ctx.strokeStyle = ink; ctx.lineWidth = 1;   // tail with a dark band, dorsal and belly fins
+  ctx.beginPath(); ctx.moveTo(-8, -1.6); ctx.lineTo(-15, -5.5 + wag); ctx.quadraticCurveTo(-12.5, 0, -15, 5.5 + wag); ctx.lineTo(-8, 1.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-6, -6.4); ctx.quadraticCurveTo(-2, -13, 3, -7.4); ctx.lineTo(8, -5.5); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-5, -9.5 + wag * 0.3); ctx.lineTo(-12, -11 + wag * 0.5); ctx.stroke();                           // trailing dorsal filament
+  ctx.beginPath(); ctx.moveTo(-5, 6.2); ctx.quadraticCurveTo(-2, 11.5, 3, 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+  const g = ctx.createLinearGradient(0, -8, 0, 8); g.addColorStop(0, gold); g.addColorStop(1, pale);
+  ctx.save();
+  ctx.beginPath(); ctx.ellipse(0, 0, 9.8, 8, 0, 0, 6.3); ctx.fillStyle = g; ctx.fill(); ctx.clip();
+  ctx.strokeStyle = ink; ctx.lineWidth = 2.2;   // vertical bars
+  ctx.globalAlpha = 0.9; for (const x of [-5.2, -0.4]) { ctx.beginPath(); ctx.moveTo(x - 1.2, -9); ctx.quadraticCurveTo(x + 1.2, 0, x - 1.2, 9); ctx.stroke(); } ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(1.5, 4.8, 6, 2.4, 0, 0, 6.3); ctx.fill();   // pale belly
+  ctx.strokeStyle = ink; ctx.lineWidth = 3.4; ctx.beginPath(); ctx.moveTo(6.4, -9); ctx.quadraticCurveTo(7.6, 0, 6.4, 9); ctx.stroke();   // eye band
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8.8, -8); ctx.quadraticCurveTo(9.8, 0, 8.8, 8); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = ink; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.ellipse(0, 0, 9.8, 8, 0, 0, 6.3); ctx.stroke();
+  const open = n.chomp > 0 ? 3.6 * Math.sin(n.chomp / 0.3 * Math.PI) : fl ? 0 : 0.5;   // snapping jaws on a pointed snout
+  ctx.fillStyle = pale; ctx.strokeStyle = ink; ctx.lineWidth = 0.9;
+  ctx.beginPath(); ctx.moveTo(8.8, -2.4); ctx.lineTo(15.2, -open * 0.6 - 0.5); ctx.lineTo(10, 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(8.8, 2.4); ctx.lineTo(14.2, open + 1); ctx.lineTo(10, 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  if (open > 1.4) { ctx.fillStyle = '#7a2330'; ctx.beginPath(); ctx.moveTo(10, 0.2); ctx.lineTo(14.6, -open * 0.6 - 0.2); ctx.lineTo(13.8, open + 0.7); ctx.closePath(); ctx.fill(); }
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(6.6, -2.2, 2.1, 0, 6.3); ctx.fill();
+  ctx.fillStyle = '#0f0e14'; ctx.beginPath(); ctx.arc(7, -2.2, 1.1, 0, 6.3); ctx.fill();
+  if (st) {   // stunned sparks
     ctx.strokeStyle = `rgba(200,245,255,${n.stung / 0.7})`; ctx.lineWidth = 1.5;
     for (let k = 0; k < 4; k++) { const a = k * 1.57 + t * 18; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 13, Math.sin(a) * 10); ctx.lineTo(Math.cos(a) * 20, Math.sin(a) * 16); ctx.stroke(); }
   }
