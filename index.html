@@ -114,6 +114,7 @@ const CONFIG = {
   tentacleReach: 120, tentacleIdleLen: 32, tentacleSpeed: 7, pullRadius: 36, pullSpeed: 230, eatDist: 9,
   budTime: 1.2, budCostBase: 10, budCostPerPolyp: 0.8,
   polypHp: 12, polypHeal: 0.2, polypHealDelay: 4,
+  guideRange: 10, guideInterval: 3.2, guideWait: 6, guideMaxPath: 24,
   // nibblers
   nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 40, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
   nibblerSpeed: 70, nibblerFleeSpeed: 190, nibblerRadius: 8, nibblerBiteEvery: 1.6, nibblerBite: 0.8, nibblerFlee: 8,
@@ -156,6 +157,7 @@ const game = {
   plankton: [],
   fish: [],
   nibblers: [], nib: { timer: null },
+  guide: null,               // { path, target, t, wait } while the colony grows by itself
   fx: [],
   keys: new Set(),
   mouse: { sx: 0, sy: 0, down: false },
@@ -535,6 +537,7 @@ function tryHop(dir) {
   }
 }
 function pressSpace() {
+  if (game.guide) { cancelGuide('Guided growth cancelled'); return; }
   if (game.stage === 'larva') { trySettle(); return; }
   const b = game.bud;
   if (!game.facing) { toast('Press a direction to pick a cell first'); return; }
@@ -559,6 +562,67 @@ function updateBud(dt) {
   game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
   game.fx.push({ kind: 'ring', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.6 });
   toast(`New polyp (${game.polyps.length})`);
+}
+
+/* ---------- guided growth: the colony queues a path of attachable cells and grows along it by itself ---------- */
+// breadth-first from every polyp through free water cells, so each cell on the path touches the one before it and never rock
+function planPath(tc, tr) {
+  const free = (c, r) => inBounds(c, r) && game.grid[r * game.cols + c] !== 1 && !cellAt(c, r);
+  if (!free(tc, tr)) return null;
+  const prev = new Map(), q = [];
+  for (const p of game.polyps) { prev.set(key(p.c, p.r), null); q.push([p.c, p.r, 0]); }
+  for (let i = 0; i < q.length; i++) {
+    const [c, r, d] = q[i];
+    if (d >= CONFIG.guideMaxPath) continue;
+    for (const [dc, dr] of NB_DIRS) {
+      const nc = c + dc, nr = r + dr, k = key(nc, nr);
+      if (prev.has(k) || !free(nc, nr)) continue;
+      prev.set(k, [c, r]);
+      if (nc === tc && nr === tr) {
+        const path = [];
+        for (let at = [nc, nr]; at; at = prev.get(key(at[0], at[1]))) { if (prev.get(key(at[0], at[1])) === null) break; path.unshift({ c: at[0], r: at[1] }); }
+        return path;
+      }
+      q.push([nc, nr, d + 1]);
+    }
+  }
+  return null;
+}
+function cancelGuide(msg) { if (game.guide && msg) toast(msg); game.guide = null; }
+function guideClick() {
+  if (game.guide) { cancelGuide('Guided growth cancelled'); return; }
+  const a = game.active; if (game.stage !== 'polyp' || !a) return;
+  const w = screenToWorld(game.mouse.sx, game.mouse.sy), c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
+  if (Math.hypot(c - a.c, r - a.r) > CONFIG.guideRange) { toast('Too far for guided growth'); return; }
+  const path = planPath(c, r);
+  if (!path) { toast('The colony cannot grow there'); return; }
+  game.guide = { path, target: { c, r }, t: 0, wait: 0 };
+  toast(`Growing ${path.length} cell${path.length > 1 ? 's' : ''} towards the target`);
+}
+function updateGuide(dt) {
+  const g = game.guide; if (!g) return;
+  if (!has('G2') || !game.polyps.length) { game.guide = null; return; }
+  g.t += dt;
+  if (g.t < CONFIG.guideInterval) return;
+  while (g.path.length && cellAt(g.path[0].c, g.path[0].r)) g.path.shift();   // already grown by hand
+  if (!g.path.length) { game.guide = null; toast('Guided growth complete'); return; }
+  if (!validBudCell(g.path[0].c, g.path[0].r)) {
+    const np = planPath(g.target.c, g.target.r);
+    if (!np || !validBudCell(np[0].c, np[0].r)) { cancelGuide('Guided growth: the way is blocked'); return; }
+    g.path = np;
+  }
+  const short = budShort();
+  if (short) {
+    g.wait += dt;
+    if (g.wait > CONFIG.guideWait) cancelGuide(`Guided growth stopped: ${short.replace(' to bud', '').toLowerCase()}`);
+    return;
+  }
+  const q = g.path.shift();
+  game.energy -= budCost(); game.calcium -= budCalcium();
+  addPolyp(q.c, q.r); game.stats.buds++;
+  game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
+  g.t = 0; g.wait = 0;
+  if (!g.path.length) { game.guide = null; toast('Guided growth complete'); }
 }
 
 /* ---------- larva movement ---------- */
@@ -1745,6 +1809,24 @@ function drawGhost(t) {
   ctx.fillStyle = can ? '#e8fbff' : '#ffb59a';
   ctx.fillText(txt, cc.x, ly);
 }
+function drawGuide(t) {
+  const g = game.guide; if (!g) return;
+  ctx.save(); ctx.lineCap = 'round';
+  g.path.forEach((q, i) => {
+    const cc = cellCenter(q.c, q.r), a = i === 0 ? 0.6 : 0.3;
+    ctx.setLineDash([4, 4]); ctx.lineDashOffset = -t * 8; ctx.strokeStyle = `rgba(255,238,196,${a})`; ctx.lineWidth = 1.7;
+    roundRectPath(cc.x - 10.5, cc.y - 10.5, 21, 21, 6); ctx.stroke();
+    ctx.setLineDash([]); ctx.fillStyle = `rgba(255,238,196,${a * 0.22})`; roundRectPath(cc.x - 10.5, cc.y - 10.5, 21, 21, 6); ctx.fill();
+  });
+  if (g.path.length) {
+    const n = cellCenter(g.path[0].c, g.path[0].r), e = cellCenter(g.target.c, g.target.r);
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, 6.3); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,238,196,0.85)'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, -Math.PI / 2, -Math.PI / 2 + Math.min(1, g.t / CONFIG.guideInterval) * 6.2832); ctx.stroke();
+    ctx.setLineDash([]); ctx.strokeStyle = `rgba(255,238,196,${0.55 + 0.3 * Math.sin(t * 5)})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(e.x, e.y - 15); ctx.lineTo(e.x + 15, e.y); ctx.lineTo(e.x, e.y + 15); ctx.lineTo(e.x - 15, e.y); ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+}
 function drawPlankton(t) {
   if (game.look.on.organic) return drawPlanktonOrganic(t);
   ctx.globalCompositeOperation = 'lighter';
@@ -1899,7 +1981,7 @@ function render() {
   if (on.organic) drawCoralLayer(L.polyLayer);
   for (const p of game.polyps) drawPolypBody(p, t, p === game.active && game.stage === 'polyp');
   drawPolypTentacles(t);
-  if (!post) drawGhost(t);
+  if (!post) { drawGuide(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
@@ -1909,7 +1991,7 @@ function render() {
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
     worldTransform(uctx);
     const scene = ctx; ctx = uctx;
-    drawSettleHint(t); drawGhost(t); drawFx(); drawOverlay(t);
+    drawSettleHint(t); drawGuide(t); drawGhost(t); drawFx(); drawOverlay(t);
     ctx = scene;
     present();
   } else { drawFx(); drawOverlay(t); }
@@ -1942,7 +2024,7 @@ function updateHud() {
 }
 
 /* ---------- input ---------- */
-const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR']);
+const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG']);
 window.addEventListener('keydown', e => {
   if (lookKey(e)) return;
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
@@ -1961,7 +2043,12 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { game.keys.delete(e.code); });
 window.addEventListener('blur', () => { game.keys.clear(); game.mouse.down = false; });
-canvas.addEventListener('mousedown', e => { if (e.button === 0) game.mouse.down = true; game.mouse.sx = e.clientX; game.mouse.sy = e.clientY; });
+canvas.addEventListener('mousedown', e => {
+  game.mouse.sx = e.clientX; game.mouse.sy = e.clientY;
+  if (game.tree.open) return;
+  if (e.button === 0 && game.keys.has('KeyG') && has('G2')) { guideClick(); return; }   // G + click guides growth instead of catching plankton
+  if (e.button === 0) game.mouse.down = true;
+});
 window.addEventListener('mouseup', e => { if (e.button === 0) game.mouse.down = false; });
 window.addEventListener('mousemove', e => { game.mouse.sx = e.clientX; game.mouse.sy = e.clientY; });
 window.addEventListener('resize', resize);
@@ -1977,6 +2064,7 @@ function step(dt) {
   updatePlankton(dt);
   updatePolyps(dt);
   updateBud(dt);
+  updateGuide(dt);
   checkReveals();
   updateFx(dt);
   updateCamera(dt, false);
