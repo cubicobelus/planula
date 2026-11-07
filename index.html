@@ -115,6 +115,7 @@ const CONFIG = {
   budTime: 1.2, budCostBase: 10, budCostPerPolyp: 0.8,
   polypHp: 12, polypHeal: 0.2, polypHealDelay: 4,
   stingCooldown: 1.2, stingRadius: 20,
+  anemoneCostMult: 1.7, anemoneExtra: 3, clownDelay: 20, clownRadius: 170, clownEnergy: 0.05, clownSpeed: 120, clownChaseSpeed: 175, clownFlee: 6,
   guideRange: 10, guideInterval: 3.2, guideWait: 6, guideMaxPath: 24,
   // nibblers
   nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 60, nibblerGrace: 120, nibblerSpare: 2, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
@@ -159,6 +160,7 @@ const game = {
   fish: [],
   nibblers: [], nib: { timer: null },
   sting: { cd: 0 },
+  nextAnemone: false, clown: { t: null, fish: [] },
   guide: null,               // { path, target, t, wait } while the colony grows by itself
   fx: [],
   keys: new Set(),
@@ -202,15 +204,16 @@ function playerPos() {
   if (game.stage === 'polyp' && game.active) return cellCenter(game.active.c, game.active.r);
   return { x: game.larva.x, y: game.larva.y };
 }
-function budCost() {
-  const c = CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, game.polyps.length - 1);
-  return has('G1') ? c * CONFIG.budEnergyFactor : c;
+function budCost(anem = game.nextAnemone) {
+  let c = CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, game.polyps.length - 1);
+  if (has('G1')) c *= CONFIG.budEnergyFactor;
+  return anem ? c * CONFIG.anemoneCostMult + CONFIG.anemoneExtra : c;
 }
-function budCalcium() { return has('G1') ? CONFIG.budCalcium : 0; }
+function budCalcium(anem = game.nextAnemone) { return has('G1') ? CONFIG.budCalcium * (anem ? 2 : 1) : 0; }
 // null when the bud can be paid for, otherwise what is missing
-function budShort() {
-  if (game.energy < budCost()) return `Need ${Math.ceil(budCost())} energy to bud`;
-  if (game.calcium < budCalcium()) return `Need ${budCalcium()} calcium to bud`;
+function budShort(anem = game.nextAnemone) {
+  if (game.energy < budCost(anem)) return `Need ${Math.ceil(budCost(anem))} energy to bud`;
+  if (game.calcium < budCalcium(anem)) return `Need ${budCalcium(anem)} calcium to bud`;
   return null;
 }
 
@@ -420,8 +423,8 @@ function gain(a, x, y) {
 }
 
 /* ---------- cells / polyps ---------- */
-function addPolyp(c, r) {
-  const p = { c, r, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: false };
+function addPolyp(c, r, anemone) {
+  const p = { c, r, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: !!anemone };
   game.polyps.push(p);
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
   return p;
@@ -559,11 +562,12 @@ function updateBud(dt) {
   b.t = 0; b.armed = false;
   if (short) { b.fail = 0.9; toast(short); return; }
   game.energy -= cost; game.calcium -= budCalcium();
-  const p = addPolyp(f.c, f.r);
+  const anem = game.nextAnemone; game.nextAnemone = false;
+  const p = addPolyp(f.c, f.r, anem);
   setActive(p);
   game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
   game.fx.push({ kind: 'ring', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.6 });
-  toast(`New polyp (${game.polyps.length})`);
+  toast(`${anem ? 'New anemone' : 'New polyp'} (${game.polyps.length})`);
 }
 
 /* ---------- guided growth: the colony queues a path of attachable cells and grows along it by itself ---------- */
@@ -613,14 +617,14 @@ function updateGuide(dt) {
     if (!np || !validBudCell(np[0].c, np[0].r)) { cancelGuide('Guided growth: the way is blocked'); return; }
     g.path = np;
   }
-  const short = budShort();
+  const short = budShort(false);
   if (short) {
     g.wait += dt;
     if (g.wait > CONFIG.guideWait) cancelGuide(`Guided growth stopped: ${short.replace(' to bud', '').toLowerCase()}`);
     return;
   }
   const q = g.path.shift();
-  game.energy -= budCost(); game.calcium -= budCalcium();
+  game.energy -= budCost(false); game.calcium -= budCalcium(false);
   addPolyp(q.c, q.r); game.stats.buds++;
   game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
   g.t = 0; g.wait = 0;
@@ -645,6 +649,71 @@ function doSting() {
     if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
   }
   game.fx.push({ kind: 'sting', x: cc.x, y: sy, x1: ex, y1: ey, t: 0, life: 0.5, hit: hit > 0 });
+}
+
+/* ---------- anemones and clownfish: a resident pair moves in once an anemone exists ---------- */
+const anemones = () => game.polyps.filter(p => p.anemone);
+function toggleAnemone() {
+  if (!has('R1') || game.stage !== 'polyp') return;
+  game.nextAnemone = !game.nextAnemone;
+  toast(game.nextAnemone ? 'Next bud: anemone' : 'Next bud: polyp');
+}
+function clownAnchor(f) {
+  let best = null, bd = 1e9;
+  for (const p of anemones()) { const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - f.x, c.y - f.y); if (d < bd) { bd = d; best = c; } }
+  if (best) return best;
+  if (!game.polyps.length) return { x: f.x, y: f.y };
+  let cx = 0, cy = 0;
+  for (const p of game.polyps) { cx += (p.c + 0.5) * CELL; cy += (p.r + 0.5) * CELL; }
+  return { x: cx / game.polyps.length, y: cy / game.polyps.length };
+}
+function spawnClowns() {
+  const an = anemones()[0]; if (!an) return;
+  const c = cellCenter(an.c, an.r), dir = c.x > W / 2 ? -1 : 1;   // they swim in from the open side
+  for (let i = 0; i < 2; i++) {
+    let x = clamp(c.x + dir * (520 + i * 50), 40, W - 40), y = Math.max(100, c.y - 90 - i * 30);
+    for (let k = 0; k < 30 && blockedAt(x, y, 7, ''); k++) y -= 30;
+    game.clown.fish.push({ x, y: Math.max(60, y), vx: 0, vy: 0, head: dir > 0 ? Math.PI : 0, mode: 'home', cool: 0, seed: Math.random() * 10, orbit: i * Math.PI });
+  }
+  game.species.push('Clownfish');
+  toast('A pair of clownfish moved in. Species: ' + game.species.length);
+}
+function updateClown(dt) {
+  const C = game.clown, t = game.time;
+  if (C.t === null && anemones().length) C.t = CONFIG.clownDelay;
+  else if (C.t !== null && C.t > 0) { C.t -= dt; if (C.t <= 0) { C.t = -1; spawnClowns(); } }
+  if (!C.fish.length) return;
+  for (const f of C.fish) {
+    f.cool = Math.max(0, f.cool - dt);
+    const an = clownAnchor(f);
+    let tgt = null, bd = 1e9;
+    if (f.cool <= 0) for (const n of game.nibblers) {
+      if (n.mode === 'leave' || Math.hypot(n.x - an.x, n.y - an.y) > CONFIG.clownRadius) continue;
+      const d = Math.hypot(n.x - f.x, n.y - f.y); if (d < bd) { bd = d; tgt = n; }
+    }
+    let tx, ty, sp;
+    if (tgt) {
+      f.mode = 'chase'; tx = tgt.x; ty = tgt.y; sp = CONFIG.clownChaseSpeed;
+      if (bd < 18) { driveOff(tgt, f.x, f.y, CONFIG.clownFlee, false); f.cool = 1.6; }
+    } else {
+      f.mode = 'home';
+      tx = an.x + Math.cos(t * 0.7 + f.orbit) * 44; ty = an.y - 26 + Math.sin(t * 1.1 + f.orbit) * 18;
+      sp = clamp(Math.hypot(tx - f.x, ty - f.y) * 1.6, 25, CONFIG.clownSpeed);
+    }
+    const dd = Math.hypot(tx - f.x, ty - f.y) || 1, k = 1 - Math.exp(-3.5 * dt);
+    f.vx = lerp(f.vx, (tx - f.x) / dd * sp, k); f.vy = lerp(f.vy, (ty - f.y) / dd * sp, k);
+    const nx = f.x + f.vx * dt, ny = f.y + f.vy * dt;
+    if (!blockedAt(nx, f.y, 6, '')) f.x = nx; else { f.vx *= -0.3; f.vy -= 30; }
+    if (!blockedAt(f.x, ny, 6, '')) f.y = ny; else { f.vy *= -0.3; f.vy -= 20; }
+    if (Math.hypot(f.vx, f.vy) > 6) f.head = Math.atan2(f.vy, f.vx);
+  }
+  // nearby polyps feel the benefit
+  let near = 0;
+  for (const p of game.polyps) {
+    const c = cellCenter(p.c, p.r);
+    if (C.fish.some(f => Math.hypot(f.x - c.x, f.y - c.y) < CONFIG.clownRadius)) near++;
+  }
+  game.energy = Math.min(CONFIG.maxEnergy, game.energy + near * CONFIG.clownEnergy * dt);
 }
 
 /* ---------- larva movement ---------- */
@@ -766,6 +835,7 @@ function spawnNibbler() {
   }
 }
 function pickNibbleTarget(n) {
+  if (game.polyps.length <= CONFIG.nibblerSpare) return null;   // the last few polyps are left alone
   let best = null, bd = 1e9;
   for (const p of game.polyps) {
     if (!freeNeighbours(p).length) continue;
@@ -775,7 +845,7 @@ function pickNibbleTarget(n) {
   }
   return best;
 }
-function driveOff(n, x, y, secs) { n.mode = 'flee'; n.fleeT = secs; n.fx = x; n.fy = y; n.stung = 0.7; n.tgt = null; n.bite = 0; }
+function driveOff(n, x, y, secs, stun = true) { n.mode = 'flee'; n.fleeT = secs; n.fx = x; n.fy = y; n.stung = stun ? 0.7 : 0; n.tgt = null; n.bite = 0; }
 function updateNibblers(dt) {
   const N = game.nib;
   if (game.polyps.length >= CONFIG.nibblerStart) {
@@ -813,6 +883,7 @@ function updateNibblers(dt) {
             if (n.bite >= CONFIG.nibblerBiteEvery) {
               n.bite = 0; n.chomp = 0.3;
               const p = n.tgt;
+              if (game.polyps.length <= CONFIG.nibblerSpare) { n.mode = 'leave'; n.tgt = null; continue; }
               p.hp -= CONFIG.nibblerBite; p.hurt = 0.5; p.lastHit = game.time;
               game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
               if (game.stats.nibbles++ === 0) toast('A nibbler is eating your polyps');
@@ -836,7 +907,6 @@ function updateNibblers(dt) {
 /* ---------- polyp updates ---------- */
 function updatePolyps(dt) {
   const t = game.time;
-  if (game.polyps.length <= CONFIG.nibblerSpare) return null;   // the last few polyps are left alone
   const sunK = has('F3') ? CONFIG.algaeSunMult : 1;
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
@@ -884,7 +954,6 @@ function updatePolyps(dt) {
         if (d < bd) { bd = d; best = q; }
       }
       if (best) { best.cap = { poly: p }; p.cd = CONFIG.autoInterval * (0.8 + Math.random() * 0.4); }
-              if (game.polyps.length <= CONFIG.nibblerSpare) { n.mode = 'leave'; n.tgt = null; continue; }
       else p.cd = 0.5;
     }
   }
@@ -1777,6 +1846,7 @@ function drawPolypTentacles(t) {
   const act = game.active;
   for (const p of game.polyps) {
     const cc = cellCenter(p.c, p.r);
+    if (p.anemone) drawAnemoneAt(cc.x, cc.y, t, p.seed, 1);
     if (p === act && game.stage === 'polyp') {
       const T = game.tent;
       for (let k = 0; k < 4; k++) {
@@ -1787,6 +1857,8 @@ function drawPolypTentacles(t) {
         const e = T.ext * T.ext * (3 - 2 * T.ext);
         tentacle(cc.x, cc.y - 6, lerp(itx, htx, e), lerp(ity, hty, e), k, lerp(3, 7, e), 2.4, has('F3') ? (game.mouse.down ? '#f2d197' : '#e6b872') : game.mouse.down ? '#ffc0a8' : '#f9a493', t, lerp(2.5, 7, e));
       }
+    } else if (p.anemone) {
+      // the crown above is its tentacles
     } else if (game.look.on.organic) {
       for (let k = 0; k < 5; k++) {
         const a = -Math.PI / 2 + (k - 2) * 0.52 + Math.sin(t * 0.8 + p.seed + k) * 0.2, l = (15 + (k % 2) * 3 + 2 * Math.sin(t * 0.7 + p.seed * 2 + k)) * tentScale();
@@ -1828,7 +1900,8 @@ function drawGhost(t) {
   // sits on the far side of the target from the active polyp, so it never covers that polyp's tentacles or the bud ring
   const a = game.active, up = a && f.r < a.r;
   const short = budShort(), ca = budCalcium();
-  const txt = !short ? `Space: bud (${Math.ceil(cost)}${ca ? ` + ${ca} Ca` : ''})` : game.energy < cost ? `Need ${Math.ceil(cost)} energy` : `Need ${ca} calcium`, ly = cc.y + (up ? -37 : 41) * z * 0.9;
+  if (game.nextAnemone) { ctx.save(); drawAnemoneAt(cc.x, cc.y, t, 1.7, 0.55); ctx.restore(); }
+  const txt = !short ? `Space: ${game.nextAnemone ? 'anemone' : 'bud'} (${Math.ceil(cost)}${ca ? ` + ${ca} Ca` : ''})` : game.energy < cost ? `Need ${Math.ceil(cost)} energy` : `Need ${ca} calcium`, ly = cc.y + (up ? -37 - (game.nextAnemone ? 16 : 0) : 41) * z * 0.9;
   const tw = ctx.measureText(txt).width + 14 * z;
   ctx.fillStyle = 'rgba(2,16,32,0.55)'; roundRectPath(cc.x - tw / 2, ly - 12 * z, tw, 17 * z, 8 * z); ctx.fill();
   ctx.fillStyle = can ? '#e8fbff' : '#ffb59a';
@@ -1913,6 +1986,47 @@ function drawPolypStatus(p) {
     ctx.fillStyle = 'rgba(2,12,24,0.6)'; roundRectPath(-10, 12, 20, 5, 2.5); ctx.fill();
     ctx.fillStyle = frac > 0.5 ? '#9be8a8' : frac > 0.25 ? '#ffd27a' : '#ff7a6a'; roundRectPath(-9, 13, 18 * Math.max(0, frac), 3, 1.5); ctx.fill();
   }
+  ctx.restore();
+}
+function drawAnemoneAt(cx, cy, t, seed, alpha) {
+  ctx.save(); ctx.globalAlpha = alpha;
+  const g = ctx.createRadialGradient(cx, cy, 1, cx, cy, 14);
+  g.addColorStop(0, '#efb4de'); g.addColorStop(0.55, '#b0529f'); g.addColorStop(1, 'rgba(110,40,110,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, 14, 0, 6.3); ctx.fill();
+  const N = 13;
+  for (let k = 0; k < N; k++) {   // a swaying crown of tentacles, wider and longer than a polyp's
+    const u = k / (N - 1), sw = Math.sin(t * 1.3 + seed + k * 0.7), a = -Math.PI / 2 + (u - 0.5) * 2.6 + sw * 0.16, len = 21 + 5 * Math.sin(k * 2.3 + seed) + sw * 2;
+    tentacle(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5 - 1, cx + Math.cos(a) * len + sw * 3, cy + Math.sin(a) * len, k, 2.6, 3.2, k % 2 ? '#c866b4' : '#e28dcd', t, 1.9);
+  }
+  ctx.fillStyle = '#5b1d57'; ctx.beginPath(); ctx.ellipse(cx, cy - 1, 4.6, 3.1, 0, 0, 6.3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,225,245,0.7)'; ctx.beginPath(); ctx.ellipse(cx - 1, cy - 2.2, 2, 0.9, 0, 0, 6.3); ctx.fill();
+  ctx.restore();
+}
+function drawClown(f, t) {
+  ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.head);
+  if (Math.cos(f.head) < 0) ctx.scale(1, -1);
+  const sw = Math.sin(t * (f.mode === 'chase' ? 17 : 8) + f.seed), OR = '#ff7a1c', OR2 = '#e8590c', ED = '#2b1a14';
+  ctx.lineJoin = 'round'; ctx.lineWidth = 0.9; ctx.strokeStyle = ED; ctx.fillStyle = OR;
+  ctx.beginPath(); ctx.moveTo(-9, -1); ctx.quadraticCurveTo(-14, -7 + sw * 3, -17.5, -4.5 + sw * 3.5); ctx.quadraticCurveTo(-15.5, sw * 3, -17.5, 4.5 + sw * 3.5); ctx.quadraticCurveTo(-14, 7 + sw * 3, -9, 1); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = OR2;
+  ctx.beginPath(); ctx.moveTo(-6, -6.2); ctx.quadraticCurveTo(-2, -12.5, 4, -11); ctx.quadraticCurveTo(6.5, -8.5, 7.5, -6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-3, 6.4); ctx.quadraticCurveTo(-1, 10.5, 3, 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+  const body = () => { ctx.beginPath(); ctx.moveTo(-10, 0); ctx.bezierCurveTo(-8, -7.4, 6, -8.2, 12, -1); ctx.bezierCurveTo(13.2, 2, 9, 6.6, 2, 7); ctx.bezierCurveTo(-5, 6.6, -9, 3.2, -10, 0); ctx.closePath(); };
+  const g = ctx.createLinearGradient(0, -8, 0, 7); g.addColorStop(0, '#ff9a3a'); g.addColorStop(1, '#f2630a');
+  ctx.fillStyle = g; body(); ctx.fill();
+  ctx.save(); body(); ctx.clip();   // three white bands, each edged in dark
+  for (const [bx, bw] of [[7.2, 3.2], [-1.2, 3.8], [-8, 2.2]]) {
+    ctx.fillStyle = '#fff9ee'; ctx.fillRect(bx - bw / 2, -10, bw, 20);
+    ctx.fillStyle = ED; ctx.fillRect(bx - bw / 2 - 0.7, -10, 0.7, 20); ctx.fillRect(bx + bw / 2, -10, 0.7, 20);
+  }
+  ctx.restore();
+  ctx.lineWidth = 1; ctx.strokeStyle = ED; body(); ctx.stroke();
+  ctx.save(); ctx.translate(3, 3.4); ctx.rotate(0.5 + 0.45 * Math.sin(t * 9 + f.seed));   // pectoral fin
+  ctx.fillStyle = OR; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.ellipse(-0.5, 2.6, 2.1, 4, 0, 0, 6.3); ctx.fill(); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(9.4, -2.2, 2.1, 0, 6.3); ctx.fill(); ctx.lineWidth = 0.7; ctx.stroke();
+  ctx.fillStyle = '#10090a'; ctx.beginPath(); ctx.arc(9.8, -2.2, 1.25, 0, 6.3); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(10.2, -2.7, 0.4, 0, 6.3); ctx.fill();
+  ctx.strokeStyle = ED; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(12.3, 0.6); ctx.lineTo(10.6, 1.2); ctx.stroke();
   ctx.restore();
 }
 function drawLarva(t) {
@@ -2024,6 +2138,7 @@ function render() {
   for (const p of game.polyps) drawPolypStatus(p);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
+  for (const f of game.clown.fish) drawClown(f, t);
   drawLarva(t);
   if (on.layers) { drawSnow(t); drawForeground(t); worldTransform(ctx); }
   if (post) {   // hints, ghost cell and effects sit on their own canvas so the shaders never dim them
@@ -2063,7 +2178,7 @@ function updateHud() {
 }
 
 /* ---------- input ---------- */
-const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE']);
+const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE', 'KeyQ']);
 window.addEventListener('keydown', e => {
   if (lookKey(e)) return;
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
@@ -2076,6 +2191,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') pressSpace();
   else if (e.code === 'KeyR') bail();
   else if (e.code === 'KeyE') doSting();
+  else if (e.code === 'KeyQ') toggleAnemone();
   else if (game.stage === 'polyp') {
     const d = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' }[e.code];
     if (d) tryHop(d);
@@ -2103,6 +2219,7 @@ function step(dt) {
   if (game.stage === 'larva') updateLarva(dt); else game.settleTarget = null;
   updateFish(dt);
   updateNibblers(dt);
+  updateClown(dt);
   updatePlankton(dt);
   updatePolyps(dt);
   updateBud(dt);
