@@ -114,6 +114,7 @@ const CONFIG = {
   tentacleReach: 120, tentacleIdleLen: 32, tentacleSpeed: 7, pullRadius: 36, pullSpeed: 230, eatDist: 9,
   budTime: 1.2, budCostBase: 10, budCostPerPolyp: 0.8,
   polypHp: 12, polypHeal: 0.2, polypHealDelay: 4,
+  stingCooldown: 1.2, stingRadius: 20,
   guideRange: 10, guideInterval: 3.2, guideWait: 6, guideMaxPath: 24,
   // nibblers
   nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 40, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
@@ -157,6 +158,7 @@ const game = {
   plankton: [],
   fish: [],
   nibblers: [], nib: { timer: null },
+  sting: { cd: 0 },
   guide: null,               // { path, target, t, wait } while the colony grows by itself
   fx: [],
   keys: new Set(),
@@ -623,6 +625,26 @@ function updateGuide(dt) {
   game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
   g.t = 0; g.wait = 0;
   if (!g.path.length) { game.guide = null; toast('Guided growth complete'); }
+}
+
+/* ---------- sting: the active polyp lashes out toward the cursor and drives nibblers away ---------- */
+function distSeg(px, py, x0, y0, x1, y1) {
+  const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1, u = clamp(((px - x0) * dx + (py - y0) * dy) / l2, 0, 1);
+  return Math.hypot(px - (x0 + dx * u), py - (y0 + dy * u));
+}
+function doSting() {
+  const a = game.active;
+  if (!has('D1') || game.stage !== 'polyp' || !a || game.tree.open || game.sting.cd > 0) return;
+  const cc = cellCenter(a.c, a.r), w = screenToWorld(game.mouse.sx, game.mouse.sy), sy = cc.y - 6;
+  let dx = w.x - cc.x, dy = w.y - sy, m = Math.hypot(dx, dy);
+  if (m < 1) { dx = 0; dy = -1; m = 1; }
+  const k = Math.min(1, reach() / m), ex = cc.x + dx * k, ey = sy + dy * k;
+  game.sting.cd = CONFIG.stingCooldown;
+  let hit = 0;
+  for (const n of game.nibblers) {
+    if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
+  }
+  game.fx.push({ kind: 'sting', x: cc.x, y: sy, x1: ex, y1: ey, t: 0, life: 0.5, hit: hit > 0 });
 }
 
 /* ---------- larva movement ---------- */
@@ -1871,6 +1893,10 @@ function drawNibbler(n, t) {
   ctx.fillStyle = '#5a3a24';
   ctx.beginPath(); ctx.moveTo(10.2, -0.6); ctx.lineTo(15, -open - 0.4); ctx.lineTo(11.4, 0.2); ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.moveTo(10.2, 0.8); ctx.lineTo(15, open + 1.2); ctx.lineTo(11.4, 0.2); ctx.closePath(); ctx.fill();
+  if (n.stung > 0) {   // stunned sparks
+    ctx.strokeStyle = `rgba(200,245,255,${n.stung / 0.7})`; ctx.lineWidth = 1.5;
+    for (let k = 0; k < 4; k++) { const a = k * 1.57 + t * 18; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 13, Math.sin(a) * 10); ctx.lineTo(Math.cos(a) * 20, Math.sin(a) * 16); ctx.stroke(); }
+  }
   ctx.restore();
 }
 function drawPolypStatus(p) {
@@ -1909,6 +1935,16 @@ function drawFx() {
     if (f.kind === 'text') {
       ctx.font = `700 ${13 * z}px "Segoe UI", sans-serif`; ctx.textAlign = 'center';
       ctx.fillStyle = `rgba(210,255,225,${1 - u})`; ctx.fillText(f.text, f.x, f.y - u * 22);
+    } else if (f.kind === 'sting') {   // a flickering bolt from the polyp to the point stung
+      const fl = Math.floor(f.t * 36), N = 9, dx = f.x1 - f.x, dy = f.y1 - f.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
+      const jag = i => (Math.sin((fl * 7.3 + i) * 12.9898) * 43758.5453 % 1) * 9 * Math.sin(i / N * Math.PI);
+      const bolt = () => { ctx.beginPath(); for (let i = 0; i <= N; i++) { const x = f.x + dx * i / N + nx * jag(i), y = f.y + dy * i / N + ny * jag(i); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); };
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.strokeStyle = `rgba(120,225,255,${0.35 * (1 - u)})`; ctx.lineWidth = 9; bolt();
+      ctx.strokeStyle = `rgba(235,252,255,${1 - u})`; ctx.lineWidth = 2.4; bolt();
+      ctx.strokeStyle = `rgba(${f.hit ? '255,240,150' : '190,240,255'},${1 - u})`; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(f.x1, f.y1, 6 + u * (f.hit ? 30 : 18), 0, 6.3); ctx.stroke();
+      for (let k = 0; k < 6; k++) { const a = k * 1.047 + 0.5; ctx.beginPath(); ctx.moveTo(f.x1 + Math.cos(a) * 5, f.y1 + Math.sin(a) * 5); ctx.lineTo(f.x1 + Math.cos(a) * (10 + u * 14), f.y1 + Math.sin(a) * (10 + u * 14)); ctx.stroke(); }
     } else if (f.kind === 'bite') {   // jaws snapping shut and a few flecks of tissue
       ctx.strokeStyle = `rgba(255,236,220,${1 - u})`; ctx.lineWidth = 2; ctx.lineCap = 'round';
       const j = 15 - 7 * Math.min(1, u * 3);
@@ -2024,7 +2060,7 @@ function updateHud() {
 }
 
 /* ---------- input ---------- */
-const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG']);
+const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE']);
 window.addEventListener('keydown', e => {
   if (lookKey(e)) return;
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
@@ -2036,6 +2072,7 @@ window.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Space') pressSpace();
   else if (e.code === 'KeyR') bail();
+  else if (e.code === 'KeyE') doSting();
   else if (game.stage === 'polyp') {
     const d = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' }[e.code];
     if (d) tryHop(d);
@@ -2046,11 +2083,13 @@ window.addEventListener('blur', () => { game.keys.clear(); game.mouse.down = fal
 canvas.addEventListener('mousedown', e => {
   game.mouse.sx = e.clientX; game.mouse.sy = e.clientY;
   if (game.tree.open) return;
+  if (e.button === 2) { doSting(); return; }
   if (e.button === 0 && game.keys.has('KeyG') && has('G2')) { guideClick(); return; }   // G + click guides growth instead of catching plankton
   if (e.button === 0) game.mouse.down = true;
 });
 window.addEventListener('mouseup', e => { if (e.button === 0) game.mouse.down = false; });
 window.addEventListener('mousemove', e => { game.mouse.sx = e.clientX; game.mouse.sy = e.clientY; });
+window.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('resize', resize);
 
 /* ---------- main loop ---------- */
@@ -2065,6 +2104,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
+  game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   updateFx(dt);
   updateCamera(dt, false);
