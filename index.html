@@ -27,6 +27,8 @@
   #treeNote kbd { font: inherit; display: inline-block; min-width: 11px; padding: 0 4px; margin-right: 4px; text-align: center; border-radius: 3px; background: rgba(255,226,176,0.2); color: #fff3d6; }
   @keyframes tnote { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
   #toasts { z-index: 30; }
+  body.treeopen #toasts { top: auto; bottom: 18px; }
+  body.treeopen .toast:not(.now) { display: none; }
   #tree { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 20; color: #d6f2ff; cursor: default;
     background: radial-gradient(ellipse at 50% 20%, rgba(18, 88, 118, 0.7), rgba(2, 10, 22, 0.94) 72%); backdrop-filter: blur(5px); }
   #tree.open { display: flex; animation: tfade 0.25s ease-out; }
@@ -262,12 +264,12 @@ function buy(id) {
   const d = TREE.find(x => x.id === id);
   if (!d || game.tree.state[id] !== 'revealed') return false;
   const why = d.needs && !has(d.needs) ? `Needs ${TREE.find(x => x.id === d.needs).name} first` : costShort(id);
-  if (why) { toast(why); return false; }
+  if (why) { toast(why, true); return false; }
   const c = CONFIG.cost[id];
   game.energy -= c.e; game.calcium -= c.ca || 0;
   game.tree.state[id] = 'owned';
   if (d.on) d.on();
-  toast(d.done);
+  toast(d.done, true);
   if (game.tree.open) renderTree();
   return true;
 }
@@ -301,12 +303,12 @@ function renderTree() {
 function openTree() {
   if (game.tree.open) return;
   game.tree.open = true; game.keys.clear(); game.mouse.down = false; game.bud.armed = false; game.bud.t = 0;
-  renderTree(); treeEl.classList.add('open');
+  renderTree(); treeEl.classList.add('open'); document.body.classList.add('treeopen');
   game.tree.fresh = {};
 }
 function closeTree() {
   if (!game.tree.open) return;
-  game.tree.open = false; treeEl.classList.remove('open');
+  game.tree.open = false; treeEl.classList.remove('open'); document.body.classList.remove('treeopen'); flushToasts();
 }
 treeEl.addEventListener('click', e => {
   const n = e.target.closest('.tnode.revealed'); if (!n) return;
@@ -964,14 +966,18 @@ function updateFx(dt) {
   for (const f of game.fx) f.t += dt;
   game.fx = game.fx.filter(f => f.t < f.life);
 }
-function toast(msg) {
+// game toasts wait in a queue while the tree screen is open; feedback for clicks inside the tree shows at once (low on the screen)
+const toastQueue = [];
+function toast(msg, now) {
+  if (game.tree.open && !now) { toastQueue.push(msg); if (toastQueue.length > 6) toastQueue.shift(); return; }
   const box = document.getElementById('toasts');
-  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  const el = document.createElement('div'); el.className = 'toast' + (now ? ' now' : ''); el.textContent = msg;
   box.appendChild(el);
   while (box.children.length > 3) box.removeChild(box.firstChild);
   setTimeout(() => el.classList.add('out'), 2300);
   setTimeout(() => el.remove(), 2900);
 }
+function flushToasts() { const q = toastQueue.splice(0); q.forEach((m, i) => setTimeout(() => { if (!game.tree.open) toast(m); else toastQueue.push(m); }, i * 350)); }
 
 /* ---------- camera ---------- */
 function screenToWorld(sx, sy) {
