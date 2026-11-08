@@ -488,12 +488,12 @@ function findSettleTarget() {
   if (here && here.kind === 'polyp') return null;
   const reach = CONFIG.larvaRadius + CONFIG.settleReach;
   if (here && here.kind === 'skel') return { c, r, skel: here.ref };
-  for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
-    if (attachable(c + dc, r + dr) && rectDist(L.x, L.y, c + dc, r + dr) <= reach) return { c, r, skel: null };
-  }
-  for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+  for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {   // a skeleton in reach is settled back onto first
     const o = cellAt(c + dc, r + dr);
     if (o && o.kind === 'skel' && rectDist(L.x, L.y, c + dc, r + dr) <= reach) return { c: c + dc, r: r + dr, skel: o.ref };
+  }
+  for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+    if (attachable(c + dc, r + dr) && rectDist(L.x, L.y, c + dc, r + dr) <= reach) return { c, r, skel: null };
   }
   return null;
 }
@@ -551,7 +551,9 @@ function freeLarva(c0, r0, inv) {
   if (game.polyps.length) { mx /= game.polyps.length; my /= game.polyps.length; } else { mx = cc.x; my = cc.y; }
   let dx = best.x - mx, dy = best.y - my; const m = Math.hypot(dx, dy);
   if (m < 1) { dx = 0; dy = -1; } else { dx /= m; dy /= m; }
-  L.x = best.x; L.y = best.y; L.vx = dx * 40; L.vy = dy * 40 - 15; L.inv = inv;
+  const bc = Math.floor(best.x / CELL), br = Math.floor(best.y / CELL);
+  if (Math.abs(bc - c0) + Math.abs(br - r0) === 1) { best.x += (c0 - bc) * 4; best.y += (r0 - br) * 4; }   // hug the old cell so it stays within settling reach
+  L.x = best.x; L.y = best.y; L.vx = dx * 14; L.vy = dy * 14 - 6; L.inv = inv;
 }
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
 function killPolyp(p) {
