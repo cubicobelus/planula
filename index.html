@@ -1600,7 +1600,7 @@ function buildModel(st) {
   for (const u of list) if (u.par) u.par.kids.push(u);
   const sz = u => { u.size = 1; for (const k of u.kids) u.size += sz(k); return u.size; };
   for (const u of list) if (!u.par) sz(u);
-  for (const u of list) u.w = Math.min(12, 2.6 + Math.sqrt(Math.max(0, u.size - 1)));   // limb width: thick at the base, thin at the tips
+  for (const u of list) u.w = Math.min(13, 3.8 + 1.1 * Math.sqrt(Math.max(0, u.size - 1)));   // limb width: thick at the base, thin at the tips
   return { nodes, list };
 }
 
@@ -1644,7 +1644,53 @@ function paintLiving(g, M, layer, pal, kind) {
     }
   }
 }
-function paintBranch(g, M, layer, pal, kind) { paintLiving(g, M, layer, pal, kind); }
+function paintBranch(g, M, layer, pal, kind) {
+  const limbs = [], limb = (pts, w0, w1, col) => limbs.push({ pts, w0, w1, col });
+  for (const u of layer) {
+    const col = nodeCol(u, pal), P = u.par;
+    limb([[u.x, u.y], [u.x + 0.01, u.y]], u.w, u.w, col);   // joint
+    if (P) {
+      const dx = u.x - P.x, dy = u.y - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L, j = (hash2(u.c, u.r, 5) - 0.5) * 6;
+      const cx = (P.x + u.x) / 2 + nx * j, cy = (P.y + u.y) / 2 + ny * j - 3.2;   // slight upward lean
+      const pts = [];
+      for (let i = 0; i <= 7; i++) { const t = i / 7, a = (1 - t) * (1 - t), b = 2 * t * (1 - t), c = t * t; pts.push([a * P.x + b * cx + c * u.x, a * P.y + b * cy + c * u.y]); }
+      limb(pts, Math.max(u.w, P.w * 0.95), u.w, col);
+      const nt = (hash2(u.c, u.r, 6) < 0.6 ? 1 : 0) + (hash2(u.c, u.r, 7) > 0.75 ? 1 : 0);
+      for (let k = 0; k < nt; k++) {   // small side twigs
+        const i = 2 + Math.floor(hash2(u.c, u.r, 8 + k) * 3), a = pts[i], b = pts[i + 1], side = hash2(u.c, u.r, 10 + k) < 0.5 ? -1 : 1;
+        let tx = b[0] - a[0], ty = b[1] - a[1]; const m = Math.hypot(tx, ty) || 1; tx /= m; ty /= m;
+        const ca = Math.cos(0.9 * side), sa = Math.sin(0.9 * side);
+        let ex = tx * ca - ty * sa, ey = tx * sa + ty * ca - 0.45; const m2 = Math.hypot(ex, ey); ex /= m2; ey /= m2;
+        const len = 5 + hash2(u.c, u.r, 12 + k) * 4;
+        limb([a, [a[0] + ex * len * 0.5 - ey * side, a[1] + ey * len * 0.5 + ex * side], [a[0] + ex * len, a[1] + ey * len - 1]], Math.max(1.6, u.w * 0.55), 0.8, col);
+      }
+      if (!u.kids.length) { const d = [dx / L * 5, dy / L * 5 - 3.5]; limb([[u.x, u.y], [u.x + d[0] * 0.5, u.y + d[1] * 0.5 - 0.5], [u.x + d[0], u.y + d[1]]], u.w, 1, col); }   // growing tip
+    } else {   // a root: a foot spreading on the rock below or beside
+      for (const [dc, dr] of [[0, 1], [-1, 0], [1, 0], [0, -1]]) if (isRock(u.c + dc, u.r + dr)) {
+        const fx = u.x + dc * 0.5 * CELL, fy = u.y + dr * 0.5 * CELL, w = Math.min(15, u.w * 1.5 + 3), px = dr ? w * 0.9 : 0, py = dc ? w * 0.9 : 0;
+        limb([[fx, fy], [u.x, u.y]], w, u.w, col);
+        limb([[fx - px, fy - py], [fx + px, fy + py]], 3.6, 3.6, col);
+        break;
+      }
+    }
+  }
+  const pass = (col, dx, dy, dw, minW) => {
+    g.lineCap = 'round';
+    for (const L of limbs) {
+      const n = L.pts.length - 1;
+      for (let i = 0; i < n; i++) {
+        const w = lerp(L.w0, L.w1, (i + 0.5) / n); if (w < minW) continue;
+        g.strokeStyle = col(L.col); g.lineWidth = Math.max(0.8, dw < 0 ? w * 0.35 : w + dw);
+        g.beginPath(); g.moveTo(L.pts[i][0] + dx, L.pts[i][1] + dy); g.lineTo(L.pts[i + 1][0] + dx, L.pts[i + 1][1] + dy); g.stroke();
+      }
+    }
+  };
+  pass(() => rgbs(pal.rim), 0, 0, 1.8, 0);
+  pass(c => rgbs(c), 0, 0, 0, 0);
+  g.globalCompositeOperation = 'source-atop';
+  pass(() => rgba(pal.lit, 0.55), -0.7, -1, -1, 3);   // lit side of the thicker limbs
+  if (kind === 'skel') { g.fillStyle = 'rgba(120,110,95,0.6)'; for (const u of layer) { g.beginPath(); g.arc(u.x, u.y, 1, 0, 6.3); g.fill(); } }
+}
 function paintMound(g, M, layer, pal, kind) { paintLiving(g, M, layer, pal, kind); }
 
 function styleLayer(M, st, kind) {
