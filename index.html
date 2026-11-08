@@ -224,7 +224,7 @@ const game = {
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
-  look: { on: { caustics: true, shafts: true, bloom: true, haze: true, wobble: true, organic: true, layers: true }, saved: null, list: true },
+  look: { on: { caustics: true, shafts: true, bloom: true, haze: true, wobble: true, organic: true, layers: true }, coral: 1, saved: null, list: true },
 };
 
 /* ---------- helpers ---------- */
@@ -475,7 +475,7 @@ function gain(a, x, y) {
 
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r, anemone) {
-  const p = { c, r, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: !!anemone };
+  const p = { c, r, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: !!anemone, born: game.time };   // born: only for the grow-in drawing
   game.polyps.push(p);
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
   return p;
@@ -532,7 +532,7 @@ function trySettle() {
 function toSkeleton(p) {
   p.dead = true;
   game.polyps = game.polyps.filter(q => q !== p);
-  const s = { c: p.c, r: p.r };
+  const s = { c: p.c, r: p.r, parent: p.parent };   // parent: drawing only
   game.skeletons.push(s);
   game.cells.set(key(p.c, p.r), { kind: 'skel', ref: s });
 }
@@ -677,6 +677,7 @@ function updateBud(dt) {
   game.energy -= cost; game.calcium -= budCalcium();
   const anem = game.nextAnemone; game.nextAnemone = false;
   const p = addPolyp(f.c, f.r, anem);
+  if (game.active) p.parent = { c: game.active.c, r: game.active.r };   // drawing only: which polyp it grew from
   setActive(p);
   const first = !game.progress.budded;
   game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
@@ -1536,7 +1537,7 @@ function updateLookList() {
     const usable = !f.gl || post;
     h += `<div class="row"><span><kbd>${i + 1}</kbd>${f.name}</span><b class="${usable ? (L.on[f.id] ? 'on' : 'off') : 'na'}">${usable ? (L.on[f.id] ? 'on' : 'off') : 'no GL'}</b></div>`;
   });
-  h += '<div class="row"><span><kbd>0</kbd>All on/off</span></div><div class="row"><span><kbd>H</kbd>Hide this list</span></div><div class="row"><span><kbd>\\</kbd>Dev tools</span></div>';
+  h += '<div class="row"><span><kbd>K</kbd>Coral style</span><b class="on">${CORAL_STYLES[L.coral]}</b></div><div class="row"><span><kbd>0</kbd>All on/off</span></div><div class="row"><span><kbd>H</kbd>Hide this list</span></div><div class="row"><span><kbd>\\</kbd>Dev tools</span></div>';
   if (lookEl.innerHTML !== h) lookEl.innerHTML = h;
 }
 function toggleLook(id) { game.look.on[id] = !game.look.on[id]; updateLookList(); }
@@ -1551,12 +1552,17 @@ function lookKey(e) {
   if (e.ctrlKey || e.metaKey || e.altKey) return false;
   const code = e.code.indexOf('Numpad') === 0 ? e.code.replace('Numpad', 'Digit') : e.code;
   if (code === 'KeyH') { if (!e.repeat) { game.look.list = !game.look.list; updateLookList(); } return true; }
+  if (code === 'KeyK') { if (!e.repeat) setCoral((game.look.coral + 1) % CORAL_STYLES.length); return true; }
   if (code === 'Digit0') { if (!e.repeat) toggleAllLook(); return true; }
   const f = LOOK_FX.find(x => x.code === code);
   if (!f) return false;
   if (!e.repeat) toggleLook(f.id);
   return true;
 }
+
+/* ---------- coral styles: 0 current, 1 living mass, 2 branching, 3 mound (tissue cached until cells change; polyp details drawn per frame) ---------- */
+const CORAL_STYLES = ['Current', 'Living mass', 'Branching', 'Mound'];
+function setCoral(i) { game.look.coral = i; toast('Coral style: ' + CORAL_STYLES[i]); updateLookList(); }
 
 /* ---------- look test: noise and image helpers ---------- */
 let NZ = null;   // smooth tiling noise, 512 x 512, values about 0..1
@@ -1744,9 +1750,9 @@ function refreshMask() {
 }
 
 /* ---------- look test: organic coral tissue and skeletons (rebuilt only when cells change) ---------- */
-const CORAL_PAL = { r: 12.2, bridge: 17, lit: [255, 188, 150], mid: [240, 124, 110], shade: [170, 60, 86], rim: [150, 44, 76], cal: '150,48,76', chalk: false };
-const ALGAE_PAL = { r: 12.2, bridge: 17, lit: [244, 204, 128], mid: [204, 148, 70], shade: [128, 84, 46], rim: [108, 68, 38], cal: '112,70,32', chalk: false };   // zooxanthellae: warm golden-brown
-const SKEL_PAL = { r: 9.6, bridge: 10.5, lit: [250, 245, 232], mid: [226, 217, 197], shade: [160, 150, 134], rim: [128, 118, 102], chalk: true };
+const CORAL_PAL = { alt: [214, 104, 150], r: 12.2, bridge: 17, lit: [255, 188, 150], mid: [240, 124, 110], shade: [170, 60, 86], rim: [150, 44, 76], cal: '150,48,76', chalk: false };
+const ALGAE_PAL = { alt: [186, 150, 62], r: 12.2, bridge: 17, lit: [244, 204, 128], mid: [204, 148, 70], shade: [128, 84, 46], rim: [108, 68, 38], cal: '112,70,32', chalk: false };   // zooxanthellae: warm golden-brown
+const SKEL_PAL = { alt: [214, 212, 200], r: 9.6, bridge: 10.5, lit: [250, 245, 232], mid: [226, 217, 197], shade: [160, 150, 134], rim: [128, 118, 102], chalk: true };
 function cellSig(list) { let s = list.length; for (const q of list) s = (s * 31 + q.c * 977 + q.r * 13) % 1000003; return s; }
 function buildBlobLayer(cells, pal) {
   const K = CONFIG.look;
@@ -2609,10 +2615,10 @@ function devSettle() {
 function devGrow(n) {
   for (let i = 0; i < n; i++) {
     const cand = [];
-    for (const p of game.polyps) for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) if (validBudCell(p.c + dc, p.r + dr)) cand.push([p.c + dc, p.r + dr]);
+    for (const p of game.polyps) for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) if (validBudCell(p.c + dc, p.r + dr)) cand.push([p.c + dc, p.r + dr, p]);
     if (!cand.length) break;
-    const [c, r] = cand[Math.floor(Math.random() * cand.length)];
-    addPolyp(c, r); game.stats.buds++;
+    const [c, r, from] = cand[Math.floor(Math.random() * cand.length)];
+    addPolyp(c, r).parent = { c: from.c, r: from.r }; game.stats.buds++;
   }
 }
 function devBloom() {
@@ -2646,6 +2652,7 @@ const devGroups = [
     '<div id="devtree"></div>',
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
   ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>']],
+  ['Coral style', ['<select data-cs>' + CORAL_STYLES.map((n, i) => `<option value="${i}">${i} ${n}</option>`).join('') + '</select> <span style="color:#8aa0b2">K cycles</span>']],
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Toggles', [
     '<label><input type="checkbox" data-t="god"> god mode</label><label><input type="checkbox" data-t="noFish"> predators off</label>',
@@ -2695,7 +2702,8 @@ function devBuild() {
   });
   devPanel.addEventListener('change', e => {
     const t = e.target;
-    if (t.dataset.bm !== undefined) { setBudMode(t.checked ? 'click' : 'keys'); t.blur(); devRefresh(); }
+    if (t.dataset.cs !== undefined) { setCoral(+t.value); t.blur(); devRefresh(); }
+    else if (t.dataset.bm !== undefined) { setBudMode(t.checked ? 'click' : 'keys'); t.blur(); devRefresh(); }
     else if (t.dataset.t) { devs[t.dataset.t] = t.checked; if (t.dataset.t === 'noNib' && t.checked) game.nibblers.length = 0; t.blur(); devRefresh(); }
   });
   devPanel.addEventListener('input', e => {
@@ -2726,6 +2734,7 @@ function devRefresh() {
   for (const b of devPanel.querySelectorAll('button[data-a="speed"]')) b.classList.toggle('on', +b.dataset.v === devs.speed);
   for (const t of devPanel.querySelectorAll('input[data-t]')) t.checked = !!devs[t.dataset.t];
   devPanel.querySelector('input[data-bm]').checked = clickMode();
+  const cs = devPanel.querySelector('select[data-cs]'); if (cs.value !== '' + game.look.coral) cs.value = game.look.coral;
   const rd = document.getElementById('devread'), s = `energy ${game.energy.toFixed(1)} · calcium ${Math.floor(game.calcium)} · polyps ${game.polyps.length} · time ${game.time.toFixed(1)} s`;
   if (rd.textContent !== s) rd.textContent = s;
 }
