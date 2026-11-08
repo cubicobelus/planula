@@ -224,7 +224,7 @@ const game = {
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
-  look: { on: { caustics: true, shafts: true, bloom: true, haze: true, wobble: true, organic: true, layers: true }, coral: 1, saved: null, list: true },
+  look: { on: { caustics: true, shafts: true, bloom: true, haze: true, wobble: true, organic: true, layers: true }, coral: 4, saved: null, list: true },
 };
 
 /* ---------- helpers ---------- */
@@ -571,7 +571,7 @@ function freeLarva(c0, r0, inv) {
 }
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
 function killPolyp(p) {
-  const cc = cellCenter(p.c, p.r), was = p === game.active && game.stage === 'polyp';
+  const cc = drawPos(p), was = p === game.active && game.stage === 'polyp';
   toSkeleton(p);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.7, red: true });
   spawnParts('dust', cc.x, cc.y, CONFIG.juice.dust);
@@ -619,7 +619,7 @@ function tryHop(dir) {
   if (clickMode() && !(o && o.kind === 'polyp')) return;   // click mode picks cells with the mouse, so WASD only hops
   game.bud.t = 0;
   if (o && o.kind === 'polyp') {
-    const from = cellCenter(a.c, a.r);
+    const from = drawPos(a);
     setActive(o.ref);
     game.hop = { fx: from.x, fy: from.y, t: 0 };
     game.progress.hopped = true;
@@ -650,6 +650,11 @@ function budSpots() {
 function spotAtMouse() {
   if (!spotMode() || game.tree.open || game.mouse.ui) return null;
   const w = screenToWorld(game.mouse.sx, game.mouse.sy), c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
+  if (game.look.coral === 4) {   // wild style: the spot nearest the cursor by where it is drawn
+    let best = null, bd = (0.75 * CELL) ** 2;
+    for (const s of budSpots()) { const q = spotPos(s.c, s.r), d = (q.x - w.x) ** 2 + (q.y - w.y) ** 2; if (d < bd) { bd = d; best = s; } }
+    return best;
+  }
   return budSpots().find(s => s.c === c && s.r === r) || null;
 }
 // mouse down on a spot: same as pressing Space toward that cell
@@ -673,7 +678,7 @@ function updateBud(dt) {
   if (!b.armed || !(b.src === 'mouse' ? game.mouse.bud : game.keys.has('Space')) || !game.facing) { b.t = 0; b.armed = false; return; }
   b.t += dt;
   if (b.t < CONFIG.budTime) return;
-  const cost = budCost(), f = game.facing, short = budShort();
+  const cost = budCost(), f = game.facing, short = budShort(), fp = spotPos(f.c, f.r);
   b.t = 0; b.armed = false;
   if (short) { b.fail = 0.9; toast(short); return; }
   game.energy -= cost; game.calcium -= budCalcium();
@@ -683,7 +688,7 @@ function updateBud(dt) {
   setActive(p);
   const first = !game.progress.budded;
   game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
-  game.fx.push({ kind: 'ring', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.6 });
+  game.fx.push({ kind: 'ring', x: fp.x, y: fp.y, t: 0, life: 0.6 });
   sfx('budDone');
   if (first) { beat(CONFIG.moments.budSlow, 0.5); game.fx.push({ kind: 'pulse', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.8, small: true }); spawnParts('spark', (f.c + 0.5) * CELL, (f.r + 0.5) * CELL, 10); }
   toast(`${anem ? 'New anemone' : 'New polyp'} (${game.polyps.length})`);
@@ -758,7 +763,7 @@ function distSeg(px, py, x0, y0, x1, y1) {
 function doSting() {
   const a = game.active;
   if (!has('D1') || game.stage !== 'polyp' || !a || game.tree.open || game.sting.cd > 0) return;
-  const cc = cellCenter(a.c, a.r), w = screenToWorld(game.mouse.sx, game.mouse.sy), sy = cc.y - 6;
+  const cc = drawPos(a), w = screenToWorld(game.mouse.sx, game.mouse.sy), sy = cc.y - 6;
   let dx = w.x - cc.x, dy = w.y - sy, m = Math.hypot(dx, dy);
   if (m < 1) { dx = 0; dy = -1; m = 1; }
   const k = Math.min(1, reach() / m), ex = cc.x + dx * k, ey = sy + dy * k;
@@ -1043,7 +1048,7 @@ function updatePolyps(dt) {
   }
   if (game.hop) { game.hop.t += dt; if (game.hop.t > 0.35) game.hop = null; }
   if (game.stage === 'polyp' && game.active) {
-    const a = game.active, cc = cellCenter(a.c, a.r), T = game.tent;
+    const a = game.active, cc = drawPos(a), T = game.tent;
     const w = screenToWorld(game.mouse.sx, game.mouse.sy);
     if (game.mouse.down) {
       let dx = w.x - cc.x, dy = w.y - cc.y; const m = Math.hypot(dx, dy);
@@ -1563,9 +1568,9 @@ function lookKey(e) {
 }
 
 /* ---------- coral styles: 0 current, 1 living mass, 2 branching, 3 mound (tissue cached until cells change; polyp details drawn per frame) ---------- */
-const CORAL_STYLES = ['Current', 'Living mass', 'Branching', 'Mound'];
-const CAMP = [0, 2.6, 3.4, 2.2];   // largest centre nudge per style, px
-const CTENT = [null, { n: 4, sp: 0.6, len: 12, r: 3.5, w: 2.3 }, { n: 3, sp: 0.7, len: 8, r: 1.5, w: 1.9 }, { n: 4, sp: 0.8, len: 8, r: 3, w: 2.1 }];
+const CORAL_STYLES = ['Current', 'Living mass', 'Branching', 'Mound', 'Wild branching'];
+const CAMP = [0, 2.6, 3.4, 2.2, 0];   // largest centre nudge per style, px
+const CTENT = [null, { n: 4, sp: 0.6, len: 12, r: 3.5, w: 2.3 }, { n: 3, sp: 0.7, len: 8, r: 1.5, w: 1.9 }, { n: 4, sp: 0.8, len: 8, r: 3, w: 2.1 }, { n: 3, sp: 0.7, len: 9, r: 1.5, w: 1.9 }];
 const growOf = p => p.born === undefined ? 1 : clamp((game.time - p.born) * 3.5, 0, 1);   // same pace as p.pop
 const hash2 = (c, r, k) => { let h = Math.imul((c * 73856093) ^ (r * 19349663) ^ (k * 83492791), 0x9E3779B1); h ^= h >>> 15; h = Math.imul(h, 0x85EBCA6B); h ^= h >>> 13; return (h >>> 0) / 4294967296; };
 const tone = (c, r) => 0.5 + 0.5 * Math.sin(c * 0.37 + r * 0.23 + Math.sin(r * 0.5) * 1.2);   // gentle colour drift across the colony
@@ -1575,6 +1580,11 @@ function cpos(c, r, amp) { const a = hash2(c, r, 1) * 6.283, d = hash2(c, r, 2) 
 function polypPos(p) {
   const st = game.look.coral;
   if (!st) return cellCenter(p.c, p.r);
+  if (st === 4) {
+    const u = wildSync().get(key(p.c, p.r)); if (!u) return cellCenter(p.c, p.r);
+    const e = growOf(p); if (e >= 1 || !u.par) return { x: u.x, y: u.y };
+    const k = e * e * (3 - 2 * e); return { x: lerp(u.par.x, u.x, k), y: lerp(u.par.y, u.y, k) };
+  }
   const a = cpos(p.c, p.r, CAMP[st]), e = growOf(p);
   if (e >= 1 || !p.parent) return { x: a[0], y: a[1] };
   const b = cpos(p.parent.c, p.parent.r, CAMP[st]), k = e * e * (3 - 2 * e);
@@ -1585,6 +1595,7 @@ const nodeCol = (u, pal) => mix3(pal.mid, pal.alt, tone(u.c, u.r) * 0.8);
 
 // every cell (any kind) with its nudged centre, parent cell and subtree size
 function buildModel(st) {
+  if (st === 4) { const nodes = wildSync(), list = [...nodes.values()]; for (const u of list) u.live = u.kind === 'skel' || growOf(u.q) >= 1; return { nodes, list }; }
   const nodes = new Map(), list = [];
   const add = (q, kind) => { const u = { c: q.c, r: q.r, kind, q, par: null, kids: [], size: 1, live: kind === 'skel' || growOf(q) >= 1 }; [u.x, u.y] = cpos(q.c, q.r, CAMP[st]); nodes.set(key(q.c, q.r), u); list.push(u); };
   for (const p of game.polyps) add(p, 'poly');
@@ -1776,6 +1787,132 @@ function paintMound(g, M, layer, pal, kind) {
   g.restore();
 }
 
+/* ---------- style 4, wild branching: polyps drawn off-grid, limbs only along one spanning tree (cached until cells change) ---------- */
+// where cell (c,r) is drawn when budded from (pc,pr): hash offset up to 35% of a cell, plus a lean away from the parent and a little up
+function wildAt(c, r, pc, pr) {
+  const a = hash2(c, r, 21) * 6.283, d = Math.sqrt(hash2(c, r, 22)) * 0.35 * CELL;
+  let x = Math.cos(a) * d, y = Math.sin(a) * d;
+  if (pc !== undefined) { const dx = c - pc, dy = r - pr, m = Math.hypot(dx, dy) || 1; x += dx / m * 3; y += dy / m * 3 - 1.5; }
+  const m = Math.hypot(x, y), mx = 0.47 * CELL; if (m > mx) { x *= mx / m; y *= mx / m; }
+  return [(c + 0.5) * CELL + x, (r + 0.5) * CELL + y];
+}
+const WT = { t: -1, sig: '', full: '', info: new Map() };
+// every cell with its parent (recorded growth link, else a BFS spanning tree from the rock-touching root, preferring upward links), subtree size, size and width
+function wildSync() {
+  const sig = game.polyps.length + ',' + game.skeletons.length + ',' + game.cells.size;
+  if (WT.t === game.time && WT.sig === sig) return WT.info;
+  WT.t = game.time; WT.sig = sig;
+  const full = sig + ',' + cellSig(game.polyps) + ',' + cellSig(game.skeletons);
+  if (WT.full === full) return WT.info;
+  WT.full = full;
+  const nodes = new Map(), list = [];
+  const add = (q, kind) => { const u = { c: q.c, r: q.r, kind, q, par: null, kids: [], size: 1, i: list.length, d: -1, live: true }; nodes.set(key(q.c, q.r), u); list.push(u); };
+  for (const p of game.polyps) add(p, 'poly');
+  for (const s of game.skeletons) add(s, 'skel');
+  const under = (v, u) => { for (let n = 0; v && n < 600; n++, v = v.par) if (v === u) return true; return false; };
+  for (const u of list) if (u.q.parent) { const v = nodes.get(key(u.q.parent.c, u.q.parent.r)); if (v && v !== u && !under(v, u)) u.par = v; }
+  const seen = new Set(), rooted = u => isRock(u.c, u.r + 1) || isRock(u.c - 1, u.r) || isRock(u.c + 1, u.r) || isRock(u.c, u.r - 1);
+  for (const s0 of list) {
+    if (seen.has(s0)) continue;
+    const comp = [s0]; seen.add(s0);
+    for (let i = 0; i < comp.length; i++) for (const [dc, dr] of NB_DIRS) { const v = nodes.get(key(comp[i].c + dc, comp[i].r + dr)); if (v && !seen.has(v)) { seen.add(v); comp.push(v); } }
+    const root = comp.filter(rooted).sort((a, b) => a.i - b.i)[0] || comp.slice().sort((a, b) => a.i - b.i)[0];
+    root.d = 0; const q = [root];
+    for (let i = 0; i < q.length; i++) for (const [dc, dr] of NB_DIRS) { const v = nodes.get(key(q[i].c + dc, q[i].r + dr)); if (v && v.d < 0) { v.d = q[i].d + 1; q.push(v); } }
+    for (const u of comp) {
+      if (u.par || u === root) continue;
+      const cand = [];
+      for (const [dc, dr] of NB_DIRS) { const v = nodes.get(key(u.c + dc, u.r + dr)); if (v && !under(v, u)) cand.push([v, (v.d < u.d ? 0 : 4) + (dr > 0 ? 0 : dr === 0 ? 1 : 2)]); }   // nearer the root first, then a link that points upward
+      cand.sort((a, b) => a[1] - b[1]); if (cand.length) u.par = cand[0][0];
+    }
+  }
+  for (const u of list) if (u.par) u.par.kids.push(u);
+  const sz = u => { u.size = 1; for (const k of u.kids) u.size += sz(k); return u.size; };
+  for (const u of list) if (!u.par) sz(u);
+  for (const u of list) {
+    const p = u.par, xy = wildAt(u.c, u.r, p ? p.c : undefined, p ? p.r : undefined); u.x = xy[0]; u.y = xy[1];
+    u.w = Math.min(12, 2.6 + 1.25 * Math.sqrt(u.size));   // limb width: thick at the base, thin at the tips
+    u.sz = clamp(0.7 + 0.5 * hash2(u.c, u.r, 23) + (u.kids.length ? 0.04 * Math.min(3, Math.sqrt(u.size)) : -0.12), 0.7, 1.2);
+  }
+  WT.info = nodes;
+  return nodes;
+}
+// drawn position of a bud spot: where that polyp will be drawn (it will bud from the active polyp)
+function spotPos(c, r) {
+  const a = game.active;
+  if (game.look.coral !== 4 || !a) return cellCenter(c, r);
+  const q = wildAt(c, r, a.c, a.r); return { x: q[0], y: q[1] };
+}
+const drawPos = p => game.look.coral === 4 ? polypPos(p) : cellCenter(p.c, p.r);
+function paintWild(g, M, layer, pal, kind) {
+  const limbs = [], buds = [], limb = (pts, w0, w1, c0, c1, ws) => limbs.push({ pts, w0, w1, c0, c1, ws });
+  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), colOf = u => { const k = tipk(u); return mix3(mix3(nodeCol(u, pal), pal.shade, 0.24 * (1 - k)), pal.lit, 0.34 * k); };   // darker at the base, paler at the tips
+  const quad = (a, b, c, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, p = (1 - t) * (1 - t), q = 2 * t * (1 - t), s = t * t; o.push([p * a[0] + q * b[0] + s * c[0], p * a[1] + q * b[1] + s * c[1]]); } return o; };
+  for (const u of layer) {
+    const P = u.par, col = colOf(u), h = k => hash2(u.c, u.r, k);
+    limb([[u.x, u.y], [u.x + 0.01, u.y]], u.w, u.w, col, col);   // joint
+    let ux = 0, uy = -1;
+    if (P) {
+      const dx = u.x - P.x, dy = u.y - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      ux = dx / L; uy = dy / L;
+      const b1 = (h(5) - 0.5) * (0.6 * L + 3), b2 = (h(6) - 0.5) * (0.6 * L + 3), pts = [];
+      const c1 = [P.x + dx / 3 + nx * b1, P.y + dy / 3 + ny * b1 - 0.12 * L], c2 = [P.x + dx * 2 / 3 + nx * b2, P.y + dy * 2 / 3 + ny * b2 - 0.05 * L];
+      for (let i = 0; i <= 10; i++) { const t = i / 10, a = (1 - t) ** 3, b = 3 * t * (1 - t) ** 2, c = 3 * t * t * (1 - t), d = t ** 3; pts.push([a * P.x + b * c1[0] + c * c2[0] + d * u.x, a * P.y + b * c1[1] + c * c2[1] + d * u.y]); }
+      limb(pts, Math.max(u.w, P.w * 0.9), u.w, colOf(P), col);
+      const nt = (h(7) < 0.55 ? 1 : 0) + (h(8) > 0.8 ? 1 : 0);
+      for (let k = 0; k < nt && L > 12; k++) {   // side twigs
+        const i = 3 + Math.floor(h(9 + k) * 4), a = pts[i], b = pts[i + 1], side = h(11 + k) < 0.5 ? -1 : 1;
+        let tx = b[0] - a[0], ty = b[1] - a[1]; const m = Math.hypot(tx, ty) || 1; tx /= m; ty /= m;
+        const ca = Math.cos((0.7 + 0.4 * h(13 + k)) * side), sa = Math.sin((0.7 + 0.4 * h(13 + k)) * side);
+        let ex = tx * ca - ty * sa, ey = tx * sa + ty * ca - 0.4; const m2 = Math.hypot(ex, ey); ex /= m2; ey /= m2;
+        const len = 5 + h(15 + k) * 5;
+        limb(quad(a, [a[0] + ex * len * 0.5 - ey * side * 1.2, a[1] + ey * len * 0.5 + ex * side * 1.2], [a[0] + ex * len, a[1] + ey * len - 1], 5), Math.max(1.8, u.w * 0.55), 0.9, col, col);
+      }
+      if (h(17) < 0.5) {   // a small nub on one side
+        const i = 2 + Math.floor(h(18) * 6), a = pts[i], s = h(19) < 0.5 ? -1 : 1, nl = 2.4 + 1.6 * h(20);
+        limb([a, [a[0] + nx * s * nl, a[1] + ny * s * nl - 0.6]], Math.max(2.4, u.w * 0.7), 1.8, col, col);
+      }
+    }
+    if (!u.kids.length) {   // a tip facing open water reaches a little past its cell with a short twig and a growing bud
+      const ang = Math.atan2(uy, ux) + (h(24) - 0.5) * 0.7, dx = Math.cos(ang), dy = Math.sin(ang) - 0.25, m = Math.hypot(dx, dy), ex = dx / m, ey = dy / m;
+      const axx = Math.abs(ex) > Math.abs(ey), tc = u.c + (axx ? Math.sign(ex) : 0), tr = u.r + (axx ? 0 : Math.sign(ey));
+      if (!isRock(tc, tr) && !M.nodes.get(key(tc, tr))) {
+        const len = 7 + 5 * h(25), side = h(26) < 0.5 ? -1 : 1, e = [u.x + ex * len, u.y + ey * len];
+        limb(quad([u.x, u.y], [u.x + ex * len * 0.5 - ey * side * 2, u.y + ey * len * 0.5 + ex * side * 2 - 1], e, 5), u.w * 0.85, 1.4, col, mix3(col, pal.lit, 0.4));
+        if (kind === 'poly') buds.push([e[0], e[1], 2.2 + 0.8 * h(27)]);
+      }
+    }
+    if (isRock(u.c, u.r + 1)) {   // the base flares into a foot on the rock
+      const fy = (u.r + 1) * CELL + 1.5, W = Math.min(19, u.w * 1.7 + 5), pts = [], ws = [];
+      for (let i = 0; i <= 6; i++) { const t = i / 6; pts.push([u.x + (1 - t) * (h(28) - 0.5) * 2, fy + (u.y - fy) * t]); ws.push(u.w + (W - u.w) * Math.pow(1 - t, 2.2)); }
+      limb(pts, W, u.w, col, col, ws);
+      for (const s of [-1, 1]) if (isRock(u.c + s, u.r + 1) && !isRock(u.c + s, u.r)) limb(quad([u.x, fy - 1], [u.x + s * W * 0.5, fy - 1.5], [u.x + s * Math.min(14, W * 0.95), fy - 0.5], 4), 4, 1.8, col, col);
+    } else if (!P) {   // a root on a wall or ceiling
+      for (const [dc, dr] of [[-1, 0], [1, 0], [0, -1]]) if (isRock(u.c + dc, u.r + dr)) {
+        const W = Math.min(16, u.w * 1.6 + 4);
+        limb([[u.x + dc * 0.55 * CELL, u.y + dr * 0.55 * CELL], [u.x, u.y]], W, u.w, col, col); break;
+      }
+    }
+  }
+  const pass = (col, dx, dy, dw, minW) => {
+    g.lineCap = 'round';
+    for (const L of limbs) {
+      const n = L.pts.length - 1;
+      for (let i = 0; i < n; i++) {
+        const w = L.ws ? (L.ws[i] + L.ws[i + 1]) / 2 : lerp(L.w0, L.w1, (i + 0.5) / n); if (w < minW) continue;
+        g.strokeStyle = col(L, (i + 0.5) / n); g.lineWidth = Math.max(0.8, dw < 0 ? w * 0.35 : w + dw);
+        g.beginPath(); g.moveTo(L.pts[i][0] + dx, L.pts[i][1] + dy); g.lineTo(L.pts[i + 1][0] + dx, L.pts[i + 1][1] + dy); g.stroke();
+      }
+    }
+  };
+  pass(() => rgbs(pal.rim), 0, 0, 1.8, 0);
+  pass((L, t) => rgbs(mix3(L.c0, L.c1, t)), 0, 0, 0, 0);
+  for (const b of buds) { g.fillStyle = rgbs(pal.rim); g.beginPath(); g.arc(b[0], b[1], b[2] + 1, 0, 6.3); g.fill(); g.fillStyle = rgbs(mix3(pal.lit, [255, 240, 225], 0.5)); g.beginPath(); g.arc(b[0], b[1], b[2], 0, 6.3); g.fill(); }
+  g.globalCompositeOperation = 'source-atop';
+  pass(() => rgba(pal.lit, 0.5), -0.7, -1, -1, 3);   // lit side of the thicker limbs
+  if (kind === 'skel') { g.fillStyle = 'rgba(120,110,95,0.55)'; for (const u of layer) { g.beginPath(); g.arc(u.x, u.y, 1, 0, 6.3); g.fill(); } }
+}
+
 function styleLayer(M, st, kind) {
   const pal = palFor(kind), layer = M.list.filter(u => u.kind === kind && u.live);
   if (!layer.length) return null;
@@ -1784,7 +1921,7 @@ function styleLayer(M, st, kind) {
   x0 -= 3 * CELL; y0 -= 3 * CELL; x1 += 3 * CELL; y1 += 3 * CELL;
   const s = Math.min(2, 3000 / Math.max(x1 - x0, y1 - y0)), cv = mkCanvas(Math.ceil((x1 - x0) * s), Math.ceil((y1 - y0) * s)), g = cv.getContext('2d');
   g.setTransform(s, 0, 0, s, -x0 * s, -y0 * s);
-  (st === 1 ? paintLiving : st === 2 ? paintBranch : paintMound)(g, M, layer, pal, kind);
+  (st === 1 ? paintLiving : st === 2 ? paintBranch : st === 4 ? paintWild : paintMound)(g, M, layer, pal, kind);
   return { cv, x0, y0, w: cv.width / s, h: cv.height / s };
 }
 function ensureStyle() {   // rebuild only when cells change (or a newcomer finishes growing in)
@@ -1798,13 +1935,13 @@ function ensureStyle() {   // rebuild only when cells change (or a newcomer fini
 // a newcomer growing in from its parent, drawn live because the cached layer leaves it out
 function drawGrowing(p, e, pos) {
   const st = game.look.coral, pal = palFor('poly'), k = e * e * (3 - 2 * e), col = nodeCol(p, pal);
-  const par = p.parent ? cpos(p.parent.c, p.parent.r, CAMP[st]) : [pos.x, pos.y];
+  const pu = st === 4 && p.parent ? wildSync().get(key(p.parent.c, p.parent.r)) : null, par = pu ? [pu.x, pu.y] : p.parent && st !== 4 ? cpos(p.parent.c, p.parent.r, CAMP[st]) : [pos.x, pos.y];
   ctx.save(); ctx.lineCap = 'round';
   const blob = (r, w) => {
     ctx.beginPath(); ctx.moveTo(par[0], par[1]); ctx.lineTo(pos.x, pos.y); ctx.lineWidth = w; ctx.stroke();
     ctx.beginPath(); ctx.arc(pos.x, pos.y, r, 0, 6.3); ctx.fill();
   };
-  if (st === 2) {
+  if (st === 2 || st === 4) {
     const w = 2.8 + 3 * k;
     ctx.strokeStyle = ctx.fillStyle = rgbs(pal.rim); blob(w / 2 + 0.9, w + 1.8);
     ctx.strokeStyle = ctx.fillStyle = rgbs(col); blob(w / 2, w);
@@ -1818,20 +1955,22 @@ function drawGrowing(p, e, pos) {
 }
 function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue is in the cached layer
   const st = game.look.coral, pos = polypPos(p), e = growOf(p), br = 1 + 0.08 * Math.sin(t * 1.6 + p.seed), gold = has('F3');
+  const wu = st === 4 ? wildSync().get(key(p.c, p.r)) : null, zs = wu ? wu.sz : 1;
   if (e < 1) drawGrowing(p, e, pos);
   ctx.save(); ctx.translate(pos.x, pos.y); popScale(p, (1 + 0.22 * p.pop) * (0.25 + 0.75 * e));
   if (p.pop > 0.02) { ctx.strokeStyle = `rgba(255,236,210,${p.pop * 0.7})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 13 + 14 * (1 - p.pop), 0, 6.3); ctx.stroke(); }
   if (active) {
-    const pulse = 0.5 + 0.5 * Math.sin(t * 5), rr = st === 2 ? 10 : 15;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 5), rr = st === 2 ? 10 : st === 4 ? 9 * zs + 1 : 15;
     const g = ctx.createRadialGradient(0, 0, 4, 0, 0, 34);
     g.addColorStop(0, 'rgba(255,245,170,0.5)'); g.addColorStop(1, 'rgba(255,245,170,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 34, 0, 6.3); ctx.fill();
     ctx.strokeStyle = `rgba(255,255,255,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 6.3); ctx.stroke();
   }
   if (!p.anemone) {
-    if (st === 2) {   // a bright dot on the limb
-      ctx.fillStyle = gold ? '#f6dca0' : active ? '#ffe6dc' : '#ffcfc2'; ctx.beginPath(); ctx.arc(0, 0, 4 * br, 0, 6.3); ctx.fill();
-      ctx.fillStyle = gold ? '#7a4a22' : '#7a2a3a'; ctx.beginPath(); ctx.arc(0, -0.2, 1.7 * br, 0, 6.3); ctx.fill();
+    if (st === 2 || st === 4) {   // a bright dot on the limb (wild: sized per polyp, paler at the tips)
+      const tip = wu && !wu.kids.length;
+      ctx.fillStyle = gold ? '#f6dca0' : active ? '#ffe6dc' : tip ? '#ffe3d8' : '#ffcfc2'; ctx.beginPath(); ctx.arc(0, 0, 4 * zs * br, 0, 6.3); ctx.fill();
+      ctx.fillStyle = gold ? '#7a4a22' : '#7a2a3a'; ctx.beginPath(); ctx.arc(0, -0.2, 1.7 * zs * br, 0, 6.3); ctx.fill();
     } else if (st === 3) {   // a dimple with a lit lower lip
       ctx.fillStyle = gold ? '#5c3a1c' : '#5a1a30'; ctx.beginPath(); ctx.ellipse(0, -0.3, 3.6 * br, 2.8 * br, 0, 0, 6.3); ctx.fill();
       ctx.strokeStyle = active ? 'rgba(255,240,228,0.9)' : 'rgba(255,226,208,0.7)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(0, -0.3, 4.1 * br, 3.3 * br, 0, 0.1, Math.PI - 0.1); ctx.stroke();
@@ -2443,7 +2582,7 @@ function drawPolypTentacles(t) {
 }
 function drawGhost(t) {
   const f = game.facing; if (!f || game.stage !== 'polyp') return;
-  const cc = cellCenter(f.c, f.r), b = game.bud, cost = budCost();
+  const cc = spotPos(f.c, f.r), b = game.bud, cost = budCost();
   const can = !budShort();
   let shake = b.fail > 0 ? Math.sin(t * 60) * 2.5 * b.fail : 0;
   ctx.save(); ctx.translate(cc.x + shake, cc.y);
@@ -2477,7 +2616,7 @@ function drawSpots(t) {
   const hov = spotAtMouse(), f = game.facing;
   for (const sp of budSpots()) {
     if (f && f.c === sp.c && f.r === sp.r) continue;   // the bud ring is drawn there
-    const cc = cellCenter(sp.c, sp.r), h = hov && hov.c === sp.c && hov.r === sp.r, a = h ? 0.6 : 0.2 + 0.12 * Math.sin(t * 2.6 + sp.c * 0.9 + sp.r * 0.7);
+    const cc = spotPos(sp.c, sp.r), h = hov && hov.c === sp.c && hov.r === sp.r, a = h ? 0.6 : 0.2 + 0.12 * Math.sin(t * 2.6 + sp.c * 0.9 + sp.r * 0.7);
     const g = ctx.createRadialGradient(cc.x, cc.y, 1, cc.x, cc.y, 15);
     g.addColorStop(0, `rgba(255,248,200,${a})`); g.addColorStop(1, 'rgba(255,248,200,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cc.x, cc.y, 15, 0, 6.3); ctx.fill();
@@ -2564,7 +2703,7 @@ function drawNibbler(n, t) {   // a small striped butterflyfish: tall yellow bod
 function drawPolypStatus(p) {
   const frac = p.hp / CONFIG.polypHp;
   if (frac >= 0.999 && p.hurt <= 0) return;
-  const st = game.look.coral, cc = polypPos(p), sr = [0, 11.5, 7, 11][st];
+  const st = game.look.coral, cc = polypPos(p), sr = [0, 11.5, 7, 11, 7][st];
   ctx.save(); ctx.translate(cc.x, cc.y);
   const shape = st ? () => { ctx.beginPath(); ctx.arc(0, 0, sr, 0, 6.3); } : null;   // round styles tint a round patch, not a box
   if (frac < 0.999) { ctx.fillStyle = `rgba(232,226,214,${(1 - frac) * 0.42})`; shape ? shape() : roundRectPath(-10.5, -10.5, 21, 21, 8); ctx.fill(); }
@@ -2679,7 +2818,7 @@ function drawFx() {
     }
   }
   if (game.hop && game.active) {
-    const to = cellCenter(game.active.c, game.active.r), u = game.hop.t / 0.35;
+    const to = drawPos(game.active), u = game.hop.t / 0.35;
     ctx.strokeStyle = `rgba(255,245,170,${1 - u})`; ctx.lineWidth = 4; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(game.hop.fx, game.hop.fy); ctx.lineTo(lerp(game.hop.fx, to.x, Math.min(1, u * 2)), lerp(game.hop.fy, to.y, Math.min(1, u * 2)) - Math.sin(u * 3.14) * 6); ctx.stroke();
   }
