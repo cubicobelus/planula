@@ -145,7 +145,7 @@ const CONFIG = {
   hitLossFraction: 1 / 3, hitKnockback: 430, invulnerable: 2.0, fishRetreat: 2.5,
   // polyps
   tentacleReach: 120, tentacleIdleLen: 32, tentacleSpeed: 7, pullRadius: 36, pullSpeed: 230, eatDist: 9,
-  budMode: 'click', budTime: 1.2, budCostBase: 12, budCostPerPolyp: 1.5,
+  budMode: 'both', budTime: 1.2, budCostBase: 12, budCostPerPolyp: 1.5,
   polypHp: 12, polypHeal: 0.2, polypHealDelay: 4,
   stingCooldown: 1.2, stingRadius: 20,
   anemoneCostMult: 1.7, anemoneExtra: 3, clownDelay: 20, clownRadius: 170, clownEnergy: 0.05, clownSpeed: 120, clownChaseSpeed: 175, clownFlee: 6,
@@ -624,7 +624,7 @@ function tryHop(dir) {
     game.hop = { fx: from.x, fy: from.y, t: 0 };
     game.progress.hopped = true;
   } else if (validBudCell(c, r)) {
-    game.facing = { c, r };
+    game.facing = { c, r }; game.bud.src = 'key';
   } else {
     game.facing = null;
   }
@@ -634,19 +634,21 @@ function pressSpace() {
   if (game.stage === 'larva') { trySettle(); return; }
   if (clickMode()) return;
   const b = game.bud;
-  if (!game.facing) { toast('Press a direction to pick a cell first'); return; }
+  if (!game.facing) { toast(spotMode() ? 'Press a direction or click a glowing cell first' : 'Press a direction to pick a cell first'); return; }
   const short = budShort();
   if (short) { b.fail = 0.9; b.armed = false; toast(short); return; }
   b.armed = true; b.t = 0; b.src = 'key';
 }
-const clickMode = () => CONFIG.budMode === 'click';
+const clickMode = () => CONFIG.budMode === 'click';   // pure click; 'both' = click spots + WASD/Space, 'keys' = WASD/Space only
+const spotMode = () => CONFIG.budMode !== 'keys';
+const BUD_MODES = ['both', 'click', 'keys'];
 // open cells the active polyp can bud into (click mode shows these as spots)
 function budSpots() {
   const a = game.active; if (game.stage !== 'polyp' || !a) return [];
   return Object.values(DIRS).map(([dc, dr]) => ({ c: a.c + dc, r: a.r + dr })).filter(s => validBudCell(s.c, s.r));
 }
 function spotAtMouse() {
-  if (!clickMode() || game.tree.open || game.mouse.ui) return null;
+  if (!spotMode() || game.tree.open || game.mouse.ui) return null;
   const w = screenToWorld(game.mouse.sx, game.mouse.sy), c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
   return budSpots().find(s => s.c === c && s.r === r) || null;
 }
@@ -660,14 +662,14 @@ function pressSpot(sp) {
 }
 function setBudMode(m) {
   CONFIG.budMode = m; game.facing = null; game.bud.t = 0; game.bud.armed = false;
-  toast(m === 'click' ? 'Controls: click a glowing cell to bud' : 'Controls: direction keys, then hold Space to bud');
+  toast(m === 'click' ? 'Controls: click a glowing cell to bud' : m === 'both' ? 'Controls: click a glowing cell, or direction keys then hold Space' : 'Controls: direction keys, then hold Space to bud');
 }
 function updateBud(dt) {
   const b = game.bud;
   b.fail = Math.max(0, b.fail - dt);
   if (game.stage !== 'polyp') return;
   if (game.facing && !validBudCell(game.facing.c, game.facing.r)) { game.facing = null; b.t = 0; b.armed = false; }
-  if (clickMode() && !b.armed && b.fail <= 0) game.facing = null;
+  if ((clickMode() || b.src === 'mouse') && !b.armed && b.fail <= 0) game.facing = null;   // mouse-picked facing only lasts while held
   if (!b.armed || !(b.src === 'mouse' ? game.mouse.bud : game.keys.has('Space')) || !game.facing) { b.t = 0; b.armed = false; return; }
   b.t += dt;
   if (b.t < CONFIG.budTime) return;
@@ -2463,7 +2465,7 @@ function drawGhost(t) {
   const a = game.active, up = a && f.r < a.r;
   const short = budShort(), ca = budCalcium();
   if (game.nextAnemone) { ctx.save(); drawAnemoneAt(cc.x, cc.y, t, 1.7, 0.55); ctx.restore(); }
-  if (clickMode()) return;   // click mode labels the spot under the cursor instead
+  if (clickMode() || game.bud.src === 'mouse') return;   // click mode labels the spot under the cursor instead
   const txt = !short ? `Space: ${game.nextAnemone ? 'anemone' : 'bud'} (${Math.ceil(cost)}${ca ? ` + ${ca} Ca` : ''})` : game.energy < cost ? `Need ${Math.ceil(cost)} energy` : `Need ${ca} calcium`, ly = cc.y + (up ? -37 - (game.nextAnemone ? 16 : 0) : 41) * z * 0.9;
   const tw = ctx.measureText(txt).width + 14 * z;
   ctx.fillStyle = 'rgba(2,16,32,0.55)'; roundRectPath(cc.x - tw / 2, ly - 12 * z, tw, 17 * z, 8 * z); ctx.fill();
@@ -2471,7 +2473,7 @@ function drawGhost(t) {
   ctx.fillText(txt, cc.x, ly);
 }
 function drawSpots(t) {
-  if (!clickMode() || game.stage !== 'polyp' || game.tree.open) return;
+  if (!spotMode() || game.stage !== 'polyp' || game.tree.open) return;
   const hov = spotAtMouse(), f = game.facing;
   for (const sp of budSpots()) {
     if (f && f.c === sp.c && f.r === sp.r) continue;   // the bud ring is drawn there
@@ -2774,7 +2776,7 @@ function currentHint() {
   const pr = game.progress, n = game.polyps.length;
   if (game.stage === 'larva') return pr.settled ? 'Find rock or your colony and press Space to settle again' : 'Swim (WASD) and find rock to settle on. Eat plankton for energy';
   if (!pr.tentacled) return 'Hold the mouse to catch plankton with your tentacles';
-  const bud = clickMode() ? 'Hold the mouse on a glowing cell to bud a polyp' : 'Press a direction, then hold Space to bud a polyp';
+  const bud = clickMode() ? 'Hold the mouse on a glowing cell to bud a polyp' : spotMode() ? 'Hold the mouse on a glowing cell, or press a direction then hold Space, to bud' : 'Press a direction, then hold Space to bud a polyp';
   if (!pr.budded) return game.energy < budCost() ? `Catch plankton: you need ${Math.ceil(budCost())} energy to bud` : bud;
   if (!pr.hopped) return n < 2 ? bud : 'Press WASD toward another polyp to hop to it';
   return 'R bails out: you swim free as a larva';
@@ -2800,8 +2802,8 @@ const abar = el('abar');
 const polypNow = () => game.stage === 'polyp' && !!game.active;
 const BAR = [
   { id: 'settle', label: () => 'Settle', key: () => 'Space', show: () => game.stage === 'larva', dis: () => game.settleTarget ? '' : 'Swim against rock to settle', tip: 'Settle here', go: () => pressSpace() },
-  { id: 'bud', label: () => 'Bud', key: () => clickMode() ? 'Click' : 'Space', show: polypNow, hold: true,
-    dis: () => !budSpots().length ? 'No free space here' : budShort() || '', tip: () => clickMode() ? 'Hold the mouse on a glowing cell to bud' : 'Press a direction, then hold Space to bud',
+  { id: 'bud', label: () => 'Bud', key: () => clickMode() ? 'Click' : spotMode() ? 'Space / Click' : 'Space', show: polypNow, hold: true,
+    dis: () => !budSpots().length ? 'No free space here' : budShort() || '', tip: () => clickMode() ? 'Hold the mouse on a glowing cell to bud' : spotMode() ? 'Click a glowing cell, or press a direction, then hold Space' : 'Press a direction, then hold Space to bud',
     go: () => toast('Hold the mouse on a glowing cell to bud') },
   { id: 'bail', label: () => 'Bail', key: () => 'R', show: polypNow, dis: () => '', tip: 'Swim free as a larva', go: () => bail() },
   { id: 'guide', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide, dis: () => polypNow() ? '' : 'Settle first', tip: 'Hold G and click a cell to grow towards it',
@@ -2833,7 +2835,7 @@ const barRelease = () => { for (const d of BAR) if (d.held) { d.held = false; ga
 window.addEventListener('mouseup', barRelease); window.addEventListener('blur', barRelease);
 abar.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b === barSwitch) { setBudMode(clickMode() ? 'keys' : 'click'); return; }
+  if (b === barSwitch) { setBudMode(BUD_MODES[(BUD_MODES.indexOf(CONFIG.budMode) + 1) % 3]); return; }
   const d = BAR.find(x => x.btn === b); if (!d) return;
   if (d.reason) { toast(d.reason); return; }
   if (d.hold && !clickMode()) return;   // handled on press
@@ -2858,7 +2860,7 @@ function updateBar() {
     if (d.cd) d.cdEl.style.width = Math.round(clamp(d.cd(), 0, 1) * 100) + '%';
     d.dotEl.style.display = d.dot && d.dot() ? '' : 'none';
   }
-  const sw = clickMode() ? 'Controls: <b>click</b> / keys' : 'Controls: click / <b>keys</b>';
+  const bm = CONFIG.budMode, sw = `Controls: ${bm === 'both' ? '<b>both</b>' : 'both'} / ${bm === 'click' ? '<b>click</b>' : 'click'} / ${bm === 'keys' ? '<b>keys</b>' : 'keys'}`;
   if (barSwitch.innerHTML !== sw) barSwitch.innerHTML = sw;
 }
 
@@ -2948,7 +2950,7 @@ const devGroups = [
   ['Toggles', [
     '<label><input type="checkbox" data-t="god"> god mode</label><label><input type="checkbox" data-t="noFish"> predators off</label>',
     '<label><input type="checkbox" data-t="noNib"> nibblers off</label><label><input type="checkbox" data-t="grid"> grid lines</label><label><input type="checkbox" data-t="stats"> stats overlay</label>',
-    '<label><input type="checkbox" data-bm> click-to-bud (off: direction keys + Space)</label>']],
+    '<label><input type="checkbox" data-bm> <span id="bmLbl"></span> (tick to cycle)</label>']],
   ['CONFIG', [
     '<input type="text" id="devfilter" placeholder="filter keys" autocomplete="off" spellcheck="false">',
     '<button data-a="cfgreset">reset CONFIG</button><button data-a="cfgcopy">copy changes</button>',
@@ -2994,7 +2996,7 @@ function devBuild() {
   devPanel.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset.cs !== undefined) { setCoral(+t.value); t.blur(); devRefresh(); }
-    else if (t.dataset.bm !== undefined) { setBudMode(t.checked ? 'click' : 'keys'); t.blur(); devRefresh(); }
+    else if (t.dataset.bm !== undefined) { setBudMode(BUD_MODES[(BUD_MODES.indexOf(CONFIG.budMode) + 1) % 3]); t.blur(); devRefresh(); }
     else if (t.dataset.t) { devs[t.dataset.t] = t.checked; if (t.dataset.t === 'noNib' && t.checked) game.nibblers.length = 0; t.blur(); devRefresh(); }
   });
   devPanel.addEventListener('input', e => {
@@ -3024,7 +3026,7 @@ function devRefresh() {
   for (const b of devPanel.querySelectorAll('button[data-a="pause"]')) { b.textContent = devs.paused ? 'resume' : 'pause'; b.classList.toggle('on', devs.paused); }
   for (const b of devPanel.querySelectorAll('button[data-a="speed"]')) b.classList.toggle('on', +b.dataset.v === devs.speed);
   for (const t of devPanel.querySelectorAll('input[data-t]')) t.checked = !!devs[t.dataset.t];
-  devPanel.querySelector('input[data-bm]').checked = clickMode();
+  devPanel.querySelector('input[data-bm]').checked = CONFIG.budMode !== 'both'; devPanel.querySelector('#bmLbl').textContent = 'bud controls: ' + CONFIG.budMode + ' (both / click / keys)';
   const cs = devPanel.querySelector('select[data-cs]'); if (cs.value !== '' + game.look.coral) cs.value = game.look.coral;
   const rd = document.getElementById('devread'), s = `energy ${game.energy.toFixed(1)} · calcium ${Math.floor(game.calcium)} · polyps ${game.polyps.length} · time ${game.time.toFixed(1)} s`;
   if (rd.textContent !== s) rd.textContent = s;
