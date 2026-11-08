@@ -522,6 +522,37 @@ function toSkeleton(p) {
   game.skeletons.push(s);
   game.cells.set(key(p.c, p.r), { kind: 'skel', ref: s });
 }
+// puts the larva in the nearest open water to cell (c0,r0), nearest first and preferring above, so it is never boxed into coral
+// a spot counts only if it is clear of anything solid and leads out to open water; next to the old cell is kept so it can settle back
+function freeLarva(c0, r0, inv) {
+  const L = game.larva, free = (c, r) => inBounds(c, r) && !isRock(c, r) && !cellAt(c, r);
+  const opens = (c, r) => {   // flood through free cells: a pocket inside the coral is no escape
+    const seen = new Set([key(c, r)]), q = [[c, r]];
+    for (let i = 0; i < q.length && q.length < 40; i++) for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const nc = q[i][0] + dc, nr = q[i][1] + dr, k = key(nc, nr);
+      if (!seen.has(k) && free(nc, nr)) { seen.add(k); q.push([nc, nr]); }
+    }
+    return q.length >= 40;
+  };
+  const cand = [];
+  for (let dr = -10; dr <= 10; dr++) for (let dc = -10; dc <= 10; dc++) cand.push([dc, dr, Math.hypot(dc, dr) + (dr > 0 ? 0.6 : 0)]);
+  cand.sort((a, b) => a[2] - b[2]);
+  let best = null;
+  for (const [dc, dr] of cand) {
+    const c = c0 + dc, r = r0 + dr;
+    if (!free(c, r)) continue;
+    const q = cellCenter(c, r);
+    if (!blockedAt(q.x, q.y, CONFIG.larvaRadius, key(c, r)) && opens(c, r)) { best = q; break; }
+  }
+  const cc = cellCenter(c0, r0);
+  if (!best) best = { x: cc.x, y: cc.y - CELL * 11 };
+  let mx = 0, my = 0;
+  for (const p of game.polyps) { mx += (p.c + 0.5) * CELL; my += (p.r + 0.5) * CELL; }
+  if (game.polyps.length) { mx /= game.polyps.length; my /= game.polyps.length; } else { mx = cc.x; my = cc.y; }
+  let dx = best.x - mx, dy = best.y - my; const m = Math.hypot(dx, dy);
+  if (m < 1) { dx = 0; dy = -1; } else { dx /= m; dy /= m; }
+  L.x = best.x; L.y = best.y; L.vx = dx * 40; L.vy = dy * 40 - 15; L.inv = inv;
+}
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
 function killPolyp(p) {
   const cc = cellCenter(p.c, p.r), was = p === game.active && game.stage === 'polyp';
@@ -540,8 +571,7 @@ function killPolyp(p) {
   } else {
     game.active = null; game.stage = 'larva'; game.facing = null;
     game.bud.t = 0; game.bud.armed = false; game.tent.ext = 0;
-    const L = game.larva;
-    L.x = cc.x; L.y = cc.y; L.vx = 0; L.vy = -30; L.inv = 1.5;
+    freeLarva(p.c, p.r, 1.5);
     toast('Your polyp was eaten. You swim free as a larva');
   }
 }
@@ -551,8 +581,7 @@ function bail() {
   toSkeleton(p);
   game.active = null; game.stage = 'larva'; game.facing = null;
   game.bud.t = 0; game.bud.armed = false; game.tent.ext = 0;
-  const L = game.larva;
-  L.x = cc.x; L.y = cc.y; L.vx = 0; L.vy = -30; L.inv = 1.0;
+  freeLarva(p.c, p.r, 1.0);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.6 });
   sfx('whoosh');
   toast('You swim free, leaving a skeleton behind');
