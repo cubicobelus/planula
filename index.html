@@ -2914,6 +2914,56 @@ function devGrow(n) {
     addPolyp(c, r).parent = { c: from.c, r: from.r }; game.stats.buds++;
   }
 }
+// turn the game into a mature reef: branching colony with gaps, a few outlying patches, every unlock, residents
+function devThrive() {
+  devSettle();
+  if (game.stage !== 'polyp' || !game.active) { toast('Needs rock to settle on first', true); return; }
+  const bud = (from, strict) => {   // one random bud from `from`, biased up and outward; strict keeps it from filling in
+    const opts = [];
+    for (const [dc, dr] of NB_DIRS) {
+      const c = from.c + dc, r = from.r + dr; if (!validBudCell(c, r)) continue;
+      if (strict) { let n = 0; for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const o = cellAt(c + a, r + b); if (o && o.kind === 'polyp') n++; } if (n > 2) continue; }
+      opts.push([c, r, dr < 0 ? 3 : dr > 0 ? 0.4 : 1.6]);
+    }
+    let t = opts.reduce((a, o) => a + o[2], 0); if (!opts.length) return null;
+    t *= Math.random(); let o = opts[0]; for (const x of opts) { t -= x[2]; if (t <= 0) { o = x; break; } }
+    const p = addPolyp(o[0], o[1]); p.parent = { c: from.c, r: from.r }; game.stats.buds++; return p;
+  };
+  const grow = (list, n) => {
+    let miss = 0;
+    while (n > 0 && miss < 400) {
+      let cx = 0, cy = 0; for (const p of list) { cx += p.c; cy += p.r; } cx /= list.length; cy /= list.length;
+      let from = list[Math.floor(Math.random() * list.length)];
+      for (let k = 0; k < 2; k++) { const q = list[Math.floor(Math.random() * list.length)]; if (Math.hypot(q.c - cx, q.r - cy) + (q.r < from.r ? 2 : 0) > Math.hypot(from.c - cx, from.r - cy)) from = q; }   // favour outer, higher polyps
+      const p = bud(from, miss < 300);
+      if (p) { list.push(p); n--; miss = 0; } else miss++;
+    }
+  };
+  const main = game.polyps.slice(); grow(main, 100 - game.polyps.length);
+  const mc = main.reduce((a, p) => a + p.c, 0) / main.length, seeds = [];   // outlying patches on nearby rock
+  for (let r = 2; r < game.rows - 1; r++) for (let c = 1; c < game.cols - 1; c++) {
+    if (isRock(c, r) || cellAt(c, r) || !isRock(c, r + 1)) continue;
+    const d = Math.abs(c - mc); if (d > 9 && d < 40 && !main.some(p => Math.hypot(p.c - c, p.r - r) < 7)) seeds.push([c, r]);
+  }
+  for (let i = 0; i < 4 && seeds.length; i++) {
+    const [c, r] = seeds.splice(Math.floor(Math.random() * seeds.length), 1)[0];
+    if (cellAt(c, r)) continue;
+    const patch = [addPolyp(c, r)]; grow(patch, 6 + Math.floor(Math.random() * 7));
+    for (let k = seeds.length - 1; k >= 0; k--) if (Math.hypot(seeds[k][0] - c, seeds[k][1] - r) < 12) seeds.splice(k, 1);
+  }
+  TREE.forEach(d => devOwn(d.id));
+  game.energy = CONFIG.maxEnergy; game.calcium = CONFIG.calciumMax * 0.9;
+  const act = game.active, cand = game.polyps.filter(p => p !== act);
+  for (let i = 0; i < 6 && cand.length; i++) cand.splice(Math.floor(Math.random() * cand.length), 1)[0].anemone = true;
+  if (anemones().length && !game.clown.fish.length) { game.clown.t = -1; spawnClowns(); }
+  const tips = game.polyps.filter(p => p !== act && !p.anemone && NB_DIRS.filter(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp'; }).length === 1);
+  for (let i = 0; i < 5 && tips.length; i++) toSkeleton(tips.splice(Math.floor(Math.random() * tips.length), 1)[0]);
+  let x0 = 1e9, x1 = 0, y0 = 1e9, y1 = 0;
+  for (const p of game.polyps) { x0 = Math.min(x0, p.c); x1 = Math.max(x1, p.c); y0 = Math.min(y0, p.r); y1 = Math.max(y1, p.r); }
+  const mid = game.polyps.reduce((b, p) => Math.hypot(p.c - mc, p.r - (y0 + y1) / 2) < Math.hypot(b.c - mc, b.r - (y0 + y1) / 2) ? p : b, game.polyps[0]);
+  setActive(mid); updateCamera(0, true);
+  toast('Thriving reef: ' + game.polyps.length + ' polyps');
+}
 function devBloom() {
   const p = playerPos();
   for (let i = 0; i < 40; i++) {
@@ -2944,7 +2994,7 @@ const devGroups = [
   ['Tech tree', [
     '<div id="devtree"></div>',
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
-  ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>']],
+  ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>','<button data-a="thrive">thriving reef</button>']],
   ['Coral style', ['<select data-cs>' + CORAL_STYLES.map((n, i) => `<option value="${i}">${i} ${n}</option>`).join('') + '</select> <span style="color:#8aa0b2">K cycles</span>']],
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Toggles', [
@@ -2979,6 +3029,7 @@ function devBuild() {
     else if (a === 'settle') devSettle();
     else if (a === 'g5') devGrow(5);
     else if (a === 'g20') devGrow(20);
+    else if (a === 'thrive') devThrive();
     else if (a === 'kill') { if (game.stage === 'polyp' && game.active) killPolyp(game.active); }
     else if (a === 'nib') spawnNibbler();
     else if (a === 'bloom') devBloom();
