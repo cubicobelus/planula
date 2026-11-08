@@ -1691,7 +1691,88 @@ function paintBranch(g, M, layer, pal, kind) {
   pass(() => rgba(pal.lit, 0.55), -0.7, -1, -1, 3);   // lit side of the thicker limbs
   if (kind === 'skel') { g.fillStyle = 'rgba(120,110,95,0.6)'; for (const u of layer) { g.beginPath(); g.arc(u.x, u.y, 1, 0, 6.3); g.fill(); } }
 }
-function paintMound(g, M, layer, pal, kind) { paintLiving(g, M, layer, pal, kind); }
+function marchSegs(F, nx, ny, t) {   // marching squares; each segment [idA, xA, yA, idB, xB, yB] in grid units
+  const out = [], TB = [[], [3, 0], [0, 1], [3, 1], [1, 2], 0, [0, 2], [3, 2], [3, 2], [0, 2], 0, [1, 2], [3, 1], [0, 1], [3, 0], []];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const a = F[j * nx + i], b = F[j * nx + i + 1], c = F[(j + 1) * nx + i + 1], d = F[(j + 1) * nx + i];
+    const k = (a > t ? 1 : 0) | (b > t ? 2 : 0) | (c > t ? 4 : 0) | (d > t ? 8 : 0);
+    if (k === 0 || k === 15) continue;
+    const e = [[(j * nx + i) * 2, i + (t - a) / (b - a), j], [(j * nx + i + 1) * 2 + 1, i + 1, j + (t - b) / (c - b)], [((j + 1) * nx + i) * 2, i + (t - d) / (c - d), j + 1], [(j * nx + i) * 2 + 1, i, j + (t - a) / (d - a)]];
+    const hi = (a + b + c + d) / 4 > t;
+    const prs = k === 5 ? (hi ? [[0, 1], [3, 2]] : [[3, 0], [1, 2]]) : k === 10 ? (hi ? [[3, 0], [1, 2]] : [[0, 1], [3, 2]]) : [TB[k]];
+    for (const q of prs) out.push([e[q[0]][0], e[q[0]][1], e[q[0]][2], e[q[1]][0], e[q[1]][1], e[q[1]][2]]);
+  }
+  return out;
+}
+function traceLoops(segs) {   // join segments into closed outlines
+  const adj = new Map(), used = new Uint8Array(segs.length), loops = [];
+  segs.forEach((s, i) => { for (const id of [s[0], s[3]]) { let l = adj.get(id); if (!l) adj.set(id, l = []); l.push(i); } });
+  for (let i = 0; i < segs.length; i++) {
+    if (used[i]) continue;
+    used[i] = 1; const s = segs[i], pts = [[s[1], s[2]]], start = s[0];
+    let cur = s[3], x = s[4], y = s[5];
+    for (;;) {
+      pts.push([x, y]);
+      if (cur === start) { pts.pop(); break; }
+      const nx = (adj.get(cur) || []).find(k => !used[k]);
+      if (nx === undefined) break;
+      used[nx] = 1; const t = segs[nx];
+      if (t[0] === cur) { x = t[4]; y = t[5]; cur = t[3]; } else { x = t[1]; y = t[2]; cur = t[0]; }
+    }
+    if (pts.length > 3) loops.push(pts);
+  }
+  return loops;
+}
+function loopPath(p2, pts, gs, ox, oy) {   // closed and smoothed through the edge midpoints
+  const P = pts.map(q => [ox + q[0] * gs, oy + q[1] * gs]), n = P.length, m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const s = m(P[n - 1], P[0]); p2.moveTo(s[0], s[1]);
+  for (let i = 0; i < n; i++) { const e = m(P[i], P[(i + 1) % n]); p2.quadraticCurveTo(P[i][0], P[i][1], e[0], e[1]); }
+  p2.closePath();
+}
+function paintMound(g, M, layer, pal, kind) {
+  const gs = 4, R = 28, thr = 0.48, pad = R + gs * 2;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const u of layer) { x0 = Math.min(x0, u.x); x1 = Math.max(x1, u.x); y0 = Math.min(y0, u.y); y1 = Math.max(y1, u.y); }
+  x0 -= pad; y0 -= pad;
+  const nx = Math.ceil((x1 + pad - x0) / gs) + 1, ny = Math.ceil((y1 + pad - y0) / gs) + 1, F = new Float32Array(nx * ny);
+  for (const u of layer) {   // metaball field
+    const i0 = Math.max(0, Math.floor((u.x - R - x0) / gs)), i1 = Math.min(nx - 1, Math.ceil((u.x + R - x0) / gs)), j0 = Math.max(0, Math.floor((u.y - R - y0) / gs)), j1 = Math.min(ny - 1, Math.ceil((u.y + R - y0) / gs));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const d = Math.hypot(x0 + i * gs - u.x, y0 + j * gs - u.y) / R;
+      if (d < 1) { const k = 1 - d * d; F[j * nx + i] += k * k * k; }
+    }
+  }
+  const out = new Path2D();
+  for (const lp of traceLoops(marchSegs(F, nx, ny, thr))) loopPath(out, lp, gs, x0, y0);
+  g.lineJoin = 'round';
+  g.strokeStyle = rgba(pal.rim, 0.9); g.lineWidth = 3.4; g.stroke(out);
+  g.fillStyle = rgbs(mix3(pal.mid, pal.shade, 0.3)); g.fill(out, 'evenodd');
+  g.save(); g.clip(out, 'evenodd');
+  for (const u of layer) {   // a soft dome over each cell
+    const c = nodeCol(u, pal), gr = g.createRadialGradient(u.x - 3, u.y - 4, 0, u.x - 3, u.y - 4, 21);
+    gr.addColorStop(0, rgba(mix3(c, pal.lit, 0.55), 0.85)); gr.addColorStop(0.55, rgba(c, 0.6)); gr.addColorStop(1, rgba(c, 0));
+    g.fillStyle = gr; g.beginPath(); g.arc(u.x - 3, u.y - 4, 21, 0, 6.3); g.fill();
+  }
+  g.strokeStyle = rgba(pal.shade, 0.16);   // darker towards the edge
+  for (const w of [13, 8, 4]) { g.lineWidth = w; g.stroke(out); }
+  NZ = NZ || makeNoise();   // meandering ridges: contours of the shared noise, so they never change
+  const rg = 3.2, rx = Math.ceil((x1 + pad - x0) / rg) + 1, ry = Math.ceil((y1 + pad - y0) / rg) + 1, N = new Float32Array(rx * ry), ridge = [];
+  for (let j = 0; j < ry; j++) for (let i = 0; i < rx; i++) N[j * rx + i] = nzb((x0 + i * rg) * 3.3 + 40, (y0 + j * rg) * 3.3 + 90);
+  for (const lv of [0.4, 0.5, 0.6]) for (const s of marchSegs(N, rx, ry, lv)) ridge.push(s);
+  const rp = (dx, dy) => { g.beginPath(); for (const s of ridge) { g.moveTo(x0 + s[1] * rg + dx, y0 + s[2] * rg + dy); g.lineTo(x0 + s[4] * rg + dx, y0 + s[5] * rg + dy); } g.stroke(); };
+  g.lineCap = 'round';
+  g.strokeStyle = rgba(pal.shade, kind === 'skel' ? 0.5 : 0.42); g.lineWidth = 2.3; rp(0, 0);
+  g.strokeStyle = rgba(pal.lit, 0.5); g.lineWidth = 1.1; rp(-0.7, -1);
+  if (kind === 'poly') for (const u of layer) {   // a dimple at each mouth
+    const gr = g.createRadialGradient(u.x, u.y, 0, u.x, u.y, 8);
+    gr.addColorStop(0, rgba(pal.shade, 0.6)); gr.addColorStop(1, rgba(pal.shade, 0));
+    g.fillStyle = gr; g.beginPath(); g.arc(u.x, u.y, 8, 0, 6.3); g.fill();
+  }
+  g.restore();
+  g.save(); g.clip(out, 'evenodd'); g.translate(1.6, 2.2);   // rim highlight on the lit edge
+  g.strokeStyle = rgba(pal.lit, 0.5); g.lineWidth = 1.8; g.stroke(out);
+  g.restore();
+}
 
 function styleLayer(M, st, kind) {
   const pal = palFor(kind), layer = M.list.filter(u => u.kind === kind && u.live);
