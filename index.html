@@ -148,6 +148,12 @@
   #report { position: fixed; right: 12px; top: 252px; z-index: 34; display: none; width: 300px; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.94); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
   #report h4 { margin: 0 0 6px; font-size: 14px; color: #ffe3d3; } #report h4 i { float: right; font-style: normal; font-size: 11px; color: #8aa0b2; font-weight: 400; }
   #report .pr { margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: rgba(120, 190, 220, 0.09); cursor: pointer; border-left: 3px solid #ffb36b; } #report .pr:hover { background: rgba(120, 190, 220, 0.2); }
+  #evcard { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 36; display: none; width: 560px; max-width: 94vw; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(255, 220, 150, 0.45); color: #dbeaf2; font-size: 13px; box-shadow: 0 8px 30px rgba(0,0,0,0.45); }
+  #evcard h4 { margin: 0 0 3px; font-size: 16px; color: #ffe3b0; } #evcard p { margin: 0 0 8px; color: #b9d3df; }
+  #evcard .eo { display: flex; gap: 10px; align-items: flex-start; margin-top: 6px; padding: 7px 9px; border-radius: 8px; background: rgba(120, 190, 220, 0.1); cursor: pointer; border-left: 3px solid #7be3b0; } #evcard .eo:nth-of-type(2) { border-left-color: #ffb36b; } #evcard .eo:hover { background: rgba(120, 190, 220, 0.22); }
+  #evcard .eo.no { opacity: 0.55; cursor: not-allowed; } #evcard kbd { font: inherit; font-weight: 700; padding: 1px 7px; border-radius: 4px; background: rgba(255,255,255,0.18); color: #fff; margin-top: 1px; }
+  #evcard .eo b { display: block; color: #fff; font-weight: 600; } #evcard .eo span { color: #9cc5d6; } #evcard .eo em { color: #ffb0a0; font-style: normal; }
+  #evcard .ebar { margin-top: 10px; height: 5px; border-radius: 3px; background: rgba(120, 190, 220, 0.16); overflow: hidden; } #evcard .ebar u { display: block; height: 100%; background: linear-gradient(90deg, #ffb36b, #ffe08a); } #evcard .ek { margin-top: 4px; font-size: 11px; color: #8aa0b2; }
   #report .rt { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(150, 220, 240, 0.18); } #report .rt h5 { margin: 0 0 5px; font-size: 12px; color: #cfe6f0; font-weight: 600; }
   #report .rb { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 12px; color: #9cc5d6; } #report .rb span { width: 62px; } #report .rb i { flex: 1; height: 7px; border-radius: 4px; background: rgba(120, 190, 220, 0.14); overflow: hidden; } #report .rb u { display: block; height: 100%; border-radius: 4px; } #report .rb em { width: 24px; text-align: right; font-style: normal; color: #fff; } #report .rb.wk span { color: #ffd9a0; }
   #report .ra { margin-top: 4px; font-size: 11.5px; color: #9cc5d6; } #report .ra b { color: #ffd9a0; font-weight: 600; }
@@ -181,7 +187,7 @@
 </div>
 <div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="title"></div>
 <div id="hint"></div>
-<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="rescard"></div><div id="report"></div>
+<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div>
 <div id="abar"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
@@ -231,6 +237,17 @@ const CONFIG = {
   shadeRows: 8, shade: { branch: 0.12, anemone: 0.05, plate: 0.45, brain: 0.20, fan: 0.05, skel: 0.10 }, plateSideShade: 0.5, shadeLowLight: 0.25,
   // reef report
   reportAutoSecs: 7, reportHiSecs: 5, reportTop: [[0, 3], [100, 4], [200, 5]], reportFlowLow: 0.3, reportFlowN: 8, reportWeakN: 10, reportArmN: 8, reportShadeN: 10, reportHotN: 15, reportFullSecs: 30, reportTreeSecs: 60,
+  // choice events (content 5)
+  ev: { chance: 0.4, wait: 25, noRepeat: 960, delayMin: 10, delayMax: 60, ce3At: 1200,
+    ce2: { n: 4, rock: 10, range: 15, hp: 3, dmgEvery: 10, bonus: 3, minAlive: 3, stingCost: 0.15 },
+    ce3: { energy: 0.3, ca: 10, maxBreak: 8, calm: 90, plank: 1.5 },
+    ce4: { health: 60, div: 50, bp: 40, income: 1.1, loseBp: 10, lose: 4 },
+    ce5: { ca: 25, cols: 3, power: 2, light: 0.5 },
+    ce6: { close: 40, feast: 60, plank: 2, weedClose: 0.5, weedFeast: 2 },
+    ce7: { n: 6, budget: 12 },
+    ce8: { stay: 60, bio: 8, bp: 30, plank: 1.3 },
+    ce9: { secs: 60, cells: 30, sand: 30, polyps: 6, hp: 6, range: 20, fish: 12 },
+    ce10: { sun: 0.6, bleach: 0.5 } },
   // reef ratings (content 7): 0 to 100 each, every 5 s. Strength is 0..10 in the game, so x10 gives the spec's 0..100
   ratings: { secs: 5, strK: 1.25, strScale: 10, strShare: 40, lightA: 60, lightB: 40, lightRef: 0.75, healthShare: 150, healthThreat: 5, diversityK: 2.2 },
   // seasons and storms (a year = 4 seasons; the clock runs from the Colony stage on; stormAt = storm starts, s into the storm season)
@@ -344,6 +361,8 @@ const game = {
   unlocked: false,            // self-feeding owned
   stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
+  ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
+  rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1 },   // reef report
   season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
   storm: null, stormPw: 0, stormRep: null, frags: [], riding: null,   // storm: { t, len, base }; pw: current power 0..1; riding: { frag, p } while the player drifts on a fragment
@@ -773,7 +792,7 @@ function updatePlankton(dt) {
   maybeBloom();
 }
 function gain(a, x, y) {
-  a *= boost() * bioMult(); game.energy = Math.min(energyCap(), game.energy + a);
+  a *= boost() * bioMult() * evInc(); game.energy = Math.min(energyCap(), game.energy + a);
   game.fx.push({ kind: 'text', x, y, t: 0, life: 0.9, text: '+' + (Math.round(a * 10) / 10) });
 }
 
@@ -1093,6 +1112,7 @@ function doSting() {
     if (f.dead || f.mode === 'leave' || distSeg(f.x, f.y, cc.x, sy, ex, ey) > CONFIG.stingRadius + 10) continue;
     f.hp -= has('D4') ? 99 : CONFIG.threat.star.sting; f.hurt = 0.6; hit++; spawnParts('spark', f.x, f.y, 4);
   }
+  for (const r of game.rivals) if (r.hp > 0 && distSeg((r.c + 0.5) * CELL, (r.r + 0.5) * CELL, cc.x, sy, ex, ey) <= CONFIG.stingRadius + 10) { r.hp--; hit++; spawnParts('spark', (r.c + 0.5) * CELL, (r.r + 0.5) * CELL, 3); }   // CE2: 3 stings kill a rival
   game.stats.stings++;
   sfx('sting');
   game.fx.push({ kind: 'sting', x: cc.x, y: sy, x1: ex, y1: ey, t: 0, life: 0.5, hit: hit > 0 });
@@ -1456,6 +1476,8 @@ function calcBio() {
     const dbl = has('R4') && game.res.habs.some(h => h.kind === k && h.res.length >= 2) ? CONFIG.res.r4Value : 1;
     const v = (K.value + (K.value2 || 0)) * f * dbl; B += v; out.push([RES[k].name, v]);
   }
+  if (liveRivals().length >= CONFIG.ev.ce2.minAlive) { B += CONFIG.ev.ce2.bonus; out.push(['rival coral', CONFIG.ev.ce2.bonus]); }
+  if (mantaOn()) { B += CONFIG.ev.ce8.bio; out.push(['manta ray', CONFIG.ev.ce8.bio]); }
   const tc = typeCounts();
   for (const t in tc) if (tc[t] >= CONFIG.typeMinPolyps) { B += C.typeValue; out.push(['coral: ' + TYPE_NAME[t].toLowerCase(), C.typeValue]); }
   const ln = {}; for (const p of game.polyps) if (!p.dead) ln[p.lin || 0] = (ln[p.lin || 0] || 0) + 1;
@@ -1564,7 +1586,7 @@ function jobShrimp(r, dt, m) {
   r.x = hp.x + Math.sin(T * 0.7 + r.seed) * 1.5; r.y = hp.y;
   let healing = null;
   for (const p of game.polyps) {
-    if (p.hp >= CONFIG.polypHp) continue;
+    if (p.hp >= CONFIG.polypHp || mantaOn()) continue;   // CE8: the shrimp heal nothing while the manta stays
     const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL;
     if ((px - hp.x) ** 2 + (py - hp.y) ** 2 > rad * rad) continue;
     const add = Math.min(CONFIG.polypHp - p.hp, C.heal * m * dt); p.hp += add; game.stats.shrimpHeal += add; healing = p;
@@ -1914,7 +1936,7 @@ function updateNibblers(dt) {
   if (game.polyps.length >= CONFIG.nibblerStart) {
     if (N.timer === null) N.timer = CONFIG.nibblerFirst;
     N.timer -= dt;
-    if (N.timer <= 0) { if (game.nibblers.length < nibblerMax()) spawnNibbler(); N.timer = CONFIG.nibblerInterval * (has('D3') ? CONFIG.threat.d3.nibbler : 1); }
+    if (N.timer <= 0) { if (game.nibblers.length < nibblerMax() && game.time >= game.ev.calm) spawnNibbler(); N.timer = CONFIG.nibblerInterval * (has('D3') ? CONFIG.threat.d3.nibbler : 1); }
   }
   const R = CONFIG.nibblerRadius;
   for (const n of game.nibblers) {
@@ -1971,11 +1993,11 @@ function updateNibblers(dt) {
 /* ---------- polyp updates ---------- */
 function updatePolyps(dt) {
   const t = game.time;
-  const sunK = has('F3') ? CONFIG.algaeSunMult : 1, dl = daylight(), cap = energyCap(), bm = bioMult(), t4 = has('T4');
+  const sunK = has('F3') ? CONFIG.algaeSunMult : 1, dl = daylight(), cap = energyCap(), bm = bioMult(), t4 = has('T4'), evs = evSun();
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const l = lightOf(p);
-    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * dl * dt);   // more factors (heat) multiply in here later
+    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * dl * evs * dt);   // more factors (heat) multiply in here later
     if (l >= CONFIG.dimBelow && dl > 0.5) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
     if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * dt);
@@ -2006,7 +2028,7 @@ function updatePolyps(dt) {
       }
     }
   }
-  if (game.unlocked) {
+  if (game.unlocked && game.time >= game.ev.noAuto) {
     for (const p of game.polyps) {
       if (p === game.active) continue;
       p.cd -= dt;
@@ -4150,7 +4172,7 @@ function render() {
   for (const n of game.nibblers) drawNibbler(n, t);
   drawStarfish(t);
   for (const f of game.clown.fish) drawClown(f, t);
-  drawResidents(t);
+  drawResidents(t); drawEventWorld(t);
   if (!game.riding) drawLarva(t);
   if (on.layers) { drawSnow(t); drawForeground(t); worldTransform(ctx); }
   drawNight(t); worldTransform(ctx);
@@ -4284,7 +4306,7 @@ function updateBar() {
 }
 
 /* ---------- developer tools: backslash toggles a side panel (time, resources, tree, colony, spawn, toggles, CONFIG) ---------- */
-const devs = { happy: false, open: false, paused: false, speed: 1, inf: false, god: false, noFish: false, noNib: false, noStorms: false, struct: false, ov2: null, dnFreeze: false, grid: false, stats: false, sig: '', samples: [], fps: 60, cfg0: null, built: false, tick: 0 };
+const devs = { happy: false, open: false, paused: false, speed: 1, inf: false, god: false, noFish: false, noNib: false, noStorms: false, noEvents: false, struct: false, ov2: null, dnFreeze: false, grid: false, stats: false, sig: '', samples: [], fps: 60, cfg0: null, built: false, tick: 0 };
 const devPanel = document.getElementById('devtools'), devStatsEl = document.getElementById('devstats');
 function devFlat(o, pre, out) {
   for (const k of Object.keys(o)) {
@@ -4512,6 +4534,7 @@ const devGroups = [
   ['Residents', [RESKINDS.map(k => `<button data-a="res" data-v="${k}">${RES[k].name.split(' and ')[0].toLowerCase()}</button>`).join(''), '<button data-a="happy" title="Hold every resident at 100 happiness">make all happy</button><button data-a="bp50">+50 BP</button><button data-a="rnow" title="Let every found habitat fill at once">arrive now</button><button data-a="rleave">send all away</button>']],
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Threats', ['<button data-a="thr" data-v="heat">start heat wave</button><button data-a="thr" data-v="weed">seed seaweed bloom</button><button data-a="thr" data-v="inf">infect a polyp</button>', '<button data-a="thr" data-v="star">spawn starfish outbreak</button><button data-a="thr" data-v="clear">clear all threats</button>']],
+  ['Events', ['<button data-a="evnow" data-v="CE1">CE1 turtle</button><button data-a="evnow" data-v="CE2">CE2 rivals</button><button data-a="evnow" data-v="CE3">CE3 boat</button><button data-a="evnow" data-v="CE4">CE4 divers</button><button data-a="evnow" data-v="CE5">CE5 net</button>', '<button data-a="evnow" data-v="CE6">CE6 brown water</button><button data-a="evnow" data-v="CE7">CE7 spawn</button><button data-a="evnow" data-v="CE8">CE8 manta</button><button data-a="evnow" data-v="CE9">CE9 parrotfish</button><button data-a="evnow" data-v="CE10">CE10 cold</button>', '<label><input type="checkbox" data-t="noEvents"> events off</label>']],
   ['Toggles', [
     '<label><input type="checkbox" data-t="god"> god mode</label><label><input type="checkbox" data-t="noFish"> predators off</label>',
     '<label><input type="checkbox" data-t="noNib"> nibblers off</label><label><input type="checkbox" data-t="grid"> grid lines</label><label><input type="checkbox" data-t="stats"> stats overlay</label>',
@@ -4561,6 +4584,7 @@ function devBuild() {
     else if (a === 'clown') { if (anemones().length && !game.clown.fish.length) spawnClowns(); else toast('Needs an anemone and no clownfish yet', true); }
     else if (a === 'fish') devFish();
     else if (a === 'thr') devThreat(vs);
+    else if (a === 'evnow') devEvent(vs);
     else if (a === 'res') devSpawnRes(vs);
     else if (a === 'happy') { devs.happy = !devs.happy; if (devs.happy) for (const r of game.res.list) r.hap = r.hapT = 100; }
     else if (a === 'bp50') game.bp += 50;
@@ -4666,6 +4690,7 @@ function toggleMute() { audio.setMuted(!audio.muted); updateMuteLabel(); }
 window.addEventListener('keydown', e => {
   if (game.rep.open && (game.rep.auto || e.code === 'Escape') && e.code !== 'Tab' && !['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight'].includes(e.code)) closeReport();   // any key puts the report away
   if (e.code === 'Tab') { e.preventDefault(); if (!e.repeat && !game.tree.open && !game.titleOn) toggleReport(); return; }
+  if (game.ev.card && (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Numpad1' || e.code === 'Numpad2') && !e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) { e.preventDefault(); chooseEvent(e.code.endsWith('1') ? 0 : 1); return; }
   if (devKey(e)) return;
   if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleMute(); return; }
   if (lookKey(e)) return;
@@ -4813,7 +4838,7 @@ function daylight() {   // 1 by day, 0 at night; dusk and dawn fade over dayFade
   return sm01((u - (C.dayCycle - f)) / f);
 }
 const isNight = () => daylight() < 0.5;
-const planktonMult = () => game.goals.stage < 2 ? 1 : lerp(CONFIG.planktonNight, CONFIG.planktonDay, daylight());
+const planktonMult = () => game.goals.stage < 2 ? 1 : lerp(CONFIG.planktonNight, CONFIG.planktonDay, daylight()) * evPlank();
 function updateDayNight(dt) {
   if (game.goals.stage < 2) return;
   const D = game.dn, C = CONFIG;
@@ -4827,7 +4852,7 @@ const TYPE_IDX = { branch: 0, plate: 1, brain: 2, fan: 3, anemone: 4 };
 const FLD = { sig: null, flow: null, shade: new Map() };
 function fields() {
   let an = 0; for (const p of game.polyps) if (typeOf(p) !== 'branch') an += 1 + TYPE_IDX[typeOf(p)];
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, an, CONFIG.flowDir, typeSig()].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, an, CONFIG.flowDir, typeSig()].join(',');
   if (FLD.sig === sig) return FLD;
   FLD.sig = sig;
   const C = CONFIG, cols = game.cols, rows = game.rows, fl = FLD.flow && FLD.flow.length === cols * rows ? FLD.flow : new Float32Array(cols * rows), d = C.flowDir >= 0 ? 1 : -1;
@@ -4857,14 +4882,14 @@ function fields() {
 const flowCell = (c, r) => CONFIG.flowFloor + (1 - CONFIG.flowFloor) * (inBounds(c, r) ? fields().flow[r * game.cols + c] : 1);   // flow factor 0.25..1 at a cell
 const flowOf = p => flowCell(p.c, p.r);
 const shadeOf = p => fields().shade.get(key(p.c, p.r)) ?? 1;
-const lightOf = p => light(p.r * CELL + CELL / 2) * shadeOf(p) * (game.seaweed.size ? Math.pow(CONFIG.threat.weed.light, weedTouch(p)) : 1);   // effective light: depth, shade from coral above, seaweed beside it (the season comes later)
+const lightOf = p => light(p.r * CELL + CELL / 2) * shadeOf(p) * (game.seaweed.size ? Math.pow(CONFIG.threat.weed.light, weedTouch(p)) : 1) * (game.ev.net && underNet(p, netOn()) ? CONFIG.ev.ce5.light : 1);   // effective light: depth, shade from coral above, seaweed beside it (the season comes later)
 /* ---------- structure: how well each polyp is held up (0..10), cached until the cells change ---------- */
 const mixedSide = p => NB_DIRS.some(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp' && !o.ref.dead && typeOf(o.ref) !== typeOf(p); });   // T4: a side neighbour of another coral type
 const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
 const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b));
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
   if (SUP.sig === sig) return SUP;
   SUP.sig = sig;
   const val = new Map(), pred = new Map(), q = [], anch = new Set();
@@ -5266,12 +5291,12 @@ function stormReport(S) {
 }
 // each weak polyp may snap; the chance grows as the strength falls below stormSafe
 function stormBreak(power) {
-  const cand = game.polyps.filter(p => !touchesRock(p.c, p.r) && strength(p) < CONFIG.stormSafe);
+  const cand = game.polyps.filter(p => !touchesRock(p.c, p.r) && strength(p) - (game.ev.net && underNet(p, netOn()) ? CONFIG.ev.ce5.power : 0) < CONFIG.stormSafe);
   for (let i = cand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cand[i], cand[j]] = [cand[j], cand[i]]; }
   let broke = 0;
   for (const p of cand) {
     if (p.frag || !game.cells.has(key(p.c, p.r))) continue;   // already carried off
-    const s = strength(p);
+    const s = strength(p) - (game.ev.net && underNet(p, netOn()) ? CONFIG.ev.ce5.power : 0);   // a ghost net: +20 storm power is 2 on the 0..10 strength scale
     if (s >= CONFIG.stormSafe || touchesRock(p.c, p.r)) continue;
     const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1) * (typeOf(p) === 'fan' ? CONFIG.fanBreak : 1);
     if (Math.random() < ch && breakOff(p)) broke++;
@@ -5289,7 +5314,7 @@ function breakOff(p) {
   const seen = new Set([pk]), cells = [p], polys = [p], skels = [];
   for (let i = 0; i < cells.length; i++) for (const [dc, dr] of NB_DIRS) {
     const k = key(cells[i].c + dc, cells[i].r + dr), o = game.cells.get(k);
-    if (o && !seen.has(k) && !held.has(k)) { seen.add(k); cells.push(o.ref); (o.kind === 'polyp' ? polys : skels).push(o.ref); }
+    if (o && !seen.has(k) && !held.has(k) && !o.ref.rival) { seen.add(k); cells.push(o.ref); (o.kind === 'polyp' ? polys : skels).push(o.ref); }
   }
   if (typeOf(p) === 'fan') return game.polyps.length - 1 < CONFIG.minPolyps ? null : makeFrag([p], []);   // a fan breaks alone
   if (game.polyps.length - polys.length < CONFIG.minPolyps) return null;
@@ -5470,7 +5495,7 @@ function banner(h, p, col) {
 const heatDepth = p => clamp((light(p.r * CELL + CELL / 2) - CONFIG.threat.heat.lightLo) / CONFIG.threat.heat.lightSpan, 0, 1);   // 0 deep, 1 in the bright shallows
 function bleachChance(p) {
   const C = CONFIG.threat.heat, lg = light(p.r * CELL + CELL / 2);
-  return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1);
+  return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * evBleach(p);
 }
 function startHeat(a) {
   const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a;
@@ -5568,7 +5593,7 @@ function updateWeed(dt) {
     if ((W.tick += dt) >= C.every) {
       W.tick -= C.every;
       if (game.seaweed.size && game.seaweed.size < C.cap) {
-        const rate = W.on ? C.bloom : C.bg;
+        const rate = (W.on ? C.bloom : C.bg) * (game.ev.weedM && game.ev.weedM.abs === a ? game.ev.weedM.m : 1);
         for (const k of [...game.seaweed]) {
           if (Math.random() >= rate) continue;
           const [c, r] = k.split(',').map(Number), nx = weedSpread(c, r);
@@ -5892,6 +5917,296 @@ function drawThreatPolyps(t) {   // bleached coral (white), seen over the tissue
   }
 }
 
+/* ---------- choice events (content 5): from Reef, a 40% chance per season of one card with two options ---------- */
+const EVS = () => game.ev;
+const curAbs = () => seasonAbs(game.season.t);
+const evPlank = () => { const t = game.time; return EVS().plank.reduce((m, x) => t < x.until ? m * x.m : m, 1); };
+const evInc = () => { const e = EVS().inc; return e && e.abs === curAbs() ? e.m : 1; };
+const evSun = () => { const e = EVS().sun; return evInc() * (e && e.abs === curAbs() ? e.m : 1); };
+const mantaOn = () => { const m = EVS().manta; return !!m && game.time < m.until; };
+const netOn = () => { const n = EVS().net; return n && game.season.t < n.end ? n : null; };
+const underNet = (p, n) => n && p.r > n.r && Math.abs(p.c - n.c) <= CONFIG.ev.ce5.cols >> 1;
+function reefCentre() {
+  const P = game.polyps; if (!P.length) return { c: Math.floor(playerPos().x / CELL), r: Math.floor(playerPos().y / CELL) };
+  return { c: P.reduce((a, p) => a + p.c, 0) / P.length, r: P.reduce((a, p) => a + p.r, 0) / P.length };
+}
+const nearestPolypDist = (c, r) => { let d = 1e9; for (const p of game.polyps) d = Math.min(d, Math.hypot(p.c - c, p.r - r)); return d; };
+// free water cells that rest on rock, near the reef: where rival larvae can settle
+function bareRock(range) {
+  const out = [], seen = new Set();
+  for (const p of game.polyps) for (let dr = -range; dr <= range; dr++) for (let dc = -range; dc <= range; dc++) {
+    const c = p.c + dc, r = p.r + dr, k = key(c, r);
+    if (seen.has(k)) continue; seen.add(k);
+    if (!inBounds(c, r) || r < 4 || isRock(c, r) || cellAt(c, r) || game.seaweed.has(k) || !NB_DIRS.some(([a, b]) => isRock(c + a, r + b))) continue;
+    const d = nearestPolypDist(c, r); if (d <= range) out.push({ c, r, d });
+  }
+  return out.sort((a, b) => a.d - b.d);
+}
+const tallestTip = () => game.polyps.filter(p => !touchesRock(p.c, p.r)).sort((a, b) => a.r - b.r)[0] || null;
+function evLedge() { buildOcc(); return findLedge(); }
+const liveRivals = () => game.rivals.filter(r => r.hp > 0);
+const crestOn = () => game.goals.stage >= 4;
+const EVENTS = [
+  { id: 'CE1', title: 'A turtle comes to rest', text: 'A green sea turtle wants to sleep on your flat ledge. She will graze, but she is heavy.', seasons: [0], ok: () => !!evLedge(),
+    a: 'Let her rest', aInfo: 'She stays 90 s, grazes seaweed and adds +6 biodiversity this year. She crushes 3 polyps on the ledge.', b: 'Shoo her off', bInfo: 'Nothing is lost. She does not come back for 2 years.',
+    doA() {
+      const L = evLedge(), C = CONFIG.res.turtle; let crushed = 0;
+      if (L) for (let c = L.c0; c <= L.c1 && crushed < 3; c++) { const p = livePolypAt(c, L.r); if (p) { killPolyp(p, ''); crushed++; } }
+      const r = spawnRes('turtle', null, true); r.dev = false;
+      if (L) r.home = { x: (L.c0 + L.c1 + 1) / 2 * CELL, y: (L.r - 2.5) * CELL };
+      return crushed ? `The turtle settles on the ledge and crushes ${crushed} polyp${crushed > 1 ? 's' : ''}` : 'The turtle settles on the ledge';
+    },
+    doB() { return 'You shoo her off. She will not be back for 2 years'; } },
+  { id: 'CE2', title: 'Rival larvae', text: 'Larvae from another coral are drifting in to settle beside you.', seasons: [0, 1, 3], ok: () => bareRock(CONFIG.ev.ce2.range).length >= CONFIG.ev.ce2.rock,
+    a: 'Let them settle', aInfo: '4 rival polyps take the bare rock nearest you. While 3 live, +3 biodiversity. Rivals touching your coral deal 1 hp every 10 s, and keep the rock.', b: 'Sting them away', bInfo: 'Costs 15% of your energy. Nothing settles.',
+    doA() {
+      const C = CONFIG.ev.ce2, cand = bareRock(C.range); let n = 0;
+      for (const q of cand) {
+        if (n >= C.n) break;
+        if (cellAt(q.c, q.r)) continue;
+        const rv = { c: q.c, r: q.r, hp: C.hp, rival: true, type: 'brain', seed: Math.random() * 10, born: game.time, dmgT: C.dmgEvery * Math.random(), pop: 1 };
+        game.rivals.push(rv); game.cells.set(key(q.c, q.r), { kind: 'skel', ref: rv }); n++;
+        game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.8 });
+      }
+      game.bio.t = 0; return n ? `${n} rival polyps settle on the bare rock beside you` : 'No larvae found a place to settle';
+    },
+    doB() { const c = game.energy * CONFIG.ev.ce2.stingCost; game.energy -= c; return `You sting the larvae away (-${Math.round(c)} energy)`; } },
+  { id: 'CE3', title: 'A boat drops anchor', text: 'A boat is anchoring above you, and its chain will drag across your tallest branch.', seasons: [0, 1], ok: () => game.time >= CONFIG.ev.ce3At && !!tallestTip(),
+    a: 'Brace', aInfo: 'Costs 30% of your energy and 10 calcium. Nothing breaks.', b: 'Let it go', bInfo: 'Up to 8 polyps of the tallest branch snap off as a fragment. Then 90 s of calm: no nibblers, and plankton x1.5.',
+    aNeed: () => game.calcium >= CONFIG.ev.ce3.ca ? null : `needs ${CONFIG.ev.ce3.ca} calcium`,
+    doA() { const C = CONFIG.ev.ce3, c = game.energy * C.energy; game.energy -= c; game.calcium -= C.ca; return `You brace the branch (-${Math.round(c)} energy, -${C.ca} calcium)`; },
+    doB() {
+      const C = CONFIG.ev.ce3, t = tallestTip(); let msg = 'The chain drags through. ';
+      if (t) {
+        const seen = new Set([key(t.c, t.r)]), q = [t], pick = [];
+        for (let i = 0; i < q.length && pick.length < C.maxBreak; i++) {
+          const a = q[i]; if (!touchesRock(a.c, a.r)) pick.push(a);
+          for (const [dc, dr] of NB_DIRS) { const b = livePolypAt(a.c + dc, a.r + dr); if (b && !seen.has(key(b.c, b.r))) { seen.add(key(b.c, b.r)); q.push(b); } }
+        }
+        while (pick.length && game.polyps.length - pick.length < CONFIG.minPolyps) pick.pop();
+        if (pick.length) { const was = game.stats.stormLost; makeFrag(pick, []); game.stats.stormLost = was; msg += `${pick.length} polyps snap off. `; }
+      }
+      const E = EVS(); E.calm = game.time + C.calm; E.plank.push({ m: C.plank, until: game.time + C.calm });
+      for (const n of game.nibblers) if (n.mode !== 'leave') n.mode = 'leave';
+      return msg + 'Then the water goes quiet';
+    } },
+  { id: 'CE4', title: 'Divers are coming', text: 'A group of divers wants to see your reef. A healthy, varied reef will impress them.', seasons: [0], ok: () => true,
+    a: 'Show off', aInfo: () => { const v = (game.rat || { v: computeRatings() }).v, C = CONFIG.ev.ce4; return `Health ${Math.round(v.health)} and Diversity ${Math.round(v.diversity)} now. Need Health ${C.health} and Diversity ${C.div}: then +${C.bp} BP and income x${C.income} this season. Otherwise they break your 4 shallowest polyps and you lose ${C.loseBp} BP.`; }, b: 'Stay quiet', bInfo: 'Nothing happens.',
+    doA() {
+      const C = CONFIG.ev.ce4, v = calcRatings();
+      if (v.health >= C.health && v.diversity >= C.div) { game.bp += C.bp; game.stats.bpMade += C.bp; EVS().inc = { m: C.income, abs: curAbs() }; return `The divers are thrilled: +${C.bp} BP and income x${C.income} this season`; }
+      const low = game.polyps.slice().sort((a, b) => a.r - b.r).slice(-C.lose).filter(p => !p.dead); for (const p of low) killPolyp(p, '');
+      game.bp = Math.max(0, game.bp - C.loseBp);
+      return `The divers' fins break ${low.length} polyps and you lose ${C.loseBp} BP`;
+    },
+    doB() { return 'The divers swim on'; } },
+  { id: 'CE5', title: 'A ghost net', text: 'A lost fishing net has snagged on your reef.', seasons: [2, 3], ok: () => game.polyps.length >= 2 && !netOn(),
+    a: 'Cut it free', aInfo: 'Costs 25 calcium, and the 2 polyps it is wrapped around die.', b: 'Leave it', bInfo: 'It stays for 2 Storm seasons. Light x0.5 in the 3 columns below it, and polyps under it take +20 storm power.',
+    aNeed: () => game.calcium >= CONFIG.ev.ce5.ca ? null : `needs ${CONFIG.ev.ce5.ca} calcium`,
+    doA() { const C = CONFIG.ev.ce5; game.calcium -= C.ca; const [a, b] = netPolyps(); for (const p of [a, b]) if (p) killPolyp(p, ''); return 'You cut the net free. The 2 polyps it held die'; },
+    doB() {
+      const C = CONFIG.ev.ce5, [a, b] = netPolyps(), a0 = curAbs(), first = a0 % SEASONS.length === 2 ? a0 : a0 + ((2 - a0 % SEASONS.length + 4) % 4);
+      EVS().net = { c: a.c, r: Math.min(a.r, b ? b.r : a.r), end: seasonStart(first + 4 + 1), polys: [a, b] };
+      return 'The net stays. It shades the coral below and catches the storm';
+    } },
+  { id: 'CE6', title: 'Brown water', text: 'Heavy rain is washing runoff from the land over the reef.', seasons: [3], ok: () => true,
+    a: 'Close up', aInfo: 'No self-feeding for 40 s, and the seaweed spread this season is halved.', b: 'Feast', bInfo: 'Plankton x2 for 60 s, and the seaweed spread this season is doubled.',
+    doA() { const C = CONFIG.ev.ce6, E = EVS(); E.noAuto = game.time + C.close; E.weedM = { abs: curAbs(), m: C.weedClose }; return 'You close up. The runoff slides past'; },
+    doB() { const C = CONFIG.ev.ce6, E = EVS(); E.plank.push({ m: C.plank, until: game.time + C.feast }); E.weedM = { abs: curAbs(), m: C.weedFeast }; return 'Feast! Plankton everywhere, and the seaweed loves it too'; } },
+  { id: 'CE7', title: 'Foreign spawn', text: "Another reef's spawn is drifting over yours.", seasons: [1], ok: () => false,   // the spawning night (slice 7) calls spawnNightEvent()
+    a: 'Mix in', aInfo: '6 foreign larvae take root on free rock as new colonies, each with a new genome and lineage colour. They take rock you might want.', b: 'Close up', bInfo: 'Nothing happens.',
+    doA() {
+      const C = CONFIG.ev.ce7, cand = bareRock(25).filter(q => q.d >= 3); let n = 0; const trait = ['growth', 'tough', 'heat', 'feed', 'form'];
+      for (let i = 0; i < C.n && cand.length; i++) {
+        const q = cand.splice(Math.floor(Math.random() * cand.length), 1)[0]; if (cellAt(q.c, q.r)) continue;
+        const tr = {}; trait.forEach(k => tr[k] = 1); const top = trait[Math.floor(Math.random() * 5)]; tr[top] = 5;
+        for (let left = C.budget - 9; left > 0;) { const k = trait[Math.floor(Math.random() * 5)]; if (k !== top && tr[k] < 4) { tr[k]++; left--; } }
+        const L = { id: game.lineages.length, hue: Math.floor(Math.random() * 360), traits: tr, parent: -1 }; game.lineages.push(L);
+        const p = addPolyp(q.c, q.r, 'branch'); p.lin = L.id; n++;
+        game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.8 });
+      }
+      return `${n} foreign larvae take root as new colonies`;
+    },
+    doB() { return 'You close up. The spawn drifts on'; } },
+  { id: 'CE8', title: 'A manta visits', text: 'A manta ray is circling, looking for a cleaning station.', seasons: [0, 1], ok: () => crestOn() && game.res.list.some(r => r.kind === 'shrimp' && resLive(r)),
+    a: 'Invite', aInfo: 'It stays 60 s. +8 biodiversity while it stays, +30 BP, and plankton x1.3. The shrimp heal nothing while it stays.', b: 'Not now', bInfo: 'Nothing happens.',
+    doA() {
+      const C = CONFIG.ev.ce8, c = reefCentre(); game.bp += C.bp; game.stats.bpMade += C.bp;
+      EVS().manta = { until: game.time + C.stay, t0: game.time, x: c.c * CELL, y: Math.max(120, (c.r - 7) * CELL), dir: c.c * CELL > W / 2 ? 1 : -1 };
+      EVS().plank.push({ m: C.plank, until: game.time + C.stay }); game.bio.t = 0; calcBio(); return `The manta glides in (+${C.bp} BP)`;
+    },
+    doB() { return 'The manta glides away'; } },
+  { id: 'CE9', title: 'A parrotfish school', text: 'A school of 12 parrotfish is passing through.', seasons: [0], ok: () => crestOn(),
+    a: 'Let them graze', aInfo: 'Over 60 s they clear up to 30 seaweed or skeleton cells, making +30 sand. They scrape 6 live polyps for 6 hp each (brain and plate first).', b: 'Wave them on', bInfo: 'Nothing happens.',
+    doA() {
+      const C = CONFIG.ev.ce9, pri = p => typeOf(p) === 'brain' || typeOf(p) === 'plate' ? 0 : 1, c = reefCentre();
+      const tg = game.polyps.filter(p => !p.dead).map(p => ({ p, k: pri(p) + Math.random() })).sort((a, b) => a.k - b.k).slice(0, C.polyps).map(x => x.p);
+      EVS().school = { until: game.time + C.secs, t0: game.time, cx: c.c * CELL, cy: (c.r - 3) * CELL, cleared: 0, sand: 0, targets: tg, tickT: 0, scrapeT: C.secs / (C.polyps + 1), seeds: Array.from({ length: C.fish }, () => Math.random() * 10), dir: Math.random() < 0.5 ? -1 : 1 };
+      return 'The parrotfish swarm in';
+    },
+    doB() { return 'You wave the school on'; } },
+  { id: 'CE10', title: 'Cold upwelling', text: 'Cold deep water is welling up on one side of the reef.', seasons: [1], ok: () => { const a = curAbs(); return game.thr.plan.heat[a] === true; },
+    a: 'Ride it', aInfo: 'No heat wave this season in the upstream half, and bleaching x0.5 elsewhere. But sun x0.6 across the whole reef this season.', b: 'Ignore it', bInfo: 'Nothing changes.',
+    doA() { const C = CONFIG.ev.ce10, a = curAbs(); EVS().sun = { m: C.sun, abs: a }; EVS().cold = { abs: a, c: reefCentre().c }; return 'You ride the cold water. Cooler, but dimmer'; },
+    doB() { return 'You ignore the cold water'; } },
+];
+const EVBY = Object.fromEntries(EVENTS.map(e => [e.id, e]));
+function netPolyps() {
+  const a = tallestTip() || game.polyps.slice().sort((x, y) => x.r - y.r)[0]; if (!a) return [null, null];
+  let b = null; for (const [dc, dr] of NB_DIRS) { const q = livePolypAt(a.c + dc, a.r + dr); if (q && (!b || q.r < b.r)) b = q; }
+  return [a, b];
+}
+// the bleach factor from a cold upwelling: none upstream, half elsewhere
+function evBleach(p) {
+  const e = EVS().cold; if (!e || e.abs !== curAbs()) return 1;
+  return (CONFIG.flowDir >= 0 ? p.c < e.c : p.c > e.c) ? 0 : CONFIG.ev.ce10.bleach;
+}
+const evcard = document.getElementById('evcard');
+function fireEvent(id, forced) {
+  const E = EVS(), d = EVBY[id]; if (!d || E.card) return false;
+  E.card = { id, t: 0, len: CONFIG.ev.wait, aNeed: null, sig: '' };
+  E.last[id] = game.season.t; E.fired++; E.log.push(id);
+  game.slow = null; sfx('forecast'); renderEventCard(true);
+  return true;
+}
+function renderEventCard(force) {
+  const E = EVS(), c = E.card;
+  if (!c) { if (evcard.style.display !== 'none') evcard.style.display = 'none'; return; }
+  const d = EVBY[c.id], need = d.aNeed ? d.aNeed() : null, left = Math.max(0, Math.ceil(c.len - c.t)), sig = c.id + '|' + need + '|' + left;
+  if (!force && sig === c.sig) return; c.sig = sig;
+  const info = x => typeof x === 'function' ? x() : x;
+  evcard.innerHTML = `<h4>${d.title}</h4><p>${d.text}</p>` +
+    `<div class="eo${need ? ' no' : ''}" data-o="0"><kbd>1</kbd><div><b>${d.a}</b><span>${info(d.aInfo)}${need ? ` <em>(${need})</em>` : ''}</span></div></div>` +
+    `<div class="eo" data-o="1"><kbd>2</kbd><div><b>${d.b}</b><span>${info(d.bInfo)}</span></div></div>` +
+    `<div class="ebar"><u style="width:${Math.max(0, 100 - c.t / c.len * 100).toFixed(1)}%"></u></div><div class="ek">${left} s, then "${d.b}". The reef keeps running</div>`;
+  evcard.style.display = 'block';
+}
+function chooseEvent(i) {
+  const E = EVS(), c = E.card; if (!c) return false;
+  const d = EVBY[c.id];
+  if (i === 0 && d.aNeed && d.aNeed()) { toast(`Cannot choose that: ${d.aNeed()}`, true); return false; }
+  E.card = null; renderEventCard(true);
+  const msg = (i === 0 ? d.doA : d.doB).call(d);
+  E.choices.push(c.id + (i === 0 ? 'A' : 'B')); E.last[c.id] = game.season.t;
+  game.stats.events = (game.stats.events || 0) + 1;
+  toast(msg); sfx(i === 0 ? 'species' : 'snap');
+  return true;
+}
+evcard.addEventListener('click', e => { const o = e.target.closest('.eo'); if (o) chooseEvent(+o.dataset.o); });
+for (const ev of ['mousedown', 'wheel', 'contextmenu']) evcard.addEventListener(ev, e => e.stopPropagation());
+function evEligible() {
+  const E = EVS(), idx = seasonIdx(game.season.t);
+  return EVENTS.filter(d => d.seasons.includes(idx) && d.ok() && !(E.last[d.id] !== undefined && game.season.t - E.last[d.id] < CONFIG.ev.noRepeat));
+}
+function updateEvents(dt) {
+  const E = EVS(), S = game.season, C = CONFIG.ev;
+  if (E.card) {
+    E.card.t += dt;
+    if (E.card.t >= E.card.len) chooseEvent(1); else renderEventCard(false);
+    const bar = evcard.querySelector('.ebar u'); if (bar && E.card) bar.style.width = Math.max(0, 100 - E.card.t / E.card.len * 100).toFixed(1) + '%';
+  }
+  // rivals sting the polyps they touch
+  for (const r of game.rivals) {
+    if (r.hp <= 0) continue;
+    r.dmgT -= dt; if (r.dmgT > 0) continue;
+    r.dmgT = CONFIG.ev.ce2.dmgEvery;
+    for (const [dc, dr] of NB_DIRS) { const p = livePolypAt(r.c + dc, r.r + dr); if (p) { p.hp -= 1; p.lastHit = game.time; p.hurt = 0.4; if (p.hp <= 0) killPolyp(p, 'A rival coral has killed a polyp'); } }
+  }
+  if (game.rivals.some(r => r.hp <= 0)) { for (const r of game.rivals) if (r.hp <= 0) game.cells.delete(key(r.c, r.r)); game.rivals = game.rivals.filter(r => r.hp > 0); game.bio.t = 0; }
+  if (E.manta && game.time >= E.manta.until) { E.manta = null; game.bio.t = 0; toast('The manta ray glides away'); }
+  const sc = E.school;
+  if (sc) {
+    const C9 = CONFIG.ev.ce9, el = game.time - sc.t0, ctr = reefCentre();
+    const tickEvery = C9.secs / C9.cells;
+    sc.tickT += dt;
+    while (sc.tickT >= tickEvery && sc.cleared < C9.cells) {
+      sc.tickT -= tickEvery;
+      const near = [];
+      for (const k of game.seaweed) { const [c, r] = k.split(',').map(Number); if (Math.hypot(c - ctr.c, r - ctr.r) <= C9.range) near.push({ k, w: true }); }
+      for (const s of game.skeletons) if (Math.hypot(s.c - ctr.c, s.r - ctr.r) <= C9.range) near.push({ s });
+      if (!near.length) { sc.tickT = 0; break; }
+      const q = near[Math.floor(Math.random() * near.length)];
+      if (q.w) { game.seaweed.delete(q.k); const [c, r] = q.k.split(',').map(Number); spawnParts('puff', (c + 0.5) * CELL, (r + 0.5) * CELL, 3); }
+      else { game.skeletons = game.skeletons.filter(a => a !== q.s); game.cells.delete(key(q.s.c, q.s.r)); spawnParts('dust', (q.s.c + 0.5) * CELL, (q.s.r + 0.5) * CELL, 3); }
+      sc.cleared++; sc.sand++; game.sand += 1; game.stats.sandMade += 1;
+    }
+    sc.scrapeT -= dt;
+    if (sc.scrapeT <= 0 && sc.targets.length) {
+      sc.scrapeT = C9.secs / (C9.polyps + 1);
+      const p = sc.targets.shift();
+      if (p && !p.dead && game.cells.has(key(p.c, p.r))) { p.hp -= C9.hp; p.lastHit = game.time; p.hurt = 0.7; spawnParts('puff', (p.c + 0.5) * CELL, (p.r + 0.5) * CELL, 3); if (p.hp <= 0) killPolyp(p, ''); }
+    }
+    if (el >= C9.secs) {
+      for (const p of sc.targets) if (p && !p.dead && game.cells.has(key(p.c, p.r))) { p.hp -= C9.hp; p.lastHit = game.time; p.hurt = 0.7; if (p.hp <= 0) killPolyp(p, ''); }
+      const rest = C9.sand - sc.sand; if (rest > 0) { game.sand += rest; game.stats.sandMade += rest; }
+      E.school = null; toast('The parrotfish school passes on: +' + C9.sand + ' sand');
+    }
+  }
+  if (!devs.noEvents && game.goals.stage >= 3 && !E.card) {   // the roll, once at the start of each season
+    const ab = curAbs();
+    if (E.rolled !== ab) {
+      E.rolled = ab; E.pend = null;
+      if (S.t - seasonStart(ab) < 20 && Math.random() < C.chance) E.pend = { at: S.t + C.delayMin + Math.random() * (C.delayMax - C.delayMin), ab };
+    }
+    if (E.pend && S.t >= E.pend.at) {
+      if (game.storm || game.stormPw > 0.02) E.pend.at = S.t + 3;   // never during storm waves
+      else if (curAbs() !== E.pend.ab) E.pend = null;
+      else { const list = evEligible(); E.pend = null; if (list.length) fireEvent(list[Math.floor(Math.random() * list.length)].id); }
+    }
+  }
+}
+// the spawning night (slice 7) calls this on each spawning night: CE7 is the one event that may repeat every year
+function spawnNightEvent() { if (!game.ev.card && game.goals.stage >= 4) { game.ev.last.CE7 = undefined; fireEvent('CE7'); } }
+function devEvent(id) {
+  if (!EVBY[id]) return;
+  if (game.goals.stage < (id === 'CE8' || id === 'CE9' ? 4 : 3)) devStage(id === 'CE8' || id === 'CE9' ? 4 : 3);
+  const E = EVS(); if (E.card) { E.card = null; renderEventCard(true); }
+  fireEvent(id, true);
+}
+// drawing: rival polyps, the net, the manta and the parrotfish school
+function drawEventWorld(t) {
+  for (const r of game.rivals) {
+    const x = (r.c + 0.5) * CELL, y = (r.r + 0.5) * CELL, s = 1 + 0.04 * Math.sin(t * 2 + r.seed);
+    ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283 + r.seed + Math.sin(t * 1.5 + k) * 0.15; ctx.strokeStyle = '#b6a6ff'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(Math.cos(a) * 8, Math.sin(a) * 8); ctx.lineTo(Math.cos(a) * 14, Math.sin(a) * 14); ctx.stroke(); }
+    const g = ctx.createRadialGradient(-3, -3, 1, 0, 0, 12); g.addColorStop(0, '#c9bcff'); g.addColorStop(1, '#5a46d8');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 10.5, 0, 6.3); ctx.fill(); ctx.strokeStyle = '#2a1c8a'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = '#1d1260'; ctx.beginPath(); ctx.arc(0, 1, 3.4, 0, 6.3); ctx.fill();
+    ctx.restore();
+  }
+  const n = netOn();
+  if (n) {
+    const x0 = (n.c - 1) * CELL, x1 = (n.c + 2) * CELL, y0 = n.r * CELL - 6, y1 = (n.r + 1) * CELL + 14;
+    ctx.save(); ctx.strokeStyle = 'rgba(205,215,190,0.85)'; ctx.lineWidth = 1.6;
+    for (let i = 0; i <= 6; i++) { const x = x0 + (x1 - x0) * i / 6; ctx.beginPath(); ctx.moveTo(x, y0); ctx.quadraticCurveTo(x + Math.sin(t + i) * 3, (y0 + y1) / 2, x - 2, y1); ctx.stroke(); }
+    for (let j = 0; j <= 4; j++) { const y = y0 + (y1 - y0) * j / 4 + Math.sin(t * 0.8 + j) * 1.5; ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y + 2); ctx.stroke(); }
+    ctx.restore();
+  }
+  const E = EVS(), m = E.manta;
+  if (m && game.time < m.until) {
+    const u = (game.time - m.t0) / CONFIG.ev.ce8.stay, x = m.x + Math.sin(u * 6.283 * 0.9) * 300 * m.dir, y = m.y + Math.sin(u * 6.283 * 1.7) * 26, fd = Math.cos(u * 6.283 * 0.9) * m.dir >= 0 ? 1 : -1, fl = Math.sin(t * 2.4);
+    ctx.save(); ctx.translate(x, y); ctx.scale(fd, 1); ctx.globalAlpha = Math.min(1, u * 8, (1 - u) * 8);
+    ctx.fillStyle = '#25384f'; ctx.beginPath(); ctx.moveTo(46, 0); ctx.quadraticCurveTo(10, -30 - fl * 12, -34, -6 - fl * 18); ctx.quadraticCurveTo(-18, 0, -34, 6 + fl * 18); ctx.quadraticCurveTo(10, 30 + fl * 12, 46, 0); ctx.fill();
+    ctx.fillStyle = '#d9e4ee'; ctx.beginPath(); ctx.ellipse(8, 0, 20, 6, 0, 0, 6.3); ctx.fill();
+    ctx.strokeStyle = '#25384f'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-30, 0); ctx.quadraticCurveTo(-52, 6 + fl * 3, -70, 2); ctx.stroke();
+    ctx.fillStyle = '#0b1622'; ctx.beginPath(); ctx.arc(36, -2, 1.6, 0, 6.3); ctx.fill();
+    ctx.restore();
+  }
+  const sc = E.school;
+  if (sc) {
+    const u = (game.time - sc.t0) / CONFIG.ev.ce9.secs, ex = sc.cx + sc.dir * (u - 0.5) * 1100;
+    for (let i = 0; i < sc.seeds.length; i++) {
+      const s = sc.seeds[i], x = ex + Math.sin(t * 0.9 + s) * 60 + (i % 4) * 22 * -sc.dir, y = sc.cy + Math.sin(t * 1.4 + s * 2) * 34 + Math.floor(i / 4) * 18 - 18;
+      ctx.save(); ctx.translate(x, y); ctx.scale(sc.dir, 1); ctx.globalAlpha = Math.min(1, u * 10, (1 - u) * 10);
+      ctx.fillStyle = '#3fb7a6'; ctx.beginPath(); ctx.ellipse(0, 0, 10, 5.5, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#e57ab0'; ctx.beginPath(); ctx.ellipse(1, 2.5, 7, 2.5, 0, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#2e8f87'; ctx.beginPath(); ctx.moveTo(-9, 0); ctx.lineTo(-15, -4 + Math.sin(t * 9 + s) * 2); ctx.lineTo(-15, 4 + Math.sin(t * 9 + s) * 2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#10222a'; ctx.beginPath(); ctx.arc(5, -1.5, 1.2, 0, 6.3); ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
@@ -5906,7 +6221,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
+  updateSeason(dt); updateEvents(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
