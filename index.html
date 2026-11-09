@@ -167,6 +167,9 @@
   #report .pr b { display: block; color: #fff; font-weight: 600; } #report .pr span { color: #9cc5d6; } #report .ok { margin-top: 6px; color: #9cc5d6; }
   #linview { position: fixed; right: 14px; top: 120px; z-index: 34; display: none; width: 250px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.92); border: 1px solid rgba(210, 166, 255, 0.4); color: #d6f2ff; font-size: 12px; pointer-events: none; }
   #linview h4 { margin: 0 0 5px; font-size: 13px; color: #e6caff; } #linview h4 i { font-weight: 400; color: #8aa0b2; font-size: 11px; margin-left: 6px; } #linview .lr { display: flex; gap: 6px; align-items: center; margin: 3px 0; } #linview .lr b { width: 62px; font-weight: 600; } #linview .lr span:not(.sw) { flex: 1; color: #9cc5d6; } #linview .lr em { font-style: normal; color: #bcdbe8; } #linview .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.4); }
+  #xpanel { position: fixed; left: 14px; top: 130px; z-index: 34; display: none; width: 400px; max-height: 70vh; overflow: auto; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(210, 166, 255, 0.45); color: #d6f2ff; font-size: 12px; }
+  #xpanel h4 { margin: 0 0 6px; font-size: 14px; color: #e6caff; } #xpanel h4 i { font-weight: 400; color: #8aa0b2; font-size: 11px; margin-left: 6px; } #xpanel h5 { margin: 9px 0 3px; font-size: 12px; color: #bda0e8; } #xpanel .xr { margin: 5px 0; } #xpanel .xk { color: #9cc5d6; margin-left: 20px; } #xpanel .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+  #xpanel select, #xpanel button { font: inherit; background: rgba(210, 166, 255, 0.14); color: #efe0ff; border: 1px solid rgba(210, 166, 255, 0.4); border-radius: 5px; padding: 2px 5px; } #xpanel button:disabled { opacity: 0.4; }
   #sportcard { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 36; display: none; width: 380px; max-width: 94vw; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(210, 166, 255, 0.5); color: #d6f2ff; font-size: 13px; }
   #sportcard h4 { margin: 0 0 3px; font-size: 14px; color: #e6caff; } #sportcard p { margin: 0 0 6px; color: #9cc5d6; } #sportcard .sr { display: flex; gap: 5px; align-items: center; margin-top: 5px; } #sportcard .sr span { width: 52px; color: #bcdbe8; }
   #sportcard button { font: inherit; padding: 3px 7px; border-radius: 6px; border: 1px solid rgba(210, 166, 255, 0.4); background: rgba(210, 166, 255, 0.12); color: #efe0ff; cursor: pointer; } #sportcard button.on { background: rgba(210, 166, 255, 0.5); color: #fff; } #sportcard button:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -4761,6 +4764,7 @@ window.addEventListener('keydown', e => {
   if (lookKey(e)) return;
   if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleStructure(); return; }
   if (e.code === 'KeyP' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) cyclePlan(); return; }
+  if (e.code === 'KeyX' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleX(); return; }
   if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) toggleLinView(); return; }
   if (e.code === 'KeyJ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleAch(); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
@@ -6554,6 +6558,63 @@ function drawSpawn(t) {
   }
   ctx.restore();
 }
+/* ---------- the X panel: X3 pairing before spawning night, X5 gene bank ---------- */
+const xEl = document.createElement('div'); xEl.id = 'xpanel'; document.body.appendChild(xEl);
+const domLin = c => { const n = {}; for (const p of c.ps) n[p.lin || 0] = (n[p.lin || 0] || 0) + 1; return +Object.keys(n).sort((a, b) => n[b] - n[a])[0]; };
+const genStr = T => POWER.map(k => T[k]).join(' ') + ' / ' + T.form;
+function childRanges(A, B) {   // each child trait: the rounded average, give or take 1 (before the budget is fixed)
+  return POWER.map(k => { const m = Math.round((A[k] + B[k]) / 2); return `${TRAITS[k]} ${clamp(m - 1, 1, 5)}-${clamp(m + 1, 1, 5)}`; }).join(', ') + `, Form ${Math.min(A.form, B.form)}-${Math.max(A.form, B.form)}`;
+}
+function renderX() {
+  if (!game.xOpen) { xEl.style.display = 'none'; return; }
+  const S = game.sp, list = spawners(); let h = '<h4>Spawning and Genetics <i>X to close</i></h4>';
+  if (has('X3')) {
+    h += '<h5>Pairs for the next spawning night</h5>';
+    if (!list.length) h += '<div class="xr"><i>No colony is ready to spawn (8 or more polyps, healthy, not bleached).</i></div>';
+    const dir = Math.sign(currentAt(W / 2, H / 2, game.time)) || 1;
+    for (const c of list) {
+      const want = S.pairs && S.pairs[c.key], auto = pairOf(c, list, dir), cur = want === '' ? null : want ? list.find(o => o.key === want) || null : auto;
+      const A = linOf({ lin: domLin(c) }).traits;
+      h += `<div class="xr"><span class="sw" style="background:${rgbs(linRgb(linOf({ lin: domLin(c) })))}"></span><b>${c.n} polyps at ${Math.round(c.cx)},${Math.round(c.cy)}</b> with <select data-c="${c.key}"><option value="auto"${want === undefined ? ' selected' : ''}>Auto (${auto ? auto.n + ' polyps at ' + Math.round(auto.cx) + ',' + Math.round(auto.cy) : 'nobody: clones'})</option><option value="none"${want === '' ? ' selected' : ''}>Nobody (clones, half as many)</option>` +
+        list.filter(o => o !== c).map(o => `<option value="${o.key}"${want === o.key ? ' selected' : ''}>${o.n} polyps at ${Math.round(o.cx)},${Math.round(o.cy)}</option>`).join('') + '</select>' +
+        `<div class="xk">${cur ? 'Child: ' + childRanges(A, linOf({ lin: domLin(cur) }).traits) : 'Clones keep this genome ' + genStr(A)}</div></div>`;
+    }
+  }
+  if (has('X5')) {
+    const B = S.bank, a = game.active, cd = Math.max(0, S.bankNext - game.time);
+    h += `<h5>Gene bank (${B.length}/${CONFIG.sp.bank.max})</h5>`;
+    B.forEach((g, i) => { h += `<div class="xr"><span class="sw" style="background:${rgbs(linRgb({ id: 1, traits: g, _x: 1 }))}"></span><b>${genStr(g)}</b> <button data-p="${i}">Plant (${CONFIG.sp.bank.e} E, ${CONFIG.sp.bank.ca} Ca)</button> <button data-d="${i}">Drop</button></div>`; });
+    h += `<div class="xr"><button data-save="1"${a && B.length < CONFIG.sp.bank.max ? '' : ' disabled'}>Save the active polyp's genome</button> <span>${cd > 0 ? 'Planting ready in ' + Math.ceil(cd) + ' s' : 'Planting ready'}</span></div>`;
+  }
+  if (!has('X3') && !has('X5')) h += '<div class="xr"><i>Selective spawning (X3) and the Gene bank (X5) open this panel. The lineage view is on L.</i></div>';
+  if (xEl.dataset.h !== h) { xEl.innerHTML = h; xEl.dataset.h = h; }
+  xEl.style.display = 'block';
+}
+function toggleX() { game.xOpen = !game.xOpen; if (game.xOpen && !has('X3') && !has('X5')) toast('Selective spawning or the Gene bank opens the X panel', true); xEl.dataset.h = ''; renderX(); }
+function bankPlant(i) {
+  const S = game.sp, B = CONFIG.sp.bank, g = S.bank[i]; if (!g) return false;
+  if (game.time < S.bankNext) { toast(`The bank needs ${Math.ceil(S.bankNext - game.time)} s more`, true); return false; }
+  if (game.energy < B.e || game.calcium < B.ca) { toast(`Planting costs ${B.e} energy and ${B.ca} calcium`, true); return false; }
+  const cand = bareRock(B.range).filter(q => q.d >= 2); if (!cand.length) { toast('No bare rock near your reef', true); return false; }
+  const q = cand[Math.floor(Math.random() * Math.min(cand.length, 12))];
+  game.energy -= B.e; game.calcium -= B.ca; S.bankNext = game.time + B.cd;
+  const p = addPolyp(q.c, q.r, 'branch'); p.lin = lineageFor(Object.assign({}, g), 0, false).id;
+  game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.9 }); spawnParts('spark', (q.c + 0.5) * CELL, (q.r + 0.5) * CELL, 8);
+  toast('Planted a banked genome on bare rock', true); sfx('budDone'); return true;
+}
+xEl.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.disabled) return; const S = game.sp;
+  if (b.dataset.p !== undefined) bankPlant(+b.dataset.p);
+  else if (b.dataset.d !== undefined) S.bank.splice(+b.dataset.d, 1);
+  else if (b.dataset.save && game.active && S.bank.length < CONFIG.sp.bank.max) S.bank.push(Object.assign({}, linOf(game.active).traits));
+  xEl.dataset.h = ''; renderX();
+});
+xEl.addEventListener('change', e => {
+  const s = e.target.closest('select'); if (!s) return; const S = game.sp; S.pairs = S.pairs || {};
+  if (s.value === 'auto') delete S.pairs[s.dataset.c]; else S.pairs[s.dataset.c] = s.value === 'none' ? '' : s.value;
+  xEl.dataset.h = ''; renderX();
+});
+for (const ev of ['mousedown', 'wheel', 'contextmenu', 'keydown']) xEl.addEventListener(ev, e => e.stopPropagation());
 const ACH = [
   { id: 'A1', name: 'First bud', desc: 'Bud your first polyp', chk: () => game.stats.buds >= 1 },
   { id: 'A2', name: 'Night rush', desc: 'Catch 30 plankton by hand in one night' },
@@ -6778,7 +6839,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
