@@ -258,7 +258,7 @@ const CONFIG = {
   // threats (content.md 4.3 to 4.6): heat wave and bleaching, seaweed, white band disease, crown-of-thorns starfish
   threat: {
     heat: { chance: 0.6, len: 80, check: 10, base: 0.05, f3: 1.6, c1: 0.5, c1Light: 0.6, c2: 0.6, lightLo: 0.5, lightSpan: 0.4, heatK: 0.2, recover: 90, recoverC3: 45, die: 0.3, dieC3: 0.08, caught: 3, caughtDie: 1 / 3, sportC3: 0.1, c1Floor: 0.4, whiten: 3 },
-    weed: { chance: 0.7, every: 5, bg: 0.02, bloom: 0.2, seeds: 3, grazerGap: 15, seedMin: 5, seedMax: 30, light: 0.75, lightMax: 2, weakHp: 0.4, smother: 0.6, d2: 15, cap: 700, p5: 15, p5Cells: 10 },
+    weed: { chance: 0.7, every: 5, bg: 0.02, bloom: 0.2, seeds: 3, grazerGap: 15, seedMin: 5, seedMax: 14, light: 0.75, lightMax: 2, weakHp: 0.4, smother: 0.6, d2: 15, cap: 700, p5: 15, p5Cells: 10 },
     dis: { chance: 0.5, delay: 30, every: 5, spread: 0.1, die: 40, cure: 10, p12Min: 1 },
     star: { chance: 0.5, base: 3, per: 50, max: 10, speed: 14, day: 1 / 3, eat: 6, eatD3: 9, hp: 3, sting: 1, d2Every: 4, d2Hp: 1, startMax: 1000, repath: 1.5, leaveSecs: 3 },
     d2: { every: 4, radius: 20 }, d3: { nibbler: 2, upkeep: 1.05 }, d5: { max: 20, hit: 14 },
@@ -760,7 +760,7 @@ function gain(a, x, y) {
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inherits that lineage)
   const p = { c, r, lin: from && from.lin || 0, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: tyN(type) === 'anemone', type: tyN(type), born: game.time };   // born: only for the grow-in drawing
-  game.polyps.push(p);
+  game.polyps.push(p); game.seaweed.delete(key(c, r));
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
   return p;
 }
@@ -785,6 +785,7 @@ function findSettleTarget() {
   if (!inBounds(c, r) || isRock(c, r)) return null;
   const here = cellAt(c, r);
   if (here && here.kind === 'polyp') return null;
+  if (game.seaweed.has(key(c, r))) return null;   // a larva cannot take root in seaweed
   const reach = CONFIG.larvaRadius + CONFIG.settleReach;
   if (here && here.kind === 'skel') return { c, r, skel: here.ref };
   for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {   // a skeleton in reach is settled back onto first
@@ -891,7 +892,7 @@ function bail() {
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 function validBudCell(c, r, tp, from) {   // tp/from: also check that coral type's placement rule from that parent
-  if (!inBounds(c, r) || game.grid[r * game.cols + c] === 1 || cellAt(c, r)) return false;
+  if (!inBounds(c, r) || game.grid[r * game.cols + c] === 1 || cellAt(c, r) || game.seaweed.has(key(c, r))) return false;   // no budding into seaweed
   let ok = false;
   for (const [dc, dr] of Object.values(DIRS)) {
     const o = cellAt(c + dc, r + dr);
@@ -4109,6 +4110,7 @@ function render() {
   else for (const s of game.skeletons) drawSkeleton(s);
   if (!post) drawSettleHint(t);
   drawFlow(t);
+  drawSeaweed(t);
   drawPlankton(t);
   if (L.coral) drawCoralLayer(L.csPoly);
   else if (on.organic) drawCoralLayer(L.polyLayer);
@@ -4669,7 +4671,7 @@ const SEASONS = [
   { name: 'Calm', col: '#8fc4dc', info: 'Quiet water. A good time to grow and to brace the reef. The first Calm is long, to settle in.' },
   { name: 'Warm', col: '#ffb36b', info: 'From the Reef stage, a heat wave can bleach the bright shallows. Deep coral and heat-tolerant lineages are safer.' },
   { name: 'Storm season', col: '#a998ff', info: 'Two storms roll through. Weak, thin branches snap and drift off as fragments; some take root elsewhere.' },
-  { name: 'Wet', col: '#6fd0b8', soon: true, info: 'Runoff brings seaweed and nutrients. Calm for now.' },
+  { name: 'Wet', col: '#6fd0b8', info: 'Runoff brings seaweed. From the Reef crest, crown-of-thorns starfish can arrive at dusk.' },
 ];
 const seasonLen = () => CONFIG.seasonSecs;
 // the clock counts seasons: season 0 is the long first Calm, then Warm, Storm, Wet, Calm, ...
@@ -4701,7 +4703,9 @@ function updateSeason(dt) {
 function threatLine() {   // [text, class] for a threat that is running or 60 s away, else null
   const T = game.thr, C = CONFIG.threat;
   if (T.heat.on) return [`Heat wave! ${mmss(C.heat.len - T.heat.t)} left`, 'storm'];
+  if (T.weed.on) return ['Seaweed bloom', 'warn'];
   if (threatOdds('heat') === 'yes' && seasonInto(nextAbs(1)) < 0) return [`Heat wave in ${mmss(-seasonInto(nextAbs(1)))}`, 'warn'];
+  if (threatOdds('weed') === 'yes' && seasonInto(nextAbs(3)) < 0) return [`Seaweed bloom in ${mmss(-seasonInto(nextAbs(3)))}`, 'warn'];
   return null;
 }
 const yearPhase = () => { const t = game.season.t, a = seasonAbs(t); return (seasonIdx(t) + (t - seasonStart(a)) / (a ? CONFIG.seasonSecs : CONFIG.firstCalmSecs)) / SEASONS.length; };
@@ -4808,7 +4812,7 @@ function fields() {
 const flowCell = (c, r) => CONFIG.flowFloor + (1 - CONFIG.flowFloor) * (inBounds(c, r) ? fields().flow[r * game.cols + c] : 1);   // flow factor 0.25..1 at a cell
 const flowOf = p => flowCell(p.c, p.r);
 const shadeOf = p => fields().shade.get(key(p.c, p.r)) ?? 1;
-const lightOf = p => light(p.r * CELL + CELL / 2) * shadeOf(p);   // effective light: depth, then shade from coral above (season and seaweed come later)
+const lightOf = p => light(p.r * CELL + CELL / 2) * shadeOf(p) * (game.seaweed.size ? Math.pow(CONFIG.threat.weed.light, weedTouch(p)) : 1);   // effective light: depth, shade from coral above, seaweed beside it (the season comes later)
 /* ---------- structure: how well each polyp is held up (0..10), cached until the cells change ---------- */
 const mixedSide = p => NB_DIRS.some(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp' && !o.ref.dead && typeOf(o.ref) !== typeOf(p); });   // T4: a side neighbour of another coral type
 const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
@@ -5004,6 +5008,10 @@ function findProblems() {
   if (threatOdds('heat') === 'yes' && seasonInto(nextAbs(1)) < 0) {
     const hot = P.filter(p => heatDepth(p) >= 0.5);
     if (hot.length >= C.reportHotN) add('P6', 35, `${hot.length} polyps sit in the hot shallows, and a heat wave is coming.`, 'Grow deeper for now, keep heat-tolerant lineages, and feed well at night.', hot);
+  }
+  if (game.seaweed.size) {
+    const near = seaweedList().filter(w => P.some(p => Math.hypot(p.c - w.c, p.r - w.r) <= C.threat.weed.p5Cells));
+    if (near.length >= C.threat.weed.p5) add('P5', 20, `Seaweed has covered ${near.length} cells and is creeping toward live coral.`, 'Grazers fix this: urchins come to seaweed near crevices, and parrotfish need dead coral and open water.', P.filter(p => near.some(w => Math.hypot(p.c - w.c, p.r - w.r) <= 3)));
   }
   const top = C.reportTop.reduce((a, [from, k]) => n >= from ? k : a, 3);
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
@@ -5258,7 +5266,7 @@ function rootFrag(f, q) {
   const c0 = Math.floor(q.x / CELL), r0 = Math.floor(q.y / CELL), cand = [];
   for (let dr = -7; dr <= 7; dr++) for (let dc = -7; dc <= 7; dc++) {
     const c = c0 + dc, r = r0 + dr;
-    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r) && touchesRock(c, r)) cand.push([c, r, dc * dc + dr * dr]);
+    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r) && touchesRock(c, r) && !game.seaweed.has(key(c, r))) cand.push([c, r, dc * dc + dr * dr]);   // seaweed holds no new coral
   }
   if (!cand.length) return false;
   cand.sort((a, b) => a[2] - b[2]);
@@ -5423,10 +5431,118 @@ function updateHeat(dt) {
   }
   updateBleach(dt);
 }
+/* seaweed: cells of water that hold a frond. It grows on bare rock, skeleton, rubble and weak polyps, shades the coral beside it and blocks budding */
+const weedFree = (c, r) => inBounds(c, r) && r >= 4 && !isRock(c, r) && !cellAt(c, r) && !game.seaweed.has(key(c, r));
+const weakPolyp = p => p.hp < CONFIG.polypHp * CONFIG.threat.weed.weakHp;
+function weedHost(c, r, rockOnly) {   // does this water cell touch something seaweed can grow from
+  for (const [dc, dr] of NB_DIRS) {
+    const x = c + dc, y = r + dr; if (!inBounds(x, y)) continue;
+    if (isRock(x, y)) return true;
+    if (rockOnly) continue;
+    const o = cellAt(x, y); if (o && (o.kind === 'skel' || weakPolyp(o.ref))) return true;
+  }
+  return false;
+}
+function weedSpread(c, r) {   // one neighbouring cell it can take, or null
+  const opts = NB_DIRS.map(([dc, dr]) => [c + dc, r + dr]).filter(([x, y]) => weedFree(x, y) && weedHost(x, y));
+  return opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
+}
+function weedTouch(p) {   // seaweed cells beside a polyp, at most lightMax
+  if (!game.seaweed.size) return 0;
+  let n = 0; for (const [dc, dr] of NB_DIRS) if (game.seaweed.has(key(p.c + dc, p.r + dr))) n++;
+  return Math.min(CONFIG.threat.weed.lightMax, n);
+}
+function startWeed(a, force) {   // the bloom: 3 cells on bare rock far from any grazer, then it spreads for the whole Wet season
+  const W = game.thr.weed, C = CONFIG.threat.weed; W.on = true; W.t = 0; W.tick = 0; W.ran = a === undefined ? seasonAbs(game.season.t) : a;
+  const grazers = game.res.list.filter(r => resLive(r) && (r.kind === 'urchin' || r.kind === 'parrot' || r.kind === 'turtle'));
+  const pc = game.polyps, cand = [], loose = [];
+  for (let r = 4; r < game.rows - 1; r++) for (let c = 1; c < game.cols - 1; c++) {
+    if (!weedFree(c, r) || !weedHost(c, r, true) || NB_DIRS.filter(([dc, dr]) => weedFree(c + dc, r + dr) && weedHost(c + dc, r + dr)).length < 2) continue;   // open ground, so it has room to spread
+    if (grazers.some(g => Math.hypot(g.x / CELL - c, g.y / CELL - r) < C.grazerGap)) continue;
+    let d = 1e9; for (const p of pc) d = Math.min(d, Math.hypot(p.c - c, p.r - r));
+    (d >= C.seedMin && d <= C.seedMax ? cand : loose).push([c, r]);
+  }
+  const pool = cand.length ? cand : loose; let n = 0;
+  if (pool.length) {
+    const s = pool[Math.floor(Math.random() * pool.length)]; game.seaweed.add(key(s[0], s[1])); n++;
+    for (let i = 0; i < 30 && n < C.seeds; i++) { const q = [...game.seaweed].map(k => k.split(',').map(Number)); const b = q[Math.floor(Math.random() * q.length)], nx = weedSpread(b[0], b[1]); if (nx) { game.seaweed.add(key(nx[0], nx[1])); n++; } }
+  }
+  banner('Seaweed bloom', 'Runoff feeds the algae. It creeps over bare rock and weak coral', '#c8e89a');
+  toast('A seaweed bloom has begun'); sfx('forecast');
+}
+function updateWeed(dt) {
+  const T = game.thr, W = T.weed, C = CONFIG.threat.weed, a = seasonAbs(game.season.t);
+  if (!W.on && a % SEASONS.length === THREAT.weed.idx && T.plan.weed[a] === true && W.ran !== a && seasonInto(a) >= 0) startWeed(a);
+  if (W.on && a !== W.ran) { W.on = false; toast('The seaweed bloom has passed'); }
+  if (game.goals.stage >= 3 || W.on) {
+    if ((W.tick += dt) >= C.every) {
+      W.tick -= C.every;
+      if (game.seaweed.size && game.seaweed.size < C.cap) {
+        const rate = W.on ? C.bloom : C.bg;
+        for (const k of [...game.seaweed]) {
+          if (Math.random() >= rate) continue;
+          const [c, r] = k.split(',').map(Number), nx = weedSpread(c, r);
+          if (nx && game.seaweed.size < C.cap) game.seaweed.add(key(nx[0], nx[1]));
+        }
+      }
+    }
+  }
+  if (game.seaweed.size) {
+    game.stats.weedPeak = Math.max(game.stats.weedPeak, game.seaweed.size);
+    for (const p of game.polyps.slice()) {   // a weak polyp under seaweed is overgrown
+      if (!weakPolyp(p) || !weedTouch(p)) continue;
+      p.hp -= C.smother * dt; p.lastHit = game.time;
+      if (p.hp <= 0) { game.stats.smothered++; killPolyp(p, game.progress.smother ? '' : 'Seaweed has smothered a weak polyp'); game.progress.smother = true; }
+    }
+  }
+}
+// drawing: swaying green-brown blades, rooted on the side that touches the surface
+const WEED_COL = [[84, 134, 66], [120, 128, 56], [58, 108, 70], [136, 112, 52], [98, 146, 78]];
+function drawSeaweed(t) {
+  if (!game.seaweed.size) return;
+  const v = game.view, a = screenToWorld(0, 0), b = screenToWorld(v.w, v.h), pad = CELL * 2;
+  const x0 = Math.min(a.x, b.x) - pad, x1 = Math.max(a.x, b.x) + pad, y0 = Math.min(a.y, b.y) - pad, y1 = Math.max(a.y, b.y) + pad;
+  ctx.save(); ctx.lineJoin = 'round';
+  for (const k of game.seaweed) {
+    const i = k.indexOf(','), c = +k.slice(0, i), r = +k.slice(i + 1), cx = (c + 0.5) * CELL, cy = (r + 0.5) * CELL;
+    if (cx < x0 || cx > x1 || cy < y0 || cy > y1) continue;
+    let bx = cx, by = cy + CELL / 2 - 1, ang = -Math.PI / 2;   // root below, grow up
+    const solid = (x, y) => isRock(x, y) || !!cellAt(x, y);
+    if (!solid(c, r + 1)) {
+      if (solid(c - 1, r)) { bx = cx - CELL / 2 + 1; by = cy + 4; ang = -0.5; }
+      else if (solid(c + 1, r)) { bx = cx + CELL / 2 - 1; by = cy + 4; ang = -Math.PI + 0.5; }
+      else if (solid(c, r - 1)) { by = cy - CELL / 2 + 1; ang = Math.PI / 2; }
+    }
+    const h0 = hash2(c, r, 41);
+    const blades = 3 + Math.floor(h0 * 2.99);
+    for (let j = 0; j < blades; j++) {
+      const hs = hash2(c, r, 50 + j), len = CELL * (0.9 + 1.1 * hs), col = WEED_COL[Math.floor(hash2(c, r, 70 + j) * WEED_COL.length)];
+      const spread = (j - (blades - 1) / 2) * 0.36 + (hs - 0.5) * 0.25, ph = hash2(c, r, 90 + j) * 6.28, sw = 0.28 + 0.2 * hs;
+      const sx = bx + Math.cos(ang + Math.PI / 2) * (j - (blades - 1) / 2) * 4, sy = by + Math.sin(ang + Math.PI / 2) * (j - (blades - 1) / 2) * 4;
+      const N = 6, L = [], R = [];
+      let px = sx, py = sy;
+      for (let m = 0; m <= N; m++) {
+        const u = m / N, th = ang + spread + Math.sin(t * (0.9 + 0.5 * hs) + ph + u * 2.4) * sw * (0.3 + u) + (game.stormPw ? game.stormPw * 0.4 * game.storm.dir * u : 0);
+        if (m) { px += Math.cos(th) * len / N; py += Math.sin(th) * len / N; }
+        const w = (3.4 * Math.pow(1 - u, 0.8) + 0.6) * (0.8 + 0.5 * hs), nx = -Math.sin(th), ny = Math.cos(th);
+        L.push([px + nx * w, py + ny * w]); R.push([px - nx * w, py - ny * w]);
+      }
+      ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
+      for (let m = 1; m <= N; m++) ctx.lineTo(L[m][0], L[m][1]);
+      for (let m = N; m >= 0; m--) ctx.lineTo(R[m][0], R[m][1]);
+      ctx.closePath();
+      ctx.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; ctx.fill();
+      ctx.strokeStyle = `rgba(${Math.min(255, col[0] + 50)},${Math.min(255, col[1] + 50)},${Math.min(255, col[2] + 40)},0.55)`; ctx.lineWidth = 0.9;
+      ctx.beginPath(); ctx.moveTo((L[0][0] + R[0][0]) / 2, (L[0][1] + R[0][1]) / 2); for (let m = 1; m <= N - 1; m++) ctx.lineTo((L[m][0] + R[m][0]) / 2, (L[m][1] + R[m][1]) / 2); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(52,78,44,0.7)'; ctx.beginPath(); ctx.ellipse(bx, by, 7, 3.2, ang + Math.PI / 2, 0, 6.3); ctx.fill();   // a holdfast where the blades meet the rock
+  }
+  ctx.restore();
+}
 function updateThreats(dt) {
   if (game.goals.stage < 2) return;
   planThreats();
-  updateHeat(dt);
+  updateHeat(dt); updateWeed(dt);
 }
 function drawThreatPolyps(t) {   // bleached coral (white), seen over the tissue
   for (const p of game.polyps) {
