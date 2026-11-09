@@ -209,7 +209,7 @@ const CONFIG = {
   seed: 7,
   title: 'reef', showTitle: true,   // placeholder name; the title card is skipped with #notitle in the URL
   // reef stages (see STAGES): income boost per stage, and the goal sizes
-  stageBoost: [1, 1.2, 1.5, 1.8, 2.2, 2.5], stageColonyPolyps: 5, stageReefPolyps: 60, stageReefPatches: 3, stageReefSpecies: 3,
+  stageBoost: [1, 1.2, 1.5, 1.8, 2.2, 2.5], stageColonyPolyps: 5, stageReefPolyps: 60, stageReefPatches: 3, stageReefSpecies: 3, stageCrestPolyps: 250, stageCrestSpecies: 6, crestLossMax: 0.1,
   // camera
   zoomStart: 1.55, zoomEnd: 0.72, zoomPolypsFull: 16, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
   // water and light
@@ -385,7 +385,7 @@ const game = {
   res: { list: [], habs: [], rush: 0, tickT: 0, sig: '', clownBroken: 0, turtleYear: -1, pin: null, fishE: 0, noneT: 0 },   // residents: list of animals, habitats found on the grid
   bio: { B: 0, parts: [], t: 0 }, bp: 0, sand: 0, seaweed: new Set(), starfish: [],
   thr: { plan: { heat: {}, weed: {}, star: {} }, n: { heat: 0, weed: 0, star: 0 }, heat: { on: false, t: 0, checkT: 0, hit: [], ran: -1 }, weed: { on: false, t: 0, tick: 0, ran: -1 }, dis: { on: false, tick: 0, startAt: -1, seals: new Set(), ver: 0, drag: null }, star: { ran: -1, endAt: -1, n: 0 } },   // threats: which seasons will bring them, and their running state
-  goals: { stage: 0, chk: 0, shown: 0 },   // stage = how many STAGES are reached (0 = none yet); never goes down
+  goals: { stage: 0, chk: 0, shown: 0, crestStorm: false, sr: null },   // stage = how many STAGES are reached (0 = none yet); never goes down
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
@@ -558,8 +558,10 @@ const STAGES = [
             { label: 'Rock patches', cur: patchCount, need: CONFIG.stageReefPatches },
             { label: 'Coral types', cur: typeCount, need: CONFIG.stageReefTypes },
             { label: 'Species', cur: () => game.species.length, need: CONFIG.stageReefSpecies }] },
-  { name: 'Reef crest', soon: true, desc: 'A reef tough enough to take a storm.', opens: 'Spawning',
-    goals: [{ label: 'Polyps', cur: () => 0, need: 250 }, { label: 'Storm season, under 10% lost', cur: () => 0, need: 1 }, { label: 'Species', cur: () => 0, need: 6 }] },
+  { name: 'Reef crest', desc: 'A reef tough enough to take a storm.', opens: 'Spawning nights, tier 3 ideas, the reef flat and more',
+    goals: [{ label: 'Polyps', cur: () => game.polyps.length, need: CONFIG.stageCrestPolyps },
+            { label: 'Storm season, under 10% lost', cur: () => game.goals.crestStorm ? 1 : 0, need: 1 },
+            { label: 'Species', cur: () => game.species.length, need: CONFIG.stageCrestSpecies }] },
   { name: 'Atoll', soon: true, desc: 'The reef reaches the surface.', opens: 'The island starts to rise',
     goals: [{ label: 'Surface columns', cur: () => 0, need: 12 }, { label: 'Sand', cur: () => 0, need: 200 }] },
   { name: 'Island', soon: true, end: true, desc: 'Your reef has risen out of the sea. The goal.', opens: 'Birds, seeds and palms', goals: [] },
@@ -4410,7 +4412,7 @@ function devStage(n) {
     for (let k = 0; k < 6 && patchCount() < CONFIG.stageReefPatches; k++) devPatch();
   }
   if (n > game.goals.stage) checkStage();
-  if (n >= 4 && game.goals.stage === 3) stageUp(4);   // Reef crest has no goals yet: the dev tools can still take the game there, to try what it opens
+  if (n >= 4 && game.goals.stage === 3) stageUp(4);   // the dev jump to Reef crest skips its goals (250 polyps, a clean storm season, 6 species) so the genetics can be tried at once
 }
 function devSpawnRes(kind) {   // a resident of this kind right now, ignoring its habitat
   if (kind === 'clown') { if (anemones().length && !game.clown.fish.length) spawnClowns(); else toast('Needs an anemone and no clownfish yet', true); return null; }
@@ -6353,6 +6355,10 @@ function achSeason(prev, next) {
     }
     A.stormStart = null;
   }
+  const G = game.goals;   // the Reef crest goal: a storm season, begun at Reef or later, that cost under 10% of the polyps it began with
+  if (prev % n === 2 && G.sr && G.sr.st >= 3 && game.stats.storms > G.sr.storms && G.sr.n > 0 && game.stats.polypsLost - G.sr.lost < CONFIG.crestLossMax * G.sr.n) G.crestStorm = true;
+  if (prev % n === 2) G.sr = null;
+  if (next % n === 2) G.sr = { st: G.stage, storms: game.stats.storms, lost: game.stats.polypsLost, n: game.polyps.length };
   if (next % n === 2) A.stormStart = { storms: game.stats.storms, lost: game.stats.polypsLost, n: game.polyps.length, arch: archExists() };
 }
 function updateAch(dt) {
