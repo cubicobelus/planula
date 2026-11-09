@@ -5754,6 +5754,7 @@ function updateStar(dt) {
   const act = 1 - daylight(), sp = C.speed * lerp(C.day, 1, act), eatNeed = has('D3') ? C.eatD3 : C.eat;
   for (const s of game.starfish) {
     if (s.dead) continue;
+    if (s.mode === undefined) Object.assign(s, { mode: 'move', path: [], pathT: 0, tgt: null, eat: 0, rot: 0, seed: Math.random() * 10, hurt: 0, alpha: 1, lx: s.x, ly: s.y, hp: s.hp === undefined ? CONFIG.threat.star.hp : s.hp });   // a bare {x, y, hp} (a test hook) gets the rest
     s.hurt = Math.max(0, s.hurt - dt);
     if (s.hp <= 0) { starDie(s); continue; }
     if (s.mode !== 'leave' && game.season.t >= St.endAt && St.endAt >= 0) { s.mode = 'leave'; s.leaveT = 0; }
