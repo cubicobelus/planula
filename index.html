@@ -137,6 +137,14 @@
   #title .ladder { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 12px; color: #9cc5d6; margin-bottom: 18px; }
   #title .ladder span.a { opacity: 0.5; } #title .ladder b { font-weight: 600; color: #bfeed6; }
   #title .go { font-size: 13px; color: #ffe2b0; letter-spacing: 0.04em; animation: tnote 2.4s ease-in-out infinite; }
+  #season { position: fixed; left: 12px; top: 250px; z-index: 11; display: none; align-items: center; gap: 9px; box-sizing: border-box; min-width: 174px; padding: 6px 12px 6px 8px; border-radius: 10px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); color: #d6f2ff; font-size: 12px; line-height: 1.3; cursor: pointer; user-select: none; }
+  #season:hover { background: rgba(8, 36, 58, 0.7); }
+  #season b { display: block; color: #fff; font-size: 13px; font-weight: 600; } #season span { color: #9cc5d6; } #season.warn span { color: #ffd9a0; } #season.storm span { color: #ff9f8c; }
+  #seasoncard, #lincard { position: fixed; z-index: 35; display: none; width: 250px; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
+  #seasoncard h4, #lincard h4 { margin: 0 0 6px; font-size: 14px; color: #ffe3d3; } #seasoncard .sn { margin-top: 7px; } #seasoncard .sn b { color: #fff; } #seasoncard .sn i { color: #8aa0b2; } #seasoncard .sn p { margin: 1px 0 0; color: #bcdbe8; }
+  #seasoncard .sn.cur b { color: #ffe2b0; } #seasoncard .k, #lincard .k { margin-top: 7px; color: #8aa0b2; }
+  #lincard .tr { display: flex; align-items: center; gap: 8px; margin: 3px 0; } #lincard .tr span { width: 62px; color: #bcdbe8; } #lincard .tr .bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); overflow: hidden; } #lincard .tr .bar i { display: block; height: 100%; background: #8fc4dc; }
+  #lincard .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -3px; margin-right: 6px; border: 1px solid rgba(255, 255, 255, 0.4); }
   @keyframes tin { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
@@ -156,6 +164,7 @@
 </div>
 <div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="title"></div>
 <div id="hint"></div>
+<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div>
 <div id="abar"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
@@ -197,9 +206,17 @@ const CONFIG = {
   nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 60, nibblerGrace: 120, nibblerSpare: 2, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
   nibblerSpeed: 70, nibblerFleeSpeed: 190, nibblerRadius: 8, nibblerBiteEvery: 1.6, nibblerBite: 0.8, nibblerFlee: 8,
   automationAt: 5, autoRadius: 75, autoInterval: 5, autoPullTime: 0.4, autoEnergy: 1.5,
+  // seasons and storms (a year = 4 seasons; the clock runs from the Colony stage on; stormAt = storm starts, s into the storm season)
+  yearSecs: 480, forecastSecs: 60, stormSecs: 25, stormSeason: 1, stormAt: [35, 85], stormTick: 2, stormSafe: 4, breakK: 0.5, firstStormPower: 0.6, flexMult: 0.5, revealStormLost: 8,
+  stormCurrent: 150, stormShake: 7, stormDark: 0.5,
+  fragmentRoot: 0.5, fragmentRootMax: 3, fragmentSink: 18, fragmentLife: 50, fragmentAir: 2.5, fragmentPush: 45, minPolyps: 3,
+  // structure strength (0..10): rock-touching polyps are 10, the rest is the best path from one
+  supBase: 10, supUp: 1, supSide: 2.5, supDown: 3, supSkel: 1, supThick: 0.5, supThickMax: 1.5, supBoth: 0.5, thickBase: 2,
+  // genetics: a bud may be a sport (a new lineage with one trait up and one down)
+  sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { F1: { e: 25 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 } },
+  cost: { F1: { e: 25 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 } },
   longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
   algaeSunMult: 3,
   calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
@@ -211,7 +228,7 @@ const CONFIG = {
   maxParts: 240,
   audio: {
     master: 0.5, ambience: 0.5, maxVoices: 14, pitchVar: 0.07, bubbleMin: 4000, bubbleMax: 11000,
-    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, stage: 1, buy: 0.3, whoosh: 0.4, clown: 2 },
+    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, stage: 1, buy: 0.3, whoosh: 0.4, clown: 2, forecast: 3, rumble: 1.1, snap: 0.25, sport: 1 },
   },
   // look test (visual only)
   look: {
@@ -260,7 +277,10 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0 },
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0 },
+  season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
+  storm: null, stormPw: 0, stormRep: null, frags: [], riding: null,   // storm: { t, len, base }; pw: current power 0..1; riding: { frag, p } while the player drifts on a fragment
+  lineages: [{ id: 0, hue: 0, traits: { growth: 3, tough: 3, heat: 3, feed: 3, form: 3 }, parent: -1 }], sportNext: false,
   tree: { open: false, state: {}, fresh: {} },   // state: id -> 'revealed' | 'owned' (missing = hidden)
   calcium: 0, calciumOn: false,
   species: [],
@@ -1343,6 +1363,10 @@ const audio = {
     buy() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {   // a richer rising arpeggio of triangle and sine
         this.tone({ f, type: 'triangle', d: 1.1, v: 0.11, t: i * 0.075, a: 0.01, send: 0.55, lp: 3000 }); this.tone({ f: f * 2, d: 0.8, v: 0.035, t: i * 0.075, a: 0.01, send: 0.4 }); }); },
     whoosh() { this.noise({ f: 250, f2: 1400, q: 1.2, d: 0.2, v: 0.2, a: 0.1, glide: 0.2 }); this.noise({ f: 1400, f2: 350, q: 1.2, d: 0.5, v: 0.14, t: 0.18, a: 0.04 }); },
+    forecast() { [330, 262, 196].forEach((f, i) => this.tone({ f, type: 'triangle', d: 1.0, v: 0.14, t: i * 0.3, a: 0.02, send: 0.6, lp: 1500 })); },   // three falling bell notes: a warning
+    rumble() { this.noise({ type: 'lowpass', f: 90 + Math.random() * 40, q: 0.8, d: 1.3, v: 0.5, a: 0.25, brown: true }); this.tone({ f: 46 * this.pv(), f2: 34, d: 1.2, v: 0.22, a: 0.2 }); },   // low storm thunder
+    snap(x, y) { const v = this.near(x, y); this.noise({ f: 1300, f2: 300, q: 2, d: 0.18, v: 0.4 * v }); this.tone({ f: 200, f2: 60, d: 0.25, v: 0.3 * v, type: 'triangle' }); },
+    sport() { [784, 1175, 1568].forEach((f, i) => this.tone({ f, d: 0.9, v: 0.08, t: i * 0.09, a: 0.01, send: 0.7 })); },
     clown() { for (let i = 0; i < 6; i++) this.tone({ f: (360 + Math.random() * 260) * this.pv(), f2: 1000 * this.pv(), d: 0.1, v: 0.07, t: i * 0.12 + Math.random() * 0.06, lp: 2200 });   // a few bubbles rising
       this.tone({ f: 150, f2: 260, d: 0.25, v: 0.1, lp: 700, a: 0.02 }); },
   },
@@ -3073,6 +3097,7 @@ function updateHud() {
   hud.species.textContent = game.species.length;
   hud.note.style.display = treeAffordable() && !game.tree.open ? 'block' : 'none';
   if ((track.t = (track.t || 0) - 1) <= 0) { track.t = 8; renderTrack(); }
+  updateSeasonUi();
   hud.rowBoost.style.display = boost() > 1 ? '' : 'none'; hud.boost.textContent = 'x' + boost();
   hud.light.textContent = `${lightLabel(l)} (${Math.round(l * 100)}%)`;
   const h = currentHint(); if (hud.hint.textContent !== h) hud.hint.textContent = h;
@@ -3469,6 +3494,79 @@ window.addEventListener('mousemove', e => { game.mouse.sx = e.clientX; game.mous
 window.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('resize', resize);
 
+/* ---------- seasons: a year of four seasons on a clock that runs from the Colony stage; storms are announced ahead ---------- */
+const SEASONS = [
+  { name: 'Calm', col: '#8fc4dc', info: 'Quiet water. A good time to grow and to brace the reef.' },
+  { name: 'Storm season', col: '#a998ff', info: 'Two storms roll through. Weak, thin branches snap and drift off as fragments; some take root elsewhere.' },
+  { name: 'Warm season', col: '#ffb36b', soon: true, info: 'Heat waves will bleach the shallows. Calm for now.' },
+  { name: 'Spawning season', col: '#ff8fb8', soon: true, info: 'The reef will spawn in one night. Calm for now.' },
+];
+const seasonLen = () => CONFIG.yearSecs / SEASONS.length;
+const seasonIdx = t => Math.floor((t % CONFIG.yearSecs) / seasonLen());
+const mmss = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+// start time (clock seconds) of the first storm that has not finished by t, or null when storms are off
+function nextStormStart(t) {
+  if (devs.noStorms) return null;
+  let best = null;
+  for (let y = Math.floor(t / CONFIG.yearSecs); y <= Math.floor(t / CONFIG.yearSecs) + 1; y++) for (const off of CONFIG.stormAt) {
+    const s = y * CONFIG.yearSecs + CONFIG.stormSeason * seasonLen() + off;
+    if (s + CONFIG.stormSecs > t && (best === null || s < best)) best = s;
+  }
+  return best;
+}
+function updateSeason(dt) {
+  if (game.goals.stage < 2) return;   // paused until the reef is a colony
+  const S = game.season; S.t += dt;
+  const s = nextStormStart(S.t); if (s === null) return;
+  if (S.t < s && s - S.t <= CONFIG.forecastSecs && S.fc !== s) {
+    S.fc = s; toast(`Storm warning: a storm will hit in ${mmss(s - S.t)}`); sfx('forecast');
+  }
+  if (S.t >= s && S.fired !== s) { S.fired = s; startStorm(); }
+}
+function seasonText() {   // [name, forecast line, class]
+  const S = game.season, nm = SEASONS[seasonIdx(S.t)].name;
+  if (game.storm) return [nm, `Storm! ${mmss(game.storm.len - game.storm.t)} left`, 'storm'];
+  const s = nextStormStart(S.t);
+  if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
+  return [nm, 'Calm', ''];
+}
+const seasonEl = document.getElementById('season'), seasonCard = document.getElementById('seasoncard');
+const arcPath = (a0, a1, r) => { const p = a => [22 + r * Math.sin(a), 22 - r * Math.cos(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
+let seasonSig = '';
+function updateSeasonUi() {
+  const on = game.goals.stage >= 2;
+  if (seasonEl.style.display !== (on ? 'flex' : 'none')) seasonEl.style.display = on ? 'flex' : 'none';
+  if (!on) { seasonCard.style.display = 'none'; return; }
+  const hb = el('hud').getBoundingClientRect().bottom + 8;
+  if (seasonEl.style.top !== hb + 'px') seasonEl.style.top = hb + 'px';
+  const [nm, line, cls] = seasonText(), ang = Math.round((game.season.t % CONFIG.yearSecs) / CONFIG.yearSecs * 180) / 180 * 2 * Math.PI;
+  const sig = nm + '|' + line + '|' + ang.toFixed(3);
+  if (sig !== seasonSig) {
+    seasonSig = sig;
+    let svg = '<svg width="44" height="44" viewBox="0 0 44 44">';
+    SEASONS.forEach((s, i) => { svg += `<path d="${arcPath(i * Math.PI / 2 + 0.06, (i + 1) * Math.PI / 2 - 0.06, 16)}" stroke="${s.col}" stroke-width="5" fill="none" opacity="${seasonIdx(game.season.t) === i ? 1 : 0.4}"/>`; });
+    svg += `<circle cx="${(22 + 16 * Math.sin(ang)).toFixed(1)}" cy="${(22 - 16 * Math.cos(ang)).toFixed(1)}" r="3.6" fill="#fff" stroke="#031326" stroke-width="1.2"/></svg>`;
+    seasonEl.className = cls; seasonEl.innerHTML = svg + `<div><b>${nm}</b><span>${line}</span></div>`;
+    if (seasonCard.style.display === 'block') renderSeasonCard();
+  }
+  if (seasonCard.style.display === 'block') { seasonCard.style.top = seasonEl.style.top; }
+}
+function renderSeasonCard() {
+  const cur = seasonIdx(game.season.t);
+  seasonCard.innerHTML = '<h4>The year</h4>' + SEASONS.map((s, i) => `<div class="sn${i === cur ? ' cur' : ''}"><b style="color:${s.col}">${s.name}</b> <i>${seasonLen()} s${s.soon ? ', coming soon' : ''}</i><p>${s.info}</p></div>`).join('') +
+    `<div class="k">A year is ${CONFIG.yearSecs} s. The clock starts when the reef becomes a colony.</div>`;
+}
+seasonEl.addEventListener('click', () => {
+  const open = seasonCard.style.display !== 'block';
+  seasonCard.style.display = open ? 'block' : 'none';
+  if (open) { renderSeasonCard(); seasonCard.style.left = (seasonEl.getBoundingClientRect().right + 8) + 'px'; seasonCard.style.top = seasonEl.style.top; }
+});
+for (const e of [seasonEl, seasonCard]) for (const ev of ['mousedown', 'wheel', 'contextmenu']) e.addEventListener(ev, x => x.stopPropagation());
+window.addEventListener('mousedown', e => { if (!e.target.closest('#season, #seasoncard')) seasonCard.style.display = 'none'; });
+function startStorm() {}
+function updateStorm(dt) {}
+function updateFrags(dt) {}
+
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
@@ -3482,6 +3580,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
+  updateSeason(dt); updateStorm(dt); updateFrags(dt);
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
