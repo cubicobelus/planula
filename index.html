@@ -1704,7 +1704,8 @@ function jobUrchin(r, dt, m) {
       r.prey = best;
     }
     if (r.prey) {
-      const free = freeNeighbours(r.prey); let ap = free[0], bd = 1e9; for (const f of free) { const d = Math.hypot(f.x - r.x, f.y - r.y); if (d < bd) { bd = d; ap = f; } }
+      const free = freeNeighbours(r.prey); if (!free.length) { r.prey = null; return; }   // growth plans can fill in every free side while it crawls over
+      let ap = free[0], bd = 1e9; for (const f of free) { const d = Math.hypot(f.x - r.x, f.y - r.y); if (d < bd) { bd = d; ap = f; } }
       const d = crawl(r, ap.x, ap.y + 6, C.speed, dt);
       if (d < 8) {
         r.chewing = true;
