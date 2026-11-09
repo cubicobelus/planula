@@ -14,7 +14,7 @@
   #bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.18); margin: 2px 0 3px; overflow: hidden; }
   #barfill { height: 100%; width: 0; background: #7be3b0; transition: background 0.2s; }
   #hint { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); padding: 7px 16px; background: rgba(2, 16, 32, 0.6); color: #e8f8ff; border-radius: 16px; font-size: 14px; pointer-events: none; white-space: nowrap; }
-  #toasts { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+  #toasts { position: fixed; left: 50%; top: 118px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
   .toast { padding: 7px 16px; background: rgba(255, 244, 230, 0.92); color: #3a2a2a; border-radius: 14px; font-size: 14px; font-weight: 600; animation: tin 0.25s ease-out; transition: opacity 0.5s; }
   .toast.out { opacity: 0; }
   #ui { position: fixed; left: 0; top: 0; pointer-events: none; }
@@ -99,6 +99,44 @@
   .tfoot { margin-top: 18px; padding-top: 10px; border-top: 1px solid rgba(150, 220, 240, 0.12); display: flex; justify-content: space-between; font-size: 12px; color: #7fa6b8; }
   .tfoot kbd { font: inherit; padding: 0 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); color: #fff; }
   @media (max-width: 900px) { .tcols { grid-template-columns: repeat(2, 1fr); } }
+
+  #track { position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 11; width: 520px; max-width: calc(100vw - 720px); min-width: 420px; box-sizing: border-box; padding: 7px 14px 8px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); color: #d6f2ff; font-size: 11px; user-select: none; }
+  #track .line { display: flex; align-items: flex-start; }
+  #track .nd { flex: 1 1 0; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; padding-bottom: 2px; }
+  #track .nd:last-child { flex: 0 0 auto; }
+  #track .nd::before { content: ''; position: absolute; top: 6px; left: calc(50% + 8px); right: calc(-50% + 8px); height: 2px; background: rgba(150, 200, 220, 0.25); }
+  #track .nd:last-child::before { display: none; }
+  #track .nd.done::before { background: #7be3b0; }
+  #track .dot { width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; border: 2px solid rgba(150, 200, 220, 0.5); background: transparent; position: relative; z-index: 1; transition: background 0.4s, box-shadow 0.4s, border-color 0.4s; }
+  #track .nd.done .dot { background: #7be3b0; border-color: #7be3b0; }
+  #track .nd.cur .dot { background: #ffe2b0; border-color: #fff3d6; box-shadow: 0 0 10px 2px rgba(255, 226, 176, 0.8); }
+  #track .nd.soon .dot { border-style: dashed; opacity: 0.6; }
+  #track .nm { margin-top: 3px; white-space: nowrap; color: #8fb3c4; font-weight: 600; letter-spacing: 0.02em; }
+  #track .nd.done .nm { color: #bfeed6; } #track .nd.cur .nm { color: #fff3d6; } #track .nd.soon .nm { color: #6f8ea2; font-weight: 400; }
+  #track .nd:hover .nm { color: #fff; }
+  #track .nd.last .dot { width: 22px; height: 22px; margin-top: -5px; border: 0; background: none; display: flex; align-items: center; justify-content: center; opacity: 1; }
+  #track .nd.last .nm { color: #ffd9c9; margin-top: 0; font-weight: 600; }
+  #track .nd.lit .dot { animation: nlit 1.4s ease-out; }
+  @keyframes nlit { 0% { transform: scale(0.4); box-shadow: 0 0 0 0 rgba(255, 226, 176, 0.9); } 40% { transform: scale(2); } 100% { transform: scale(1); box-shadow: 0 0 10px 2px rgba(255, 226, 176, 0.8); } }
+  #track .goals { display: flex; gap: 14px; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(150, 220, 240, 0.12); align-items: center; }
+  #track .goals .nx { color: #9cc5d6; white-space: nowrap; } #track .goals .nx b { color: #ffe3d3; }
+  .gl { flex: 1 1 0; min-width: 0; } .gl .t { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; color: #bcdbe8; } .gl .t b { color: #fff; font-weight: 600; }
+  .gl .b { height: 3px; margin-top: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); overflow: hidden; } .gl .b i { display: block; height: 100%; background: #8fc4dc; width: 0; transition: width 0.3s; }
+  .gl.met .t, .gl.met .t b { color: #8ff0c0; } .gl.met .b i { background: #7be3b0; }
+  #stcard { position: fixed; z-index: 35; display: none; width: 230px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.94); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); pointer-events: none; }
+  #stcard h4 { margin: 0 0 2px; font-size: 14px; color: #ffe3d3; } #stcard p { margin: 0 0 5px; color: #bcdbe8; } #stcard .gl { margin-top: 4px; } #stcard .k { margin-top: 5px; color: #9cc5d6; } #stcard .k b { color: #ffe3d3; font-weight: 600; } #stcard .soon { color: #8aa0b2; font-style: italic; }
+  #banner { position: fixed; left: 0; right: 0; top: 27%; z-index: 25; text-align: center; pointer-events: none; opacity: 0; color: #fff3d6; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 210, 150, 0.6); }
+  #banner h1 { margin: 0; font-size: 64px; font-weight: 700; letter-spacing: 0.06em; } #banner p { margin: 6px 0 0; font-size: 18px; color: #ffe3d3; }
+  #banner.show { animation: bshow 3.4s ease-out; }
+  @keyframes bshow { 0% { opacity: 0; transform: scale(0.8); } 12% { opacity: 1; transform: scale(1.04); } 20% { transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: scale(1.04); } }
+  #title { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(2, 10, 22, 0.62); backdrop-filter: blur(3px); color: #d6f2ff; cursor: pointer; }
+  #title.open { display: flex; }
+  #title .tp { width: min(560px, 90vw); box-sizing: border-box; padding: 28px 34px 22px; text-align: center; border-radius: 18px; background: linear-gradient(180deg, rgba(10, 46, 68, 0.88), rgba(3, 18, 34, 0.92)); border: 1px solid rgba(150, 220, 240, 0.25); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55); }
+  #title h1 { margin: 0 0 12px; font-size: 52px; letter-spacing: 0.12em; font-weight: 700; color: #ffe3d3; }
+  #title p { margin: 0 0 18px; font-size: 15px; line-height: 1.55; color: #cfeaf6; }
+  #title .ladder { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 12px; color: #9cc5d6; margin-bottom: 18px; }
+  #title .ladder span.a { opacity: 0.5; } #title .ladder b { font-weight: 600; color: #bfeed6; }
+  #title .go { font-size: 13px; color: #ffe2b0; letter-spacing: 0.04em; animation: tnote 2.4s ease-in-out infinite; }
   @keyframes tin { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
@@ -112,9 +150,11 @@
   <div class="row" id="rowCa" style="display:none"><span>Calcium</span><b id="hCa">0</b></div>
   <div class="row"><span>Species</span><b id="hSpecies">0</b></div>
   <div class="row"><span>Light</span><b id="hLight">-</b></div>
+  <div class="row" id="rowBoost" style="display:none"><span>Income</span><b id="hBoost">x1</b></div>
   <div id="muteNote"></div>
   <div id="treeNote"><kbd>T</kbd>opens the tree</div>
 </div>
+<div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="title"></div>
 <div id="hint"></div>
 <div id="abar"></div>
 <div id="toasts"></div>
@@ -128,6 +168,9 @@
 const CONFIG = {
   worldW: 2800, worldH: 1500, cell: 26,
   seed: 7,
+  title: 'reef', showTitle: true,   // placeholder name; the title card is skipped with #notitle in the URL
+  // reef stages (see STAGES): income boost per stage, and the goal sizes
+  stageBoost: [1, 1, 1.5, 1.5, 1.5, 1.5], stageColonyPolyps: 5, stageReefPolyps: 60, stageReefPatches: 3, stageReefSpecies: 1,
   // camera
   zoomStart: 1.55, zoomEnd: 0.72, zoomPolypsFull: 16, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
   // water and light
@@ -168,7 +211,7 @@ const CONFIG = {
   maxParts: 240,
   audio: {
     master: 0.5, ambience: 0.5, maxVoices: 14, pitchVar: 0.07, bubbleMin: 4000, bubbleMax: 11000,
-    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, buy: 0.3, whoosh: 0.4, clown: 2 },
+    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, stage: 1, buy: 0.3, whoosh: 0.4, clown: 2 },
   },
   // look test (visual only)
   look: {
@@ -221,6 +264,7 @@ const game = {
   tree: { open: false, state: {}, fresh: {} },   // state: id -> 'revealed' | 'owned' (missing = hidden)
   calcium: 0, calciumOn: false,
   species: [],
+  goals: { stage: 0, chk: 0, shown: 0 },   // stage = how many STAGES are reached (0 = none yet); never goes down
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
@@ -284,6 +328,101 @@ const has = id => game.tree.state[id] === 'owned';
 const reach = () => has('F2') ? CONFIG.longReach : CONFIG.tentacleReach;
 const autoRadius = () => has('F2') ? CONFIG.longAutoRadius : CONFIG.autoRadius;
 const tentScale = () => has('F2') ? CONFIG.longTentacleScale : 1;
+
+/* ---------- reef stages: the long ladder from polyp to island ---------- */
+const boost = () => game.goals.stage ? CONFIG.stageBoost[game.goals.stage - 1] || 1 : 1;
+// patches: connected (4-neighbour) groups of polyps where at least one polyp touches rock
+function patchCount() {
+  const seen = new Set(); let n = 0;
+  for (const p of game.polyps) {
+    const k0 = key(p.c, p.r); if (seen.has(k0)) continue;
+    let rock = false; const q = [p]; seen.add(k0);
+    while (q.length) {
+      const a = q.pop();
+      for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+        if (isRock(a.c + dc, a.r + dr)) rock = true;
+        const k = key(a.c + dc, a.r + dr), o = game.cells.get(k);
+        if (o && o.kind === 'polyp' && !o.ref.dead && !seen.has(k)) { seen.add(k); q.push(o.ref); }
+      }
+    }
+    if (rock) n++;
+  }
+  return n;
+}
+const STAGES = [
+  { name: 'Polyp', desc: 'You have settled on the rock and can feed and bud.', opens: 'Feeding and budding',
+    goals: [{ label: 'Settle', cur: () => game.progress.settled ? 1 : 0, need: 1 }] },
+  { name: 'Colony', desc: 'A small group of polyps, working together.', opens: 'The tech tree starts to open',
+    goals: [{ label: 'Polyps', cur: () => game.polyps.length, need: CONFIG.stageColonyPolyps }] },
+  { name: 'Reef', desc: 'Many polyps on several rocks, with a resident or two.', opens: 'A bigger income',
+    goals: [{ label: 'Polyps', cur: () => game.polyps.length, need: CONFIG.stageReefPolyps },
+            { label: 'Rock patches', cur: patchCount, need: CONFIG.stageReefPatches },
+            { label: 'Species', cur: () => game.species.length, need: CONFIG.stageReefSpecies }] },
+  { name: 'Reef crest', soon: true, desc: 'A reef tough enough to take a storm.', opens: 'Spawning',
+    goals: [{ label: 'Polyps', cur: () => 0, need: 250 }, { label: 'Storm year, under 10% lost', cur: () => 0, need: 1 }, { label: 'Species', cur: () => 0, need: 8 }] },
+  { name: 'Atoll', soon: true, desc: 'The reef reaches the surface.', opens: 'The island starts to rise',
+    goals: [{ label: 'Surface columns', cur: () => 0, need: 12 }, { label: 'Sand', cur: () => 0, need: 200 }] },
+  { name: 'Island', soon: true, end: true, desc: 'Your reef has risen out of the sea. The goal.', opens: 'Birds, seeds and palms', goals: [] },
+];
+const stageMet = i => !STAGES[i].soon && STAGES[i].goals.every(g => g.cur() >= g.need);
+function checkStage() {
+  while (game.goals.stage < STAGES.length && stageMet(game.goals.stage)) stageUp(game.goals.stage + 1);
+}
+// the moment: banner, slow beat, pulse on the colony, a chime, then a toast with what changed
+function stageUp(n) {
+  game.goals.stage = n;
+  const s = STAGES[n - 1], a = game.active || game.polyps[0], cc = a ? cellCenter(a.c, a.r) : playerPos();
+  track.lit = n - 1;
+  const b = document.getElementById('banner'); b.innerHTML = `<h1>${s.name}</h1><p>${s.desc}</p>`;
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  beat(1.1, 0.35); sfx('stage');
+  game.fx.push({ kind: 'pulse', x: cc.x, y: cc.y, t: 0, life: 1.4 }, { kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 1.1 });
+  spawnParts('spark', cc.x, cc.y - 10, 18);
+  const bo = CONFIG.stageBoost[n - 1] || 1, pb = n > 1 ? CONFIG.stageBoost[n - 2] || 1 : 1;
+  if (n > 1) setTimeout(() => toast(bo > pb ? `${s.name}: income x${bo}. ${s.opens}` : `${s.name}: ${s.opens}`), 700);
+  renderTrack();
+}
+const track = { lit: -1, sel: -1, hover: -1, last: '' };
+const islandSvg = (w = 20) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24"><path d="M2 19c3-6 7-8 10-8s7 2 10 8z" fill="#f3d9a0"/><path d="M0 21c4-2 7 1 12 0s8-2 12 0v3H0z" fill="#5aa9c8"/><path d="M12 11c0-3 0-5 1-7" stroke="#8a6a3a" stroke-width="1.5" fill="none"/><path d="M13 4c-2-2-5-1-6 1 2-1 4 0 6-1zM13 4c2-2 5-1 6 1-2-1-4 0-6-1zM13 4c0-2 2-3 3-3-1 1-1 2-3 3z" fill="#4caf7a"/></svg>`;
+const glHtml = g => { const c = Math.min(g.cur(), g.need), met = g.cur() >= g.need; return `<div class="gl${met ? ' met' : ''}"><div class="t"><span>${g.label}</span><b>${c}/${g.need}</b></div><div class="b"><i style="width:${c / g.need * 100}%"></i></div></div>`; };
+function renderTrack() {
+  const el = document.getElementById('track'), R = game.goals.stage;
+  let h = '<div class="line">';
+  STAGES.forEach((s, i) => {
+    const cls = (i < R - 1 ? 'done' : i === R - 1 ? 'cur' : '') + (s.soon ? ' soon' : '') + (s.end ? ' last' : '') + (track.lit === i ? ' lit' : '');
+    h += `<div class="nd ${cls}" data-i="${i}"><div class="dot">${s.end ? islandSvg(22) : ''}</div><div class="nm">${s.end ? 'The goal' : s.name}</div></div>`;
+  });
+  h += '</div>';
+  const nx = STAGES[R];
+  if (nx && !nx.end) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.soon ? '<span style="color:#8aa0b2">coming soon</span>' : nx.goals.map(glHtml).join('')}</div>`;
+  else h += '<div class="goals"><span class="nx">The goal: <b>an island</b></span></div>';
+  if (h !== track.last) { el.innerHTML = h; track.last = h; }
+  const i = track.sel >= 0 ? track.sel : track.hover, card = document.getElementById('stcard');
+  if (i < 0) { card.style.display = 'none'; return; }
+  const s = STAGES[i], bo = CONFIG.stageBoost[i] || 1;
+  card.innerHTML = `<h4>${s.end ? 'Island' : s.name}</h4><p>${s.desc}</p>` + (s.goals.length ? s.goals.map(glHtml).join('') : '') +
+    (s.soon ? '<div class="k soon">Coming soon: not reachable yet</div>' : '') + `<div class="k">Boost: <b>${bo > 1 ? 'income x' + bo : 'none'}</b></div><div class="k">Opens: <b>${s.opens}</b></div>`;
+  card.style.display = 'block';
+  const nd = el.querySelector(`.nd[data-i="${i}"]`).getBoundingClientRect();
+  card.style.left = clamp(nd.left + nd.width / 2 - 115, 8, innerWidth - 238) + 'px'; card.style.top = (el.getBoundingClientRect().bottom + 6) + 'px';
+}
+{
+  const tr = document.getElementById('track');
+  tr.addEventListener('mouseover', e => { const n = e.target.closest('.nd'); track.hover = n ? +n.dataset.i : -1; });
+  tr.addEventListener('mouseleave', () => { track.hover = -1; });
+  tr.addEventListener('click', e => { const n = e.target.closest('.nd'); const i = n ? +n.dataset.i : -1; track.sel = track.sel === i ? -1 : i; renderTrack(); });
+  window.addEventListener('mousedown', e => { if (!e.target.closest('#track')) track.sel = -1; });
+  for (const ev of ['mousedown', 'wheel', 'contextmenu']) tr.addEventListener(ev, e => e.stopPropagation());
+}
+
+/* ---------- title card ---------- */
+function openTitle() {
+  const t = document.getElementById('title');
+  t.innerHTML = `<div class="tp"><h1>${CONFIG.title}</h1><p>You are a coral larva, smaller than a grain of rice. Find rock, settle, and grow. Grow your colony into a reef, and one day your reef will rise out of the sea as an island.</p>` +
+    `<div class="ladder">${STAGES.map(s => s.end ? islandSvg(24) : `<b>${s.name}</b><span class="a">&rarr;</span>`).join('')}</div><div class="go">Press any key or click to begin</div></div>`;
+  t.classList.add('open'); game.titleOn = true;
+}
+function closeTitle() { game.titleOn = false; document.getElementById('title').classList.remove('open'); last = performance.now(); }
 // a brief hold of the world's clock (only the frame loop applies it, any input ends it)
 function beat(secs, scale) { if (!game.slow || game.slow.t < secs) game.slow = { t: secs, life: secs, scale }; }
 function revealBeat() {
@@ -469,7 +608,7 @@ function updatePlankton(dt) {
   maybeBloom();
 }
 function gain(a, x, y) {
-  game.energy = Math.min(CONFIG.maxEnergy, game.energy + a);
+  a *= boost(); game.energy = Math.min(CONFIG.maxEnergy, game.energy + a);
   game.fx.push({ kind: 'text', x, y, t: 0, life: 0.9, text: '+' + (Math.round(a * 10) / 10) });
 }
 
@@ -523,6 +662,7 @@ function trySettle() {
   setActive(p);
   if (!game.progress.settled) { game.progress.settled = true; toast('Settled. Hold the mouse to catch plankton'); }
   else toast('Settled');
+  checkStage();
   const M = CONFIG.moments;
   game.fx.push({ kind: 'pulse', x: (t.c + 0.5) * CELL, y: (t.r + 0.5) * CELL, t: 0, life: M.pulseSecs });
   game.slow = { t: M.slowSecs, life: M.slowSecs, scale: M.slowScale }; game.kick = { t: 0, life: M.kickSecs };
@@ -841,7 +981,7 @@ function updateClown(dt) {
     const c = cellCenter(p.c, p.r);
     if (C.fish.some(f => Math.hypot(f.x - c.x, f.y - c.y) < CONFIG.clownRadius)) near++;
   }
-  game.energy = Math.min(CONFIG.maxEnergy, game.energy + near * CONFIG.clownEnergy * dt);
+  game.energy = Math.min(CONFIG.maxEnergy, game.energy + near * CONFIG.clownEnergy * boost() * dt);
 }
 
 /* ---------- larva movement ---------- */
@@ -1040,7 +1180,7 @@ function updatePolyps(dt) {
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const cc = cellCenter(p.c, p.r), l = light(cc.y);
-    game.energy = Math.min(CONFIG.maxEnergy, game.energy + CONFIG.sunRate * l * sunK * dt);
+    game.energy = Math.min(CONFIG.maxEnergy, game.energy + CONFIG.sunRate * l * sunK * boost() * dt);
     if (l >= CONFIG.dimBelow) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
     if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * dt);
@@ -1197,6 +1337,7 @@ const audio = {
       for (let i = 0; i < 4; i++) this.noise({ f: 2600 * (0.8 + Math.random() * 0.5), q: 1.2, d: 0.03, v: 0.06, t: 0.02 + i * 0.035 + Math.random() * 0.02 }); },
     bite(x, y) { const p = this.pv(), v = this.near(x, y);   // a dry click and a tiny tick
       this.noise({ f: 1900 * p, q: 3, d: 0.035, v: 0.22 * v }); this.tone({ f: 420 * p, f2: 170, d: 0.05, v: 0.1 * v, lp: 1500 }); },
+    stage() { [392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i) => { this.tone({ f, type: 'triangle', d: 1.6, v: 0.1, t: i * 0.11, a: 0.01, send: 0.65, lp: 2600 }); this.tone({ f: f / 2, d: 1.8, v: 0.06, t: i * 0.11, a: 0.02, send: 0.5 }); }); },
     reveal() { const b = [659.25, 783.99, 880][Math.floor(Math.random() * 3)];   // two soft bell notes in a fifth
       this.tone({ f: b, d: 1.0, v: 0.11, a: 0.01, send: 0.6 }); this.tone({ f: b * 1.5, d: 1.2, v: 0.09, t: 0.13, a: 0.01, send: 0.6 }); },
     buy() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {   // a richer rising arpeggio of triangle and sine
@@ -2908,7 +3049,7 @@ function render() {
 
 /* ---------- HUD ---------- */
 const el = id => document.getElementById(id);
-const hud = { stage: el('hStage'), energy: el('hEnergy'), polyps: el('hPolyps'), light: el('hLight'), bar: el('barfill'), hint: el('hint'), rowCa: el('rowCa'), calcium: el('hCa'), species: el('hSpecies'), note: el('treeNote') };
+const hud = { stage: el('hStage'), energy: el('hEnergy'), polyps: el('hPolyps'), light: el('hLight'), bar: el('barfill'), hint: el('hint'), rowCa: el('rowCa'), calcium: el('hCa'), species: el('hSpecies'), note: el('treeNote'), rowBoost: el('rowBoost'), boost: el('hBoost') };
 function updateMuteLabel() { el('muteNote').innerHTML = `<kbd style="font:inherit;padding:0 4px;border-radius:3px;background:rgba(255,255,255,0.18)">M</kbd> sound ${audio.muted ? 'off' : 'on'}`; }
 updateMuteLabel();
 function currentHint() {
@@ -2931,6 +3072,8 @@ function updateHud() {
   hud.calcium.textContent = Math.floor(game.calcium);
   hud.species.textContent = game.species.length;
   hud.note.style.display = treeAffordable() && !game.tree.open ? 'block' : 'none';
+  if ((track.t = (track.t || 0) - 1) <= 0) { track.t = 8; renderTrack(); }
+  hud.rowBoost.style.display = boost() > 1 ? '' : 'none'; hud.boost.textContent = 'x' + boost();
   hud.light.textContent = `${lightLabel(l)} (${Math.round(l * 100)}%)`;
   const h = currentHint(); if (hud.hint.textContent !== h) hud.hint.textContent = h;
   updateBar();
@@ -3044,6 +3187,28 @@ function devSettle() {
   L.x = (best.c + 0.5) * CELL; L.y = (best.r + 0.5) * CELL; L.vx = L.vy = 0;
   trySettle();
 }
+// meet the goals of stage n (1 = Polyp ...) instantly, then run the stage-up moment(s)
+function devStage(n) {
+  if (n > 3) { toast('Not reachable yet', true); return; }
+  if (!game.progress.settled || game.stage === 'larva' && !game.polyps.length) devSettle();
+  game.progress.settled = true;
+  if (n >= 2) devGrow(Math.max(0, CONFIG.stageColonyPolyps - game.polyps.length));
+  if (n >= 3) {
+    devGrow(Math.max(0, CONFIG.stageReefPolyps - game.polyps.length));
+    if (!game.species.length) game.species.push('Clownfish');
+    for (let k = 0; k < 6 && patchCount() < CONFIG.stageReefPatches; k++) devPatch();
+  }
+  if (n > game.goals.stage) checkStage();
+}
+function devPatch() {   // a one-polyp colony on other rock, away from the colony
+  const c0 = Math.floor(Math.random() * game.cols);
+  for (let r = game.rows - 2; r > 2; r--) for (let i = 0; i < game.cols; i++) {
+    const c = (c0 + i) % (game.cols - 4) + 2;
+    if (isRock(c, r) || cellAt(c, r) || !isRock(c, r + 1) || game.polyps.some(p => Math.abs(p.c - c) + Math.abs(p.r - r) < 6)) continue;
+    addPolyp(c, r); return true;
+  }
+  return false;
+}
 function devGrow(n) {
   for (let i = 0; i < n; i++) {
     const cand = [];
@@ -3134,6 +3299,7 @@ const devGroups = [
     '<div id="devtree"></div>',
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
   ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>','<button data-a="thrive">thriving reef</button>']],
+  ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Coral style', ['<select data-cs>' + CORAL_STYLES.map((n, i) => `<option value="${i}">${i} ${n}</option>`).join('') + '</select> <span style="color:#8aa0b2">K cycles</span>']],
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Toggles', [
@@ -3166,6 +3332,8 @@ function devBuild() {
     else if (a === 'ownall') TREE.forEach(d => devOwn(d.id));
     else if (a === 'treereset') { game.tree.state = {}; game.tree.fresh = {}; if (game.tree.open) renderTree(); }
     else if (a === 'settle') devSettle();
+    else if (a === 'rs') devStage(v);
+    else if (a === 'rsnext') devStage(game.goals.stage + 1);
     else if (a === 'g5') devGrow(5);
     else if (a === 'g20') devGrow(20);
     else if (a === 'thrive') devThrive();
@@ -3260,6 +3428,7 @@ function drawDevGrid() {
 /* ---------- input ---------- */
 const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE', 'KeyQ']);
 for (const ev of ['keydown', 'mousedown', 'pointerdown', 'touchstart']) window.addEventListener(ev, () => audio.init(), { capture: true });   // browsers only allow sound after an input
+for (const ev of ['keydown', 'mousedown']) window.addEventListener(ev, e => { if (!game.titleOn) return; e.stopPropagation(); e.preventDefault(); closeTitle(); }, { capture: true });   // the first key or click only closes the title card
 function toggleMute() { audio.setMuted(!audio.muted); updateMuteLabel(); }
 window.addEventListener('keydown', e => {
   if (devKey(e)) return;
@@ -3302,7 +3471,7 @@ window.addEventListener('resize', resize);
 
 /* ---------- main loop ---------- */
 function step(dt) {
-  if (game.tree.open) return;   // the tree screen pauses the game
+  if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
   game.time += dt;
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
   if (game.stage === 'larva') updateLarva(dt); else game.settleTarget = null;
@@ -3315,6 +3484,7 @@ function step(dt) {
   updateGuide(dt);
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
+  if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
   updateFx(dt);
   if (game.kick && (game.kick.t += dt) >= game.kick.life) game.kick = null;
   if (game.nudge && (game.nudge.t += dt) >= game.nudge.life) game.nudge = null;
@@ -3343,6 +3513,8 @@ generateWorld();
 initFish();
 for (let i = 0; i < CONFIG.plankton; i++) spawnAmbient();
 updateCamera(0, true);
+if (location.hash === '#notitle') CONFIG.showTitle = false;
+renderTrack(); if (CONFIG.showTitle) openTitle();
 requestAnimationFrame(frame);
 </script>
 </body>
