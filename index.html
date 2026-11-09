@@ -3404,6 +3404,9 @@ const devGroups = [
   ['Seasons', [
     '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
+  ['Day/Night', [
+    '<button data-a="tonight">skip to night</button><button data-a="today">skip to day</button><button data-a="showflow">show flow</button><button data-a="showlight">show light</button>',
+    '<label><input type="checkbox" data-t="dnFreeze"> freeze time of day</label> <span id="dnread" style="color:#8aa0b2"></span>']],
   ['Coral style', ['<select data-cs>' + CORAL_STYLES.map((n, i) => `<option value="${i}">${i} ${n}</option>`).join('') + '</select> <span style="color:#8aa0b2">K cycles</span>']],
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Toggles', [
@@ -3444,6 +3447,8 @@ function devBuild() {
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
+    else if (a === 'tonight' || a === 'today') { if (game.goals.stage < 2) devStage(2); const D = game.dn, C = CONFIG, base = Math.floor(D.t / C.dayCycle) * C.dayCycle, u = D.t - base; D.t = a === 'tonight' ? base + C.dayLen : base + (u >= C.dayLen ? C.dayCycle : 0); D.dusk = a === 'tonight'; toast(a === 'tonight' ? 'Night' : 'Day', true); }
+    else if (a === 'showflow' || a === 'showlight') { const m = a === 'showflow' ? 'flow' : 'light'; setOv(ovMode() === m ? 'off' : m); }
     else if (a === 'sport') { game.sportNext = true; toast('The next bud will be a sport', true); }
     else if (a === 'kill') { if (game.stage === 'polyp' && game.active) killPolyp(game.active); }
     else if (a === 'nib') spawnNibbler();
@@ -3495,6 +3500,7 @@ function devRefresh() {
   devPanel.querySelector('input[data-bm]').checked = CONFIG.budMode !== 'both'; devPanel.querySelector('#bmLbl').textContent = 'bud controls: ' + CONFIG.budMode + ' (both / click / keys)';
   const cs = devPanel.querySelector('select[data-cs]'); if (cs.value !== '' + game.look.coral) cs.value = game.look.coral;
   const sr = document.getElementById('seasread'), st = `${SEASONS[seasonIdx(game.season.t)].name} · ${game.season.t.toFixed(0)} s`; if (sr.textContent !== st) sr.textContent = st;
+  const dr = document.getElementById('dnread'), dt0 = `${isNight() ? 'night' : 'day'} · ${(game.dn.t % CONFIG.dayCycle).toFixed(0)} s · sun x${daylight().toFixed(2)}`; if (dr.textContent !== dt0) dr.textContent = dt0;
   const rd = document.getElementById('devread'), s = `energy ${game.energy.toFixed(1)} · calcium ${Math.floor(game.calcium)} · polyps ${game.polyps.length} · time ${game.time.toFixed(1)} s`;
   if (rd.textContent !== s) rd.textContent = s;
 }
