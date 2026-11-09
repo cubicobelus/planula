@@ -243,6 +243,7 @@ const CONFIG = {
     anemone: { ca: 2, time: 1.5, light: 0.8, plank: 1.2, str: 1, caRate: 0, caCap: 0 },
   },
   draw: { plateStalk: 3.4, plateHalf: 0.8, plateW: 9, fanStalk: 2.8, brainW: 28, fanLen: 40, fanRays: 9, fanSpread: 1.0, fanSway: 0.07, fanStorm: 0.3 },
+  tierStages: [2, 3, 4],   // goals.stage needed for tree tier 1, 2, 3 (Colony, Reef, Reef crest)
   typeOrder: ['branch', 'plate', 'brain', 'fan', 'anemone'], fanBreak: 0.3, brainSolid: 2, stageReefTypes: 2, typeMinPolyps: 5,
   revealShadeLight: 0.7, revealShadePolyps: 8, revealStormLostBrain: 5, revealEdgeCatch: 300, edgeFlow: 0.8,
   calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
@@ -508,7 +509,7 @@ function revealBeat() {
   const h = document.getElementById('hud'); h.classList.remove('flash'); void h.offsetWidth; h.classList.add('flash');
 }
 const TIER_STAGE = ['Colony', 'Reef', 'Reef crest'];   // tier n opens when this stage is reached
-const tierOpen = n => game.goals.stage >= n + 1;
+const tierOpen = n => game.goals.stage >= CONFIG.tierStages[n - 1];
 function checkReveals() {
   for (const d of TREE) {
     if (game.tree.state[d.id] || !tierOpen(d.tier) || !d.ok()) continue;
@@ -3854,7 +3855,7 @@ const TYPE_IDX = { branch: 0, plate: 1, brain: 2, fan: 3, anemone: 4 };
 const FLD = { sig: null, flow: null, shade: new Map() };
 function fields() {
   let an = 0; for (const p of game.polyps) if (typeOf(p) !== 'branch') an += 1 + TYPE_IDX[typeOf(p)];
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, an, CONFIG.flowDir].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, an, CONFIG.flowDir, typeSig()].join(',');
   if (FLD.sig === sig) return FLD;
   FLD.sig = sig;
   const C = CONFIG, cols = game.cols, rows = game.rows, fl = FLD.flow && FLD.flow.length === cols * rows ? FLD.flow : new Float32Array(cols * rows), d = C.flowDir >= 0 ? 1 : -1;
@@ -3890,7 +3891,7 @@ const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
 const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b));
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, has('S1') ? 1 : 0, game.lineages.length].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, has('S1') ? 1 : 0, game.lineages.length, typeSig()].join(',');
   if (SUP.sig === sig) return SUP;
   SUP.sig = sig;
   const val = new Map(), pred = new Map(), q = [], anch = new Set();
@@ -3914,6 +3915,7 @@ function supportMap() {
     let second = 0, n = 0, nearAnchor = false;
     for (const [dc, dr] of NB_DIRS) {
       const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk); if (!o) continue;
+      if (typeOf(o.ref) === 'fan') continue;   // a fan is no support
       n++;
       if (anch.has(nk)) nearAnchor = true;
       if (nk !== pred.get(k) && val.has(nk) && !below(nk, k)) second = Math.max(second, val.get(nk) - step(-dr, { kind: 'poly' }));   // a second, independent way down to rock (an arch)
