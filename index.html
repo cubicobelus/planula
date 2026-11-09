@@ -61,7 +61,7 @@
     background: radial-gradient(ellipse at 50% 20%, rgba(18, 88, 118, 0.7), rgba(2, 10, 22, 0.94) 72%); backdrop-filter: blur(5px); }
   #tree.open { display: flex; animation: tfade 0.25s ease-out; }
   @keyframes tfade { from { opacity: 0; } to { opacity: 1; } }
-  .tpanel { width: min(1240px, 96vw); max-height: 94vh; overflow: auto; scrollbar-width: thin; scrollbar-color: rgba(150, 220, 240, 0.5) transparent; box-sizing: border-box; padding: 20px 20px 16px; border-radius: 18px;
+  .tpanel { width: min(1400px, 98vw); max-height: 94vh; overflow: auto; scrollbar-width: thin; scrollbar-color: rgba(150, 220, 240, 0.5) transparent; box-sizing: border-box; padding: 20px 20px 16px; border-radius: 18px;
     background: linear-gradient(180deg, rgba(10, 46, 68, 0.8), rgba(3, 18, 34, 0.88)); border: 1px solid rgba(150, 220, 240, 0.22);
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
   .thead { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(150, 220, 240, 0.16); }
@@ -70,7 +70,7 @@
   .tres { display: flex; gap: 8px; }
   .tchip { padding: 5px 11px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); font-size: 12px; color: #9cc5d6; white-space: nowrap; }
   .tchip b { color: #fff; font-weight: 600; margin-left: 6px; }
-  .tcols { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; gap: 10px; }
+  .tcols { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; gap: 10px; }
   .tcol h3 { margin: 0; padding-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: var(--ac); border-bottom: 2px solid var(--ac); }
   .tnode { position: relative; margin-top: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(160, 200, 220, 0.18); background: rgba(255, 255, 255, 0.04); transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
   .tnode + .tnode::before { content: ''; position: absolute; left: 22px; top: -17px; width: 2px; height: 17px; background: linear-gradient(var(--ac), rgba(255, 255, 255, 0.1)); opacity: 0.6; }
@@ -165,6 +165,11 @@
   #report .pp { margin-top: 8px; font-size: 11px; color: #7f98a8; cursor: pointer; } #report .pp:hover { color: #cfe6f0; } #report .pp b { color: #ffd9a0; }
   #report .ra { margin-top: 4px; font-size: 11.5px; color: #9cc5d6; } #report .ra b { color: #ffd9a0; font-weight: 600; }
   #report .pr b { display: block; color: #fff; font-weight: 600; } #report .pr span { color: #9cc5d6; } #report .ok { margin-top: 6px; color: #9cc5d6; }
+  #linview { position: fixed; right: 14px; top: 120px; z-index: 34; display: none; width: 250px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.92); border: 1px solid rgba(210, 166, 255, 0.4); color: #d6f2ff; font-size: 12px; pointer-events: none; }
+  #linview h4 { margin: 0 0 5px; font-size: 13px; color: #e6caff; } #linview h4 i { font-weight: 400; color: #8aa0b2; font-size: 11px; margin-left: 6px; } #linview .lr { display: flex; gap: 6px; align-items: center; margin: 3px 0; } #linview .lr b { width: 62px; font-weight: 600; } #linview .lr span:not(.sw) { flex: 1; color: #9cc5d6; } #linview .lr em { font-style: normal; color: #bcdbe8; } #linview .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.4); }
+  #sportcard { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 36; display: none; width: 380px; max-width: 94vw; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(210, 166, 255, 0.5); color: #d6f2ff; font-size: 13px; }
+  #sportcard h4 { margin: 0 0 3px; font-size: 14px; color: #e6caff; } #sportcard p { margin: 0 0 6px; color: #9cc5d6; } #sportcard .sr { display: flex; gap: 5px; align-items: center; margin-top: 5px; } #sportcard .sr span { width: 52px; color: #bcdbe8; }
+  #sportcard button { font: inherit; padding: 3px 7px; border-radius: 6px; border: 1px solid rgba(210, 166, 255, 0.4); background: rgba(210, 166, 255, 0.12); color: #efe0ff; cursor: pointer; } #sportcard button.on { background: rgba(210, 166, 255, 0.5); color: #fff; } #sportcard button:disabled { opacity: 0.35; cursor: not-allowed; }
   #seasoncard h4, #lincard h4 { margin: 0 0 6px; font-size: 14px; color: #ffe3d3; } #seasoncard .sn { margin-top: 7px; } #seasoncard .sn b { color: #fff; } #seasoncard .sn i { color: #8aa0b2; } #seasoncard .sn p { margin: 1px 0 0; color: #bcdbe8; }
   #seasoncard .sn.cur b { color: #ffe2b0; } #seasoncard .k, #lincard .k { margin-top: 7px; color: #8aa0b2; }
   #lincard .tr { display: flex; align-items: center; gap: 8px; margin: 3px 0; } #lincard .tr span { width: 62px; color: #bcdbe8; } #lincard .tr .bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.14); overflow: hidden; } #lincard .tr .bar i { display: block; height: 100%; background: #8fc4dc; }
@@ -194,7 +199,7 @@
 </div>
 <div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="title"></div>
 <div id="hint"></div>
-<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div>
+<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="sportcard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div>
 <div id="abar"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
@@ -265,9 +270,14 @@ const CONFIG = {
   supBase: 10, supUp: 1, supSide: 2.5, supDown: 3, supSkel: 1, supThick: 0.5, supThickMax: 1.5, supBoth: 0.5, thickBase: 2,
   // genetics: a bud may be a sport (a new lineage with one trait up and one down)
   sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
+  // the genome (content.md 10): 4 power traits of 1 to 5 with a budget of 12, plus Form (free). Sports start at sportFrom s of play: the first bud after it is always one
+  // spawning night (content.md 4.7) and the X unlocks: larvae per colony = base + 1 per perPolyps polyps, at most max; partners within pairRange cells
+  sp: { minPolyps: 8, hpMin: 0.5, base: 1, perPolyps: 12, max: 8, pairRange: 40, loneMult: 0.5, drift: 15, root: 0.5, rootX4: 0.85, rootRange: 6, x3Larvae: 1.5, colonyCap: 40, nightSecs: 40, steerSecs: 15, steerPull: 90, childSport: 0.1, jitter: 0.15, formJitter: 0.2,
+    brood: { min: 20, near: 10, root: 0.6, drift: 10 }, bank: { max: 3, cd: 120, range: 30, e: 300, ca: 10 }, eggs: 36, ride: { speed: 150 } },
+  gen: { budget: 12, sportFrom: 1080, sportX1: 0.04, growthTime: 0.10, growthStr: 0.4, toughCost: 0.05, heatSun: 0.05, feedCatch: 0.12, feedUpkeep: 0.10, hues: { growth: 18, tough: 275, heat: 48, feed: 175 }, hueShift: 12, satBase: 0.45, satPer: 0.10, lightBase: 0.45, lightPer: 0.04, glow: 10, pickWait: 25 },
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
+  cost: { X1: { e: 40 }, X2: { e: 300, bp: 25 }, X3: { bp: 60 }, X4: { e: 2000, bp: 40 }, X5: { bp: 120 }, F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
   // slice 6b unlocks (content 1): reveal counts and effect numbers. Strength is 0..10 in the game, so the spec's +25 is 2.5 and +5 is 0.5
   unl: { f5: { rev: 80, near: 3, upkeep: 0.7, heal: 2, dis: 1.5 }, f6: { rev: 20, revFlow: 0.8, bonus: 1.25, run: 6 }, g3: { cd: 60, max: 4, range: 12, speed: 420 }, g5: { revSecs: 60, cap: 40, ca: 1.5, str: 0.5 }, g4: { rev: 30, every: 10, frac: 0.5 }, s4: { rev: 25, secs: 60 }, s5: { rev: 10, rows: 6, str: 2.5, storm: 0.8 }, c4: { rev: 30, light: 0.65, sun: 1.25, bleach: 0.7 } },
   // biodiversity (content.md 0.1): B = resident species values x happiness factor + coral types + lineages; income x (1 + mult x B); BP per second = B / bpDiv from Colony on
@@ -368,11 +378,12 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0 },
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
   newRock: [],              // S4: skeleton cells that turned into rock
+  sp: { nights: [], on: null, larvae: [], eggs: [], pairs: null, bank: [], bankNext: 0, plant: false, seen: -1 },   // spawning (slice 7)
   ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
   rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1, pop: true },   // reef report
@@ -424,7 +435,7 @@ function budCost(tp = game.nextType) {
   const n = game.polyps.length;   // crowding: a big colony spends more keeping old tissue alive (type and biodiversity factors come later)
   let c = (CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, n - 1)) * (1 + n / CONFIG.crowdDiv);
   if (has('G1')) c *= CONFIG.budEnergyFactor;
-  if (game.active) c *= 1 - CONFIG.traitGrowth * (linOf(game.active).traits.growth - 3);   // the source polyp's lineage
+  if (game.active) { const T = linOf(game.active).traits; c *= (1 - CONFIG.traitGrowth * (T.growth - 3)) * (1 + CONFIG.gen.toughCost * (T.tough - 3)); }   // the source polyp's lineage: Growth cheaper, Toughness dearer
   return tp === 'anemone' ? c * CONFIG.anemoneCostMult + CONFIG.anemoneExtra : c * TY(tp).cost;
 }
 // energy cap: the larger of the flat floor and a few branching buds' worth, so a big colony can always afford its next bud
@@ -517,8 +528,18 @@ const TREE = [
     fx: () => `Polyps in the top ${CONFIG.unl.s5.rows + 1} rows hold +${CONFIG.unl.s5.str} firmer and take x${CONFIG.unl.s5.storm} storm power`, done: 'The crest now stands up to the waves', ok: () => (game.stats.crestN || 0) >= CONFIG.unl.s5.rev },
   { id: 'C4', tier: 3, branch: 'Climate', name: 'Fluorescent pigments', hint: 'Crowd the bright shallows',
     fx: () => `Polyps in light ${CONFIG.unl.c4.light} or more: sun x${CONFIG.unl.c4.sun}, bleaching x${CONFIG.unl.c4.bleach}`, done: 'Bright polyps now glow and shrug off heat', ok: () => (game.stats.litN || 0) >= CONFIG.unl.c4.rev },
+  { id: 'X1', tier: 1, branch: 'Spawning and Genetics', name: 'Sport keeping', hint: 'A strange bud appeared',
+    fx: () => `Sport chance per bud ${Math.round(CONFIG.sportChance * 100)}% to ${Math.round(CONFIG.gen.sportX1 * 100)}%. On a sport you pick the +1 and the -1 trait. Opens the genome card for every polyp and the lineage view (L)`, done: 'Sports are now yours to shape', ok: () => game.stats.sportsSeen >= 1 },
+  { id: 'X2', tier: 2, branch: 'Spawning and Genetics', name: 'Brooding', hint: 'Root several fragments',
+    fx: () => `Every night, each colony of ${CONFIG.sp.brood.min} or more polyps releases 1 clone larva. It drifts downstream and takes root within ${CONFIG.sp.brood.near} cells ${Math.round(CONFIG.sp.brood.root * 100)}% of the time`, done: 'Big colonies now brood at night', ok: () => game.stats.fragSettled >= 3 },
+  { id: 'X3', tier: 3, branch: 'Spawning and Genetics', name: 'Selective spawning', hint: 'Watch your first spawning night',
+    fx: () => `Before spawning night, X opens the pairing panel and shows each child's trait ranges. Larvae per colony x${CONFIG.sp.x3Larvae}`, done: 'You now choose who pairs', ok: () => game.stats.spawnNights >= 1 },
+  { id: 'X4', tier: 3, branch: 'Spawning and Genetics', name: 'Larva steering', hint: 'Ride the larvae',
+    fx: () => `All larvae follow the cursor gently for the first ${CONFIG.sp.steerSecs} s of their drift. Settle chance ${Math.round(CONFIG.sp.root * 100)}% to ${Math.round(CONFIG.sp.rootX4 * 100)}%`, done: 'Larvae now follow your lead', ok: () => game.stats.larvaRides >= 3 },
+  { id: 'X5', tier: 3, branch: 'Spawning and Genetics', name: 'Gene bank', hint: 'Grow many lineages',
+    fx: () => `X also opens the bank: save up to ${CONFIG.sp.bank.max} genomes. Once per day (${CONFIG.sp.bank.cd} s), plant one as a new polyp on bare rock within ${CONFIG.sp.bank.range} cells of your reef, for ${CONFIG.sp.bank.e} energy and ${CONFIG.sp.bank.ca} calcium`, done: 'The gene bank is open', ok: () => { const n = {}; for (const p of game.polyps) n[p.lin || 0] = (n[p.lin || 0] || 0) + 1; return Object.values(n).filter(v => v >= 10).length >= 5; } },
 ];
-const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Climate', '#6fd0ff'], ['Coral types', '#ff79c6']];
+const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Climate', '#6fd0ff'], ['Coral types', '#ff79c6'], ['Spawning and Genetics', '#d2a6ff']];
 const has = id => game.tree.state[id] === 'owned';
 const feedMult = p => p ? 1 + CONFIG.traitFeed * (linOf(p).traits.feed - 3) : 1;   // lineage trait: tentacle and self-feed reach
 const reach = () => (has('F2') ? CONFIG.longReach : CONFIG.tentacleReach) * feedMult(game.active);
@@ -799,7 +820,7 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (p.cap.poly.bl) p.cap.poly.bl.n++; gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank, c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
+        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (p.cap.poly.bl) p.cap.poly.bl.n++; gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank * (1 + CONFIG.gen.feedCatch * (linOf(p.cap.poly).traits.feed - 3)), c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
         continue;
       }
     }
@@ -1043,7 +1064,7 @@ function updateBud(dt) {
   if ((clickMode() || b.src === 'mouse') && !b.armed && b.fail <= 0) game.facing = null;   // mouse-picked facing only lasts while held
   if (!b.armed || !(b.src === 'mouse' ? game.mouse.bud : game.keys.has('Space')) || !game.facing) { b.t = 0; b.armed = false; return; }
   b.t += dt;
-  if (b.t < CONFIG.budTime * TY(game.nextType).time) return;
+  if (b.t < CONFIG.budTime * TY(game.nextType).time * (game.active ? 1 - CONFIG.gen.growthTime * (linOf(game.active).traits.growth - 3) : 1)) return;
   const cost = budCost(), f = game.facing, short = budShort(), fp = spotPos(f.c, f.r);
   b.t = 0; b.armed = false;
   if (short) { b.fail = 0.9; toast(short); return; }
@@ -2031,7 +2052,7 @@ function updatePolyps(dt) {
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const l = lightOf(p);
-    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * (c4 && l >= CONFIG.unl.c4.light ? CONFIG.unl.c4.sun : 1) * dl * evs * dt);   // more factors (heat) multiply in here later
+    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * (1 - CONFIG.gen.heatSun * (linOf(p).traits.heat - 3)) * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * (c4 && l >= CONFIG.unl.c4.light ? CONFIG.unl.c4.sun : 1) * dl * evs * dt);   // more factors (heat) multiply in here later
     if (l >= CONFIG.dimBelow && dl > 0.5) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
     if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * (f5 && denseP(p) ? CONFIG.unl.f5.heal : 1) * dt);
@@ -2084,7 +2105,7 @@ function updatePolyps(dt) {
 function upkeep(dt) {
   const C = CONFIG;
   if (game.goals.stage < C.upkeepStage || !game.polyps.length) return;
-  let u = 0; for (const p of game.polyps) u += (has('D3') ? C.threat.d3.upkeep : 1) * C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1) * (has('F5') && denseP(p) ? CONFIG.unl.f5.upkeep : 1);   // type and trait factors multiply in here later
+  let u = 0; for (const p of game.polyps) u += (has('D3') ? C.threat.d3.upkeep : 1) * C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1) * (has('F5') && denseP(p) ? CONFIG.unl.f5.upkeep : 1) * (1 + CONFIG.gen.feedUpkeep * (linOf(p).traits.feed - 3));
   game.energy = Math.max(0, game.energy - u * dt);
   if (game.energy > 0) { game.starveT = 0; return; }
   if ((game.starveT = (game.starveT || 0) + dt) < C.starveEvery) return;
@@ -2617,7 +2638,7 @@ function typePal(pal, u) {   // the palette with the polyp's type colour mixed i
   if (!r) { const K = TYPE_TINT_K; m.set(k, r = { ...pal, mid: mix3(pal.mid, tt, K), alt: mix3(pal.alt, tt, K), lit: mix3(pal.lit, mix3(tt, [255, 255, 255], 0.3), K), shade: mix3(pal.shade, mix3(tt, [0, 0, 0], 0.5), K), rim: mix3(pal.rim, mix3(tt, [0, 0, 0], 0.55), 0.7) }); }
   return r;
 }
-const nodeCol = (u, pal) => { pal = typePal(pal, u); let c = mix3(pal.mid, pal.alt, tone(u.c, u.r) * 0.8); const l = u.kind === 'skel' ? 0 : u.q && u.q.lin; return l ? hueRot(c, game.lineages[l].hue) : c; };   // a lineage tints its polyps
+const nodeCol = (u, pal) => { pal = typePal(pal, u); let c = mix3(pal.mid, pal.alt, tone(u.c, u.r) * 0.8); const l = u.kind === 'skel' ? 0 : u.q && u.q.lin; if (!l) return c; c = linTint(c, game.lineages[l]); return has('F3') ? mix3(c, [196, 142, 66], 0.3) : c; };   // a lineage tints its polyps
 
 // every cell (any kind) with its nudged centre, parent cell and subtree size
 function buildModel(st, polys = game.polyps, skels = game.skeletons, all = false) {   // all: a fragment, every cell is grown in
@@ -2878,7 +2899,7 @@ const drawPos = p => game.look.coral === 4 ? polypPos(p) : cellCenter(p.c, p.r);
 function paintWild(g, M, layer, pal, kind) {
   const pal0 = pal;
   let curRim = pal.rim; const limbs = [], buds = [], shadows = [], domes = [], limb = (pts, w0, w1, c0, c1, ws) => limbs.push({ pts, w0, w1, c0, c1, ws, rim: curRim });
-  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), tint = (u, c) => u.kind !== 'skel' && u.q.lin ? hueRot(c, game.lineages[u.q.lin].hue) : c, colOf = u => { const k = tipk(u), tp = typePal(pal, u); return mix3(mix3(nodeCol(u, pal), tint(u, tp.shade), 0.24 * (1 - k)), tint(u, tp.lit), 0.34 * k); };   // darker at the base, paler at the tips
+  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), tint = (u, c) => u.kind !== 'skel' && u.q.lin ? linTint(c, game.lineages[u.q.lin]) : c, colOf = u => { const k = tipk(u), tp = typePal(pal, u); return mix3(mix3(nodeCol(u, pal), tint(u, tp.shade), 0.24 * (1 - k)), tint(u, tp.lit), 0.34 * k); };   // darker at the base, paler at the tips
   const quad = (a, b, c, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, p = (1 - t) * (1 - t), q = 2 * t * (1 - t), s = t * t; o.push([p * a[0] + q * b[0] + s * c[0], p * a[1] + q * b[1] + s * c[1]]); } return o; };
   for (const u of layer) {
     curRim = typePal(pal, u).rim; const P = u.par, col = colOf(u), h = k => hash2(u.c, u.r, k), fm = u.kind === 'skel' ? 0 : linOf(u.q).traits.form - 3;   // form: limbs lean up and branch more (or less)
@@ -2981,7 +3002,7 @@ function styleLayer(M, st, kind) {
 }
 function ensureStyle() {   // rebuild only when cells change (or a newcomer finishes growing in)
   const L = game.look, st = L.coral, live = game.polyps.reduce((n, p) => n + (growOf(p) >= 1 ? 1 : 0), 0);
-  const sig = [st, has('F3') ? 1 : 0, live, cellSig(game.polyps), cellSig(game.skeletons), typeSig()].join('|');
+  const sig = [st, has('F3') ? 1 : 0, live, cellSig(game.polyps), cellSig(game.skeletons), typeSig(), game.linVer || 0].join('|');
   if (L.csSig === sig) return;
   L.csSig = sig;
   const M = buildModel(st);
@@ -3014,7 +3035,7 @@ function drawFans(t) {
   for (const p of game.polyps) {
     if (typeOf(p) !== 'fan') continue;
     const e = growOf(p); if (e <= 0.02) continue;
-    const q = polypPos(p), base = mix3(TYPE_TINT.fan, [255, 235, 245], 0.15), col = p.lin ? hueRot(base, game.lineages[p.lin].hue) : base, n = D.fanRays, L0 = D.fanLen * e;
+    const q = polypPos(p), base = mix3(TYPE_TINT.fan, [255, 235, 245], 0.15), col = p.lin ? linTint(base, game.lineages[p.lin]) : base, n = D.fanRays, L0 = D.fanLen * e;
     const sw = (s, k) => amp * s * s * Math.sin(t * 1.15 + p.seed * 3 + k * 0.5 + s * 1.4);   // sideways bend, more towards the tips
     const rays = [];
     for (let i = 0; i < n; i++) {
@@ -3055,7 +3076,7 @@ function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue 
     ctx.strokeStyle = `rgba(255,255,255,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 6.3); ctx.stroke();
   }
   if (p.lin) {   // a mutant lineage glows in its own colour
-    const hc = hueRot([255, 190, 170], game.lineages[p.lin].hue), g = ctx.createRadialGradient(0, 0, 3, 0, 0, 22);
+    const hc = mix3(linRgb(game.lineages[p.lin]), [255, 235, 225], 0.35), g = ctx.createRadialGradient(0, 0, 3, 0, 0, 22);
     g.addColorStop(0, rgba(hc, 0.95)); g.addColorStop(0.5, rgba(hc, 0.45)); g.addColorStop(1, rgba(hc, 0));
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 6.3); ctx.fill();
   }
@@ -4177,7 +4198,7 @@ function drawResidents(t) {
 function render() {
   const t = game.time, L = game.look, on = L.on, shk = game.stormPw * CONFIG.stormShake;
   game.shx = shk * (Math.sin(t * 53) + Math.sin(t * 31.7)) * 0.5; game.shy = shk * (Math.sin(t * 61 + 1) + Math.sin(t * 27.3)) * 0.5;   // a slight camera shake in a storm
-  L.sigP = cellSig(game.polyps) + typeSig() * 3 + (has('F3') ? 7 : 0); L.sigS = cellSig(game.skeletons);
+  L.sigP = cellSig(game.polyps) + typeSig() * 3 + (has('F3') ? 7 : 0) + (game.linVer || 0) * 11; L.sigS = cellSig(game.skeletons);
   const sm = L.sigP + L.sigS * 7 + (on.organic ? 1 : 0);
   if (sm !== L.sigM) { L.sigM = sm; refreshMask(); }
   if (L.coral) ensureStyle(); else if (on.organic) ensureCoral();
@@ -4201,6 +4222,7 @@ function render() {
   drawPolypTentacles(t);
   if (!post) { drawGuide(t); drawSpots(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
+  drawGenomeFx(t);
   drawThreatPolyps(t); drawDisease(t);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
@@ -4215,10 +4237,10 @@ function render() {
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
     worldTransform(uctx);
     const scene = ctx; ctx = uctx;
-    drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFieldOverlay(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
+    drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
     ctx = scene;
     present();
-  } else { drawStructure(t); drawFieldOverlay(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
+  } else { drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
 }
 
 /* ---------- HUD ---------- */
@@ -4285,7 +4307,7 @@ const BAR = [
   { id: 'frag', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', tip: 'Snap off a branch tip and throw it where you aim', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => pressFrag() },
   { id: 'plan', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
   { id: 'ach', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
-  { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && !!game.active.lin, dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
+  { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
   { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
   { id: 'mute', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
   { id: 'dev', label: () => 'Dev', key: () => '\\', show: () => true, on: () => devs.open, dis: () => '', tip: 'Developer tools', go: () => devToggle() },
@@ -4738,6 +4760,7 @@ window.addEventListener('keydown', e => {
   if (lookKey(e)) return;
   if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleStructure(); return; }
   if (e.code === 'KeyP' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) cyclePlan(); return; }
+  if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) toggleLinView(); return; }
   if (e.code === 'KeyJ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleAch(); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
@@ -4975,7 +4998,7 @@ function supportMap() {
       if (anch.has(nk)) nearAnchor = true;
       if (nk !== pred.get(k) && val.has(nk) && !below(nk, k)) second = Math.max(second, val.get(nk) - step(-dr, { kind: 'poly' }));   // a second, independent way down to rock (an arch)
     }
-    let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3) + TY(typeOf(p)).str;
+    let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3) - CONFIG.gen.growthStr * (linOf(p).traits.growth - 3) + TY(typeOf(p)).str;
     if (has('S1') && nearAnchor) s += CONFIG.thickBase;
     if (has('S5') && p.r <= CONFIG.unl.s5.rows) s += CONFIG.unl.s5.str;
     if (has('G5')) s += CONFIG.unl.g5.str;
@@ -5229,30 +5252,124 @@ for (const ev of ['mousedown', 'wheel', 'contextmenu']) repEl.addEventListener(e
 window.addEventListener('mousedown', () => { if (game.rep.open && game.rep.auto) closeReport(); });
 /* ---------- lineages: a bud may be a sport, a mutant that starts a new lineage with one trait up and one down ---------- */
 const TRAITS = { growth: 'Growth', tough: 'Toughness', heat: 'Heat tolerance', feed: 'Feeding', form: 'Form' };
-function rollSport(p, from) {   // only real buds (by hand or guided growth) can be sports
-  if (game.sportNext || (game.goals.stage >= 2 && Math.random() < CONFIG.sportChance)) makeSport(p, from);
+const POWER = ['growth', 'tough', 'heat', 'feed'];   // the four power traits share the budget; Form is free
+const pick1 = a => a[Math.floor(Math.random() * a.length)];
+const traitSum = T => POWER.reduce((a, k) => a + T[k], 0);
+function fixGenome(T) {   // clamp every trait to 1..5, then take from the highest or give to the lowest until the budget is exact
+  for (const k of POWER.concat('form')) T[k] = clamp(Math.round(T[k]), 1, 5);
+  for (let g = 40; g-- > 0 && traitSum(T) > CONFIG.gen.budget;) { const m = Math.max(...POWER.map(k => T[k])); T[pick1(POWER.filter(k => T[k] === m))]--; }
+  for (let g = 40; g-- > 0 && traitSum(T) < CONFIG.gen.budget;) { const m = Math.min(...POWER.map(k => T[k])); T[pick1(POWER.filter(k => T[k] === m))]++; }
+  return T;
 }
-function makeSport(p, from) {
+const hsl2rgb = (h, s, l) => { const a = s * Math.min(l, 1 - l), f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); }; return [f(0) * 255, f(8) * 255, f(4) * 255]; };
+// the colour of a lineage from its genome (content.md 10): hue from the highest power trait, a small shift per lineage, saturation from how high it sits, lightness and pattern from Form
+function lineColour(L) {
+  const T = L.traits, G = CONFIG.gen, sig = POWER.map(k => T[k]).join('') + T.form + '/' + L.id;
+  if (L._cs === sig) return L._c;
+  const m = Math.max(...POWER.map(k => T[k])); let x = 0, y = 0;
+  for (const k of POWER.filter(k => T[k] === m)) { const a = G.hues[k] * Math.PI / 180; x += Math.cos(a); y += Math.sin(a); }
+  const h = (Math.atan2(y, x) * 180 / Math.PI + 360 + (hash2(L.id, 5, 77) * 2 - 1) * G.hueShift) % 360;
+  const s = clamp(G.satBase + G.satPer * (m - 3), 0.2, 1), l = clamp(G.lightBase + G.lightPer * (T.form - 3), 0.2, 0.8);
+  L._cs = sig; L.hue = Math.round(h);
+  return L._c = { h, s, l, rgb: hsl2rgb(h, s, l), pat: T.form <= 2 ? 0 : T.form === 3 ? 1 : 2 };   // pat: 0 solid, 1 pale tips, 2 spotted
+}
+const lumOf = c => 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+function linTint(c, L) {   // c, the coral colour at this spot, in the lineage's colour (the natural lineage keeps the coral palette)
+  if (!L || !L.id) return c;
+  const m = lineColour(L).rgb, k = lumOf(c) / lumOf(CORAL_PAL.mid);
+  return [clamp(m[0] * k, 0, 255), clamp(m[1] * k, 0, 255), clamp(m[2] * k, 0, 255)];
+}
+const linRgb = L => L && L.id ? lineColour(L).rgb : CORAL_PAL.mid;   // the colour shown by the lineage view and the cards
+function newLineage(parent, traits, sport) {
+  const L = { id: game.lineages.length, hue: 0, traits, parent, sport: !!sport };
+  game.lineages.push(L); lineColour(L); game.linVer = (game.linVer || 0) + 1; return L;
+}
+function rollSport(p, from) {   // only real buds (by hand or guided growth) can be sports: none before 18:00 of play, then the first bud is one, then 2% (4% with X1)
+  const G = CONFIG.gen;
+  if (game.sportNext) return makeSport(p, from);
+  if (game.time < G.sportFrom) return null;
+  if (!game.sportFirst) { game.sportFirst = true; return makeSport(p, from); }
+  if (Math.random() < CONFIG.sportChance * (has('X1') ? G.sportX1 / CONFIG.sportChance : 1)) return makeSport(p, from);
+  return null;
+}
+function makeSport(p, from, up, dn) {
   game.sportNext = false;
-  const par = linOf(from), ks = Object.keys(par.traits), pick = a => a[Math.floor(Math.random() * a.length)];
-  const up = pick(ks.filter(k => par.traits[k] < 5)), dn = pick(ks.filter(k => par.traits[k] > 1 && k !== up));
+  const par = linOf(from);
+  up = up || pick1(POWER.filter(k => par.traits[k] < 5)); dn = dn || pick1(POWER.filter(k => par.traits[k] > 1 && k !== up));
   if (!up || !dn) return null;
   const traits = Object.assign({}, par.traits); traits[up]++; traits[dn]--;
-  const L = { id: game.lineages.length, hue: (par.hue + CONFIG.sportHueMin + Math.random() * (CONFIG.sportHueMax - CONFIG.sportHueMin)) % 360, traits, parent: par.id };
-  game.lineages.push(L); p.lin = L.id; game.stats.sports++;
+  const L = newLineage(par.id, traits, true); p.lin = L.id; p.sportT = game.time; game.stats.sports++; game.stats.sportsSeen++;
   const cc = cellCenter(p.c, p.r);
   spawnParts('spark', cc.x, cc.y - 6, 18);
   game.fx.push({ kind: 'pulse', x: cc.x, y: cc.y, t: 0, life: 0.9, small: true });
   beat(0.35, 0.5); sfx('sport');
   toast(`A sport! This bud mutated: ${TRAITS[up]} up, ${TRAITS[dn]} down`);
+  if (has('X1')) openSportPick(L, p, par);
   return L;
 }
-// rotate the hue of an rgb colour by deg degrees
-function hueRot(c, deg) {
-  const a = deg * Math.PI / 180, cs = Math.cos(a), sn = Math.sin(a), r = c[0], g = c[1], b = c[2];
-  return [clamp(r * (0.213 + cs * 0.787 - sn * 0.213) + g * (0.715 - cs * 0.715 - sn * 0.715) + b * (0.072 - cs * 0.072 + sn * 0.928), 0, 255),
-    clamp(r * (0.213 - cs * 0.213 + sn * 0.143) + g * (0.715 + cs * 0.285 + sn * 0.140) + b * (0.072 - cs * 0.072 - sn * 0.283), 0, 255),
-    clamp(r * (0.213 - cs * 0.213 - sn * 0.787) + g * (0.715 - cs * 0.715 + sn * 0.715) + b * (0.072 + cs * 0.928 + sn * 0.072), 0, 255)];
+// X1 Sport keeping: a small card to choose which trait goes up and which goes down (it keeps the random pick when ignored)
+const sportCard = document.getElementById('sportcard');
+function openSportPick(L, p, par) { game.sportPick = { L, p, par: Object.assign({}, par.traits), up: null, dn: null, t: CONFIG.gen.pickWait }; renderSportPick(); }
+function renderSportPick() {
+  const S = game.sportPick; if (!S) { sportCard.style.display = 'none'; return; }
+  const row = (lab, kind, cur) => `<div class="sr"><span>${lab}</span>` + POWER.map(k => `<button data-k="${kind}:${k}" class="${cur === k ? 'on' : ''}"${(kind === 'up' ? S.par[k] >= 5 || S.dn === k : S.par[k] <= 1 || S.up === k) ? ' disabled' : ''}>${TRAITS[k]}</button>`).join('') + '</div>';
+  sportCard.innerHTML = `<h4>A sport: pick its change</h4><p>One trait up and one down. It keeps the random pick if you do nothing.</p>${row('Up +1', 'up', S.up)}${row('Down -1', 'dn', S.dn)}<div class="sr"><button data-k="ok" ${S.up && S.dn ? '' : 'disabled'}>Apply</button><button data-k="keep">Keep random</button></div>`;
+  sportCard.style.display = 'block';
+}
+function sportPickDo(a) {
+  const S = game.sportPick; if (!S) return;
+  if (a === 'keep') { game.sportPick = null; renderSportPick(); return; }
+  if (a === 'ok') {
+    if (!S.up || !S.dn) return;
+    const T = Object.assign({}, S.par); T[S.up]++; T[S.dn]--; Object.assign(S.L.traits, T); lineColour(S.L); game.linVer = (game.linVer || 0) + 1;
+    toast(`Sport set: ${TRAITS[S.up]} up, ${TRAITS[S.dn]} down`, true); game.sportPick = null; renderSportPick(); return;
+  }
+  const [kind, k] = a.split(':'); S[kind] = S[kind] === k ? null : k; renderSportPick();
+}
+sportCard.addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) sportPickDo(b.dataset.k); });
+for (const ev of ['mousedown', 'wheel', 'contextmenu']) sportCard.addEventListener(ev, e => e.stopPropagation());
+function updateSportPick(dt) { const S = game.sportPick; if (S && (S.t -= dt) <= 0) { game.sportPick = null; renderSportPick(); } }
+// the 10 s glow of a new sport, and the spots of a Form 4 or 5 lineage (drawn over the polyp, whichever coral style is on)
+function drawGenomeFx(t) {
+  const now = game.time, G = CONFIG.gen;
+  for (const p of game.polyps) {
+    const glow = p.sportT !== undefined && now - p.sportT < G.glow;
+    if (!p.lin && !glow) continue;
+    const L = linOf(p), C = lineColour(L), q = drawPos(p);
+    if (glow) {
+      const u = 1 - (now - p.sportT) / G.glow, pu = 0.6 + 0.4 * Math.sin(t * 7), rc = mix3(linRgb(L), [255, 255, 255], 0.5), R = 22 + 14 * pu;
+      const g = ctx.createRadialGradient(q.x, q.y, 2, q.x, q.y, R); g.addColorStop(0, rgba(rc, 0.85 * u)); g.addColorStop(1, rgba(rc, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, R, 0, 6.3); ctx.fill();
+    }
+    if (p.lin && C.pat === 2) {
+      ctx.fillStyle = 'rgba(255,244,232,0.8)';
+      for (let i = 0; i < 4; i++) { const a = hash2(p.c, p.r, 20 + i) * 6.283, d = 4 + hash2(p.c, p.r, 30 + i) * 7; ctx.beginPath(); ctx.arc(q.x + Math.cos(a) * d, q.y + Math.sin(a) * d, 1.5 + hash2(p.c, p.r, 40 + i), 0, 6.3); ctx.fill(); }
+    }
+  }
+}
+// the lineage view (L): the world dims and every polyp shows only its lineage colour, at full strength
+function drawLineageView(t) {
+  if (!game.linView) return;
+  ctx.fillStyle = 'rgba(2,10,22,0.62)'; ctx.fillRect(0, 0, W, H);
+  for (const p of game.polyps) {
+    const q = drawPos(p), c = linRgb(linOf(p)), R = CELL * 0.62;
+    const g = ctx.createRadialGradient(q.x, q.y, 2, q.x, q.y, R * 1.6); g.addColorStop(0, rgba(c, 0.55)); g.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, R * 1.6, 0, 6.3); ctx.fill();
+    ctx.fillStyle = rgbs(c); ctx.beginPath(); ctx.arc(q.x, q.y, R * 0.78, 0, 6.3); ctx.fill();
+  }
+}
+const linViewEl = document.createElement('div'); linViewEl.id = 'linview'; document.body.appendChild(linViewEl);
+function renderLinView() {
+  if (!game.linView) { linViewEl.style.display = 'none'; return; }
+  const n = {}; for (const p of game.polyps) n[p.lin || 0] = (n[p.lin || 0] || 0) + 1;
+  const rows = game.lineages.filter(L => n[L.id]).sort((a, b) => n[b.id] - n[a.id]);
+  const h = `<h4>Lineages <i>L to close</i></h4>` + rows.slice(0, 14).map(L => `<div class="lr"><span class="sw" style="background:${rgbs(linRgb(L))}"></span><b>${L.id ? 'Lineage ' + L.id : 'Natural'}</b><span>${n[L.id]} polyps</span><em>${POWER.map(k => L.traits[k]).join(' ')} / ${L.traits.form}</em></div>`).join('') + (rows.length > 14 ? `<div class="lr"><i>and ${rows.length - 14} more</i></div>` : '');
+  if (linViewEl.dataset.h !== h) { linViewEl.innerHTML = h; linViewEl.dataset.h = h; }
+  linViewEl.style.display = 'block';
+}
+function toggleLinView() {
+  if (!has('X1') && !game.linView) { toast('Sport keeping (tree, Spawning and Genetics) shows the lineage view', true); return; }
+  game.linView = !game.linView; renderLinView();
 }
 const linCard = document.getElementById('lincard');
 function polypAtMouse() {
@@ -5261,7 +5378,7 @@ function polypAtMouse() {
   return best;
 }
 function openLinCard(p) {
-  const L = linOf(p), sw = L.id ? rgbs(hueRot(CORAL_PAL.mid, L.hue)) : rgbs(CORAL_PAL.mid), n = game.polyps.filter(q => (q.lin || 0) === L.id).length;
+  const L = linOf(p), sw = rgbs(linRgb(L)), n = game.polyps.filter(q => (q.lin || 0) === L.id).length;
   linCard.innerHTML = `<h4><span class="sw" style="background:${sw}"></span>${L.id ? 'Lineage ' + L.id : 'Natural lineage'}</h4>` +
     Object.keys(TRAITS).map(k => `<div class="tr"><span>${TRAITS[k]}</span><div class="bar"><i style="width:${L.traits[k] * 20}%"></i></div><b>${L.traits[k]}</b></div>`).join('') +
     `<div class="k">Parent: ${L.parent < 0 ? 'none, the first polyp' : L.parent ? 'Lineage ' + L.parent : 'the natural lineage'}</div><div class="k">Polyps in this lineage: <b style="color:#ffe3d3">${n}</b></div>`;
@@ -5465,7 +5582,7 @@ function rootFrag(f, q) {
   }
   spawnParts('dust', q.x, q.y, 6); sfx('thud');
   if (f.storm) f.storm.rooted++;
-  game.stats.rooted++;
+  game.stats.rooted++; game.stats.fragSettled++;
   if (rider) {
     game.riding = null; setActive(rider); game.stage = 'polyp'; game.hop = null;
     toast('The fragment took root. You settle on a new patch');
@@ -5581,10 +5698,9 @@ function bleach(p) {
 }
 function heatSport(p) {   // C3: some recovered polyps come back with more heat tolerance (and less of another trait)
   const par = linOf(p); if (par.traits.heat >= 5) return;
-  const ks = Object.keys(par.traits).filter(k => k !== 'heat' && par.traits[k] > 1); if (!ks.length) return;
+  const ks = POWER.filter(k => k !== 'heat' && par.traits[k] > 1); if (!ks.length) return;
   const traits = Object.assign({}, par.traits); traits.heat++; traits[ks[Math.floor(Math.random() * ks.length)]]--;
-  const L = { id: game.lineages.length, hue: (par.hue + CONFIG.sportHueMin + Math.random() * (CONFIG.sportHueMax - CONFIG.sportHueMin)) % 360, traits, parent: par.id };
-  game.lineages.push(L); p.lin = L.id; game.stats.sports++; toast('A polyp came back from bleaching tougher: Heat tolerance up');
+  const L = newLineage(par.id, traits, true); p.lin = L.id; p.sportT = game.time; game.stats.sports++; game.stats.sportsSeen++; toast('A polyp came back from bleaching tougher: Heat tolerance up');
 }
 function updateBleach(dt) {
   const C = CONFIG.threat.heat, need = has('C3') ? C.recoverC3 : C.recover;
@@ -6088,9 +6204,9 @@ const EVENTS = [
       const C = CONFIG.ev.ce7, cand = bareRock(25).filter(q => q.d >= 3); let n = 0; const trait = ['growth', 'tough', 'heat', 'feed', 'form'];
       for (let i = 0; i < C.n && cand.length; i++) {
         const q = cand.splice(Math.floor(Math.random() * cand.length), 1)[0]; if (cellAt(q.c, q.r)) continue;
-        const tr = {}; trait.forEach(k => tr[k] = 1); const top = trait[Math.floor(Math.random() * 5)]; tr[top] = 5;
-        for (let left = C.budget - 9; left > 0;) { const k = trait[Math.floor(Math.random() * 5)]; if (k !== top && tr[k] < 4) { tr[k]++; left--; } }
-        const L = { id: game.lineages.length, hue: Math.floor(Math.random() * 360), traits: tr, parent: -1 }; game.lineages.push(L);
+        const tr = { form: 1 + Math.floor(Math.random() * 5) }; POWER.forEach(k => tr[k] = 1); const top = pick1(POWER); tr[top] = 5;
+        for (let left = C.budget - 9; left > 0;) { const k = pick1(POWER); if (k !== top && tr[k] < 4) { tr[k]++; left--; } }   // one trait at 5, the budget spent on the other three
+        const L = newLineage(-1, tr);
         const p = addPolyp(q.c, q.r, 'branch'); p.lin = L.id; n++;
         game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.8 });
       }
@@ -6501,7 +6617,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
