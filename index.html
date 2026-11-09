@@ -4463,6 +4463,19 @@ function devBloom() {
     return;
   }
 }
+function devThreat(kind) {   // the Threats row: start one by hand (devThrive never does), or clear them all
+  if (kind !== 'clear' && game.goals.stage < 2) devStage(2);
+  const T = game.thr;
+  if (kind === 'heat') { if (!T.heat.on) startHeat(); }
+  else if (kind === 'weed') startWeed();
+  else if (kind === 'inf') { const c = game.polyps.filter(p => !p.inf && NB_DIRS.some(([dc, dr]) => livePolypAt(p.c + dc, p.r + dr))); const p = c.length ? c[Math.floor(Math.random() * c.length)] : game.polyps[0]; if (p) { T.heat.hit.push(p); infect(p, true); } else toast('No polyps to infect', true); }
+  else if (kind === 'star') { if (!game.polyps.length) { toast('No polyps to attack', true); return; } startStar(seasonAbs(game.season.t), true); }
+  else if (kind === 'clear') {
+    T.heat.on = false; T.heat.hit = []; T.weed.on = false; game.seaweed.clear(); T.dis.on = false; T.dis.startAt = -1; game.starfish.length = 0; T.star.endAt = -1;
+    for (const p of game.polyps) { p.bl = null; p.inf = null; }
+    toast('All threats cleared', true);
+  }
+}
 function devFish() {
   const L = game.larva;
   for (let i = 0; i < 40; i++) {
@@ -4483,7 +4496,7 @@ const devGroups = [
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
   ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>','<button data-a="thrive">thriving reef</button>']],
   ['Coral', ['<button data-a="ty" data-v="branch">branch</button><button data-a="ty" data-v="plate">plate</button><button data-a="ty" data-v="brain">brain</button><button data-a="ty" data-v="fan">fan</button><button data-a="ty" data-v="anemone">anemone</button>', '<button data-a="ownty">own all types</button><button data-a="mixed">grow mixed reef</button>']],
-  ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
+  ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
     '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
@@ -4493,6 +4506,7 @@ const devGroups = [
   ['Coral style', ['<select data-cs>' + CORAL_STYLES.map((n, i) => `<option value="${i}">${i} ${n}</option>`).join('') + '</select> <span style="color:#8aa0b2">K cycles</span>']],
   ['Residents', [RESKINDS.map(k => `<button data-a="res" data-v="${k}">${RES[k].name.split(' and ')[0].toLowerCase()}</button>`).join(''), '<button data-a="happy" title="Hold every resident at 100 happiness">make all happy</button><button data-a="bp50">+50 BP</button><button data-a="rnow" title="Let every found habitat fill at once">arrive now</button><button data-a="rleave">send all away</button>']],
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
+  ['Threats', ['<button data-a="thr" data-v="heat">start heat wave</button><button data-a="thr" data-v="weed">seed seaweed bloom</button><button data-a="thr" data-v="inf">infect a polyp</button>', '<button data-a="thr" data-v="star">spawn starfish outbreak</button><button data-a="thr" data-v="clear">clear all threats</button>']],
   ['Toggles', [
     '<label><input type="checkbox" data-t="god"> god mode</label><label><input type="checkbox" data-t="noFish"> predators off</label>',
     '<label><input type="checkbox" data-t="noNib"> nibblers off</label><label><input type="checkbox" data-t="grid"> grid lines</label><label><input type="checkbox" data-t="stats"> stats overlay</label>',
@@ -4541,6 +4555,7 @@ function devBuild() {
     else if (a === 'bloom') devBloom();
     else if (a === 'clown') { if (anemones().length && !game.clown.fish.length) spawnClowns(); else toast('Needs an anemone and no clownfish yet', true); }
     else if (a === 'fish') devFish();
+    else if (a === 'thr') devThreat(vs);
     else if (a === 'res') devSpawnRes(vs);
     else if (a === 'happy') { devs.happy = !devs.happy; if (devs.happy) for (const r of game.res.list) r.hap = r.hapT = 100; }
     else if (a === 'bp50') game.bp += 50;
