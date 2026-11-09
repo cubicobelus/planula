@@ -347,7 +347,7 @@ const game = {
   species: [],
   res: { list: [], habs: [], rush: 0, tickT: 0, sig: '', clownBroken: 0, turtleYear: -1, pin: null, fishE: 0, noneT: 0 },   // residents: list of animals, habitats found on the grid
   bio: { B: 0, parts: [], t: 0 }, bp: 0, sand: 0, seaweed: new Set(), starfish: [],
-  thr: { plan: { heat: {}, weed: {}, star: {} }, n: { heat: 0, weed: 0, star: 0 }, heat: { on: false, t: 0, checkT: 0, hit: [], ran: -1 }, weed: { on: false, t: 0, tick: 0, ran: -1 }, dis: { on: false, tick: 0, startAt: -1, seals: new Set() }, star: { ran: -1, endAt: -1, n: 0 } },   // threats: which seasons will bring them, and their running state
+  thr: { plan: { heat: {}, weed: {}, star: {} }, n: { heat: 0, weed: 0, star: 0 }, heat: { on: false, t: 0, checkT: 0, hit: [], ran: -1 }, weed: { on: false, t: 0, tick: 0, ran: -1 }, dis: { on: false, tick: 0, startAt: -1, seals: new Set(), ver: 0, drag: null }, star: { ran: -1, endAt: -1, n: 0 } },   // threats: which seasons will bring them, and their running state
   goals: { stage: 0, chk: 0, shown: 0 },   // stage = how many STAGES are reached (0 = none yet); never goes down
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
@@ -449,7 +449,7 @@ const TREE = [
   { id: 'S6', tier: 3, branch: 'Structure', name: 'Sand trap', hint: 'Make sand',
     fx: () => `Each parrotfish bite makes ${CONFIG.res.parrot.sandS6} sand, not ${CONFIG.res.parrot.sand}. (Sand that washes away comes with the cyclone)`, done: 'Sand now piles up faster', ok: () => game.stats.sandMade >= CONFIG.res.revSand },
   { id: 'T4', tier: 2, branch: 'Coral types', name: 'Mixed thickets', hint: 'Grow three kinds of coral',
-    fx: () => `A polyp beside another coral type: +${CONFIG.bio.t4Str} strength and +${Math.round((CONFIG.bio.t4Sun - 1) * 100)}% sun`, done: 'Mixed coral holds and feeds better', ok: () => Object.values(typeCounts()).filter(n => n >= CONFIG.bio.revMixPolyps).length >= CONFIG.bio.revMixTypes },
+    fx: () => `A polyp beside another coral type: +${CONFIG.bio.t4Str} strength and +${Math.round((CONFIG.bio.t4Sun - 1) * 100)}% sun. White band disease cannot cross from one type to another`, done: 'Mixed coral holds and feeds better', ok: () => Object.values(typeCounts()).filter(n => n >= CONFIG.bio.revMixPolyps).length >= CONFIG.bio.revMixTypes },
 ];
 const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Coral types', '#ff79c6']];
 const has = id => game.tree.state[id] === 'owned';
@@ -4120,7 +4120,7 @@ function render() {
   drawPolypTentacles(t);
   if (!post) { drawGuide(t); drawSpots(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
-  drawThreatPolyps(t);
+  drawThreatPolyps(t); drawDisease(t);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
   for (const f of game.clown.fish) drawClown(f, t);
@@ -4653,6 +4653,7 @@ canvas.addEventListener('mousedown', e => {
   if (game.tree.open) return;
   game.slow = null;
   if (e.shiftKey && e.button === 0) { const q = polypAtMouse(); if (q) { openLinCard(q); return; } }   // Shift+click a polyp: its lineage
+  if (e.button === 2 && has('D5') && game.keys.has('KeyG')) { sealPress(); return; }   // G + right mouse seals links (D5) instead of stinging
   if (e.button === 2) { doSting(); return; }
   if (e.button === 0 && game.keys.has('KeyG') && has('G2')) { guideClick(); return; }   // G + click guides growth instead of catching plankton
   if (e.button === 0) {
@@ -4661,8 +4662,8 @@ canvas.addEventListener('mousedown', e => {
     if (sp) { game.mouse.bud = true; pressSpot(sp); } else if (!rs) game.mouse.down = true;
   }
 });
-window.addEventListener('mouseup', e => { if (e.button === 0) { game.mouse.down = false; game.mouse.bud = false; } });
-window.addEventListener('mousemove', e => { game.mouse.sx = e.clientX; game.mouse.sy = e.clientY; game.mouse.ui = e.target !== canvas; });
+window.addEventListener('mouseup', e => { if (e.button === 0) { game.mouse.down = false; game.mouse.bud = false; } if (e.button === 2) game.thr.dis.drag = null; });
+window.addEventListener('mousemove', e => { game.mouse.sx = e.clientX; game.mouse.sy = e.clientY; game.mouse.ui = e.target !== canvas; if (game.thr.dis.drag) sealDrag(); });
 window.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('resize', resize);
 
@@ -4703,6 +4704,7 @@ function updateSeason(dt) {
 function threatLine() {   // [text, class] for a threat that is running or 60 s away, else null
   const T = game.thr, C = CONFIG.threat;
   if (T.heat.on) return [`Heat wave! ${mmss(C.heat.len - T.heat.t)} left`, 'storm'];
+  if (T.dis.on) return ['White band disease spreading', 'storm'];
   if (T.weed.on) return ['Seaweed bloom', 'warn'];
   if (threatOdds('heat') === 'yes' && seasonInto(nextAbs(1)) < 0) return [`Heat wave in ${mmss(-seasonInto(nextAbs(1)))}`, 'warn'];
   if (threatOdds('weed') === 'yes' && seasonInto(nextAbs(3)) < 0) return [`Seaweed bloom in ${mmss(-seasonInto(nextAbs(3)))}`, 'warn'];
@@ -4819,7 +4821,7 @@ const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
 const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b));
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig()].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
   if (SUP.sig === sig) return SUP;
   SUP.sig = sig;
   const val = new Map(), pred = new Map(), q = [], anch = new Set();
@@ -4829,7 +4831,7 @@ function supportMap() {
     const [c, r] = q[i], k = key(c, r), v = val.get(k);
     if (typeOf(cellAt(c, r).ref) === 'fan') continue;   // a fan holds nothing up
     for (const [dc, dr] of NB_DIRS) {
-      const o = cellAt(c + dc, r + dr); if (!o) continue;
+      const o = cellAt(c + dc, r + dr); if (!o || sealed(c, r, c + dc, r + dr)) continue;   // a D5 seal carries no support
       const nv = v - step(dr, o), ok = key(c + dc, r + dr);
       if (nv > 0 && !(val.get(ok) >= nv)) { val.set(ok, nv); pred.set(ok, k); q.push([c + dc, r + dr]); }
     }
@@ -4842,7 +4844,7 @@ function supportMap() {
     if (anch.has(k)) { SUP.str.set(k, 10); continue; }
     let second = 0, n = 0, nearAnchor = false;
     for (const [dc, dr] of NB_DIRS) {
-      const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk); if (!o) continue;
+      const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk); if (!o || sealed(p.c, p.r, p.c + dc, p.r + dr)) continue;
       if (typeOf(o.ref) === 'fan') continue;   // a fan is no support
       n++;
       if (anch.has(nk)) nearAnchor = true;
@@ -5013,6 +5015,7 @@ function findProblems() {
     const near = seaweedList().filter(w => P.some(p => Math.hypot(p.c - w.c, p.r - w.r) <= C.threat.weed.p5Cells));
     if (near.length >= C.threat.weed.p5) add('P5', 20, `Seaweed has covered ${near.length} cells and is creeping toward live coral.`, 'Grazers fix this: urchins come to seaweed near crevices, and parrotfish need dead coral and open water.', P.filter(p => near.some(w => Math.hypot(p.c - w.c, p.r - w.r) <= 3)));
   }
+  if (P.some(p => p.inf)) { const g = diseaseGroup(); add('P12', 50, `White band disease is spreading through ${g.length} connected polyps.`, 'Cut a gap ahead of it, or bring it near cleaner shrimp.', g); }
   const top = C.reportTop.reduce((a, [from, k]) => n >= from ? k : a, 3);
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
 }
@@ -5539,10 +5542,111 @@ function drawSeaweed(t) {
   }
   ctx.restore();
 }
+/* white band disease (from Reef crest): a white band creeps across an infected polyp and kills it in 40 s. It spreads to neighbours, and cleaner shrimp cure it */
+const linkKey = (c1, r1, c2, r2) => (c1 < c2 || (c1 === c2 && r1 < r2)) ? `${c1},${r1}|${c2},${r2}` : `${c2},${r2}|${c1},${r1}`;
+const sealed = (c1, r1, c2, r2) => game.thr.dis.seals.size > 0 && game.thr.dis.seals.has(linkKey(c1, r1, c2, r2));
+const livePolypAt = (c, r) => { const o = cellAt(c, r); return o && o.kind === 'polyp' && !o.ref.dead ? o.ref : null; };
+function diseaseCrosses(a, b) { return !sealed(a.c, a.r, b.c, b.r) && !(has('T4') && typeOf(a) !== typeOf(b)); }   // a D5 seal and (with T4) a coral type boundary stop it
+function infect(p, first) {
+  if (p.inf || p.dead) return false;
+  p.inf = { t: 0, cure: 0 }; const D = game.thr.dis;
+  if (!D.on || first) {
+    D.on = true;
+    banner('White band disease', 'A white band is creeping across your coral. Cut a gap ahead of it, or bring it near a cleaner shrimp', '#f4efe6');
+    toast('White band disease has broken out'); sfx('rumble');
+  }
+  return true;
+}
+function diseaseGroup() {   // the infected polyps and every polyp the disease could reach from them
+  const seen = new Set(), out = [], q = [];
+  for (const p of game.polyps) if (p.inf) { seen.add(key(p.c, p.r)); q.push(p); }
+  while (q.length) {
+    const a = q.pop(); out.push(a);
+    for (const [dc, dr] of NB_DIRS) { const b = livePolypAt(a.c + dc, a.r + dr); if (b && !seen.has(key(b.c, b.r)) && diseaseCrosses(a, b)) { seen.add(key(b.c, b.r)); q.push(b); } }
+  }
+  return out;
+}
+function updateDisease(dt) {
+  const T = game.thr, D = T.dis, C = CONFIG.threat.dis;
+  if (D.startAt >= 0 && game.season.t >= D.startAt) {   // after a heat wave: one polyp that bleached
+    D.startAt = -1;
+    const pool = T.heat.hit.filter(p => !p.dead && game.polyps.includes(p));
+    if (pool.length) infect(pool[Math.floor(Math.random() * pool.length)], true);
+  }
+  if (!D.on) return;
+  const sick = game.polyps.filter(p => p.inf);
+  if (!sick.length) { D.on = false; toast('The white band disease has run its course'); return; }
+  const shr = game.res.list.filter(r => r.kind === 'shrimp' && resLive(r) && r.mode !== 'arrive'), rad = (has('R3') ? CONFIG.res.shrimp.r3Radius : CONFIG.res.shrimp.radius) * CELL;
+  for (const p of sick) {
+    const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL;
+    if (shr.some(r => { const h = homeOf(r); return (px - h.x) ** 2 + (py - h.y) ** 2 <= rad * rad; })) {
+      p.inf.cure += dt;
+      if (p.inf.cure >= C.cure) { p.inf = null; game.stats.diseaseCured = (game.stats.diseaseCured || 0) + 1; spawnParts('heal', px, py - 4, 4); game.fx.push({ kind: 'ring', x: px, y: py, t: 0, life: 0.7 }); continue; }
+    } else p.inf.cure = Math.max(0, p.inf.cure - dt);
+    p.inf.t += dt;
+    if (p.inf.t >= C.die) { game.stats.diseaseLost++; killPolyp(p, game.progress.diseaseDeath ? '' : 'The white band has killed a polyp'); game.progress.diseaseDeath = true; }
+  }
+  if ((D.tick += dt) >= C.every) {
+    D.tick -= C.every;
+    for (const p of sick) {
+      if (!p.inf || p.dead) continue;
+      for (const [dc, dr] of NB_DIRS) { const b = livePolypAt(p.c + dc, p.r + dr); if (b && !b.inf && diseaseCrosses(p, b) && Math.random() < C.spread) infect(b); }
+    }
+  }
+}
+// D5 firebreak: hold G and drag the right mouse across the links between corals to seal them (a sealed link carries no disease and no support); drag across a sealed link to open it again
+function sealLinkAt(w) {
+  let best = null, bd = CONFIG.threat.d5.hit;
+  for (const p of game.polyps) for (const [dc, dr] of [[1, 0], [0, 1]]) {
+    const o = cellAt(p.c + dc, p.r + dr); if (!o) continue;
+    const mx = (p.c + 0.5 + dc / 2) * CELL, my = (p.r + 0.5 + dr / 2) * CELL, d = Math.hypot(w.x - mx, w.y - my);
+    if (d < bd) { bd = d; best = { c1: p.c, r1: p.r, c2: p.c + dc, r2: p.r + dr, mx, my }; }
+  }
+  return best;
+}
+function sealApply(mode) {
+  const D = game.thr.dis, L = sealLinkAt(screenToWorld(game.mouse.sx, game.mouse.sy)); if (!L) return;
+  const k = linkKey(L.c1, L.r1, L.c2, L.r2), has1 = D.seals.has(k);
+  if (mode === 'erase') { if (has1) { D.seals.delete(k); D.ver++; sfx('snap'); } return; }
+  if (has1) return;
+  for (const s of [...D.seals]) { const [a, b] = s.split('|').map(x => x.split(',').map(Number)); if (!cellAt(a[0], a[1]) || !cellAt(b[0], b[1])) D.seals.delete(s); }   // seals on coral that is gone no longer count
+  if (D.seals.size >= CONFIG.threat.d5.max) { if (!D.fullToast || game.time - D.fullToast > 4) { D.fullToast = game.time; toast(`All ${CONFIG.threat.d5.max} seals are in use. Drag across a seal to open it`, true); } return; }
+  D.seals.add(k); D.ver++; sfx('snap');
+  game.fx.push({ kind: 'ring', x: L.mx, y: L.my, t: 0, life: 0.5 });
+}
+function sealPress() { const D = game.thr.dis, L = sealLinkAt(screenToWorld(game.mouse.sx, game.mouse.sy)); D.drag = L && D.seals.has(linkKey(L.c1, L.r1, L.c2, L.r2)) ? 'erase' : 'add'; sealApply(D.drag); }
+function sealDrag() { const D = game.thr.dis; if (D.drag && game.keys.has('KeyG')) sealApply(D.drag); }
+function drawDisease(t) {
+  const D = game.thr.dis;
+  for (const p of game.polyps) {   // the white band creeps across the polyp, front first
+    if (!p.inf) continue;
+    const cc = polypPos(p), u = clamp(p.inf.t / CONFIG.threat.dis.die, 0, 1), a = p.seed * 2.1;
+    ctx.save(); ctx.translate(cc.x, cc.y); ctx.beginPath(); ctx.arc(0, 0, 13, 0, 6.3); ctx.clip(); ctx.rotate(a);
+    const edge = -13 + 26 * (0.12 + 0.88 * u);
+    ctx.fillStyle = 'rgba(246,242,232,0.9)'; ctx.fillRect(-14, -14, edge + 14, 28);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.moveTo(edge - 2, -14); ctx.lineTo(edge + 3 + Math.sin(t * 3 + p.seed) * 1.5, -14); ctx.lineTo(edge + 3, 14); ctx.lineTo(edge - 2, 14); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    if (p.inf.cure > 0) { ctx.strokeStyle = `rgba(150,255,190,${0.5 + 0.4 * Math.sin(t * 8)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cc.x, cc.y, 15, 0, 6.3); ctx.stroke(); }
+  }
+  if (D.seals.size) {   // a sealed link: a short white cut across it, edged red
+    ctx.save(); ctx.lineCap = 'round';
+    for (const s of D.seals) {
+      const [a, b] = s.split('|').map(x => x.split(',').map(Number)), mx = (a[0] + b[0]) / 2 + 0.5, my = (a[1] + b[1]) / 2 + 0.5, h = a[0] !== b[0];
+      const x = mx * CELL, y = my * CELL, dx = h ? 0 : 1, dy = h ? 1 : 0;
+      ctx.strokeStyle = 'rgba(210,60,60,0.95)'; ctx.lineWidth = 4.4; ctx.beginPath(); ctx.moveTo(x - dx * 8, y - dy * 8); ctx.lineTo(x + dx * 8, y + dy * 8); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,250,240,0.95)'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(x - dx * 8, y - dy * 8); ctx.lineTo(x + dx * 8, y + dy * 8); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if (has('D5') && game.keys.has('KeyG')) {   // the link under the cursor
+    const L = sealLinkAt(screenToWorld(game.mouse.sx, game.mouse.sy));
+    if (L) { ctx.strokeStyle = 'rgba(255,236,140,0.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(L.mx, L.my, 7 + Math.sin(t * 8), 0, 6.3); ctx.stroke(); }
+  }
+}
 function updateThreats(dt) {
   if (game.goals.stage < 2) return;
   planThreats();
-  updateHeat(dt); updateWeed(dt);
+  updateHeat(dt); updateWeed(dt); updateDisease(dt);
 }
 function drawThreatPolyps(t) {   // bleached coral (white), seen over the tissue
   for (const p of game.polyps) {
