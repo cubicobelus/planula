@@ -6061,7 +6061,7 @@ const EVENTS = [
     doA() {
       const C = CONFIG.ev.ce4, v = calcRatings();
       if (v.health >= C.health && v.diversity >= C.div) { game.bp += C.bp; game.stats.bpMade += C.bp; EVS().inc = { m: C.income, abs: curAbs() }; return `The divers are thrilled: +${C.bp} BP and income x${C.income} this season`; }
-      const low = game.polyps.slice().sort((a, b) => a.r - b.r).slice(-C.lose).filter(p => !p.dead); for (const p of low) killPolyp(p, '');
+      const low = game.polyps.slice().sort((a, b) => a.r - b.r).slice(0, C.lose).filter(p => !p.dead); /* the shallowest: nearest the surface, where the divers swim */ for (const p of low) killPolyp(p, '');
       game.bp = Math.max(0, game.bp - C.loseBp);
       return `The divers' fins break ${low.length} polyps and you lose ${C.loseBp} BP`;
     },
