@@ -1069,6 +1069,11 @@ function doSting() {
   for (const n of game.nibblers) {
     if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
   }
+  for (const f of game.starfish) {   // a starfish takes 3 stings (D4: one)
+    if (f.dead || f.mode === 'leave' || distSeg(f.x, f.y, cc.x, sy, ex, ey) > CONFIG.stingRadius + 10) continue;
+    f.hp -= has('D4') ? 99 : CONFIG.threat.star.sting; f.hurt = 0.6; hit++; spawnParts('spark', f.x, f.y, 4);
+  }
+  game.stats.stings++;
   sfx('sting');
   game.fx.push({ kind: 'sting', x: cc.x, y: sy, x1: ex, y1: ey, t: 0, life: 0.5, hit: hit > 0 });
 }
@@ -1889,7 +1894,7 @@ function updateNibblers(dt) {
   if (game.polyps.length >= CONFIG.nibblerStart) {
     if (N.timer === null) N.timer = CONFIG.nibblerFirst;
     N.timer -= dt;
-    if (N.timer <= 0) { if (game.nibblers.length < nibblerMax()) spawnNibbler(); N.timer = CONFIG.nibblerInterval; }
+    if (N.timer <= 0) { if (game.nibblers.length < nibblerMax()) spawnNibbler(); N.timer = CONFIG.nibblerInterval * (has('D3') ? CONFIG.threat.d3.nibbler : 1); }
   }
   const R = CONFIG.nibblerRadius;
   for (const n of game.nibblers) {
@@ -2003,7 +2008,7 @@ function updatePolyps(dt) {
 function upkeep(dt) {
   const C = CONFIG;
   if (game.goals.stage < C.upkeepStage || !game.polyps.length) return;
-  let u = 0; for (const p of game.polyps) u += C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1);   // type and trait factors multiply in here later
+  let u = 0; for (const p of game.polyps) u += (has('D3') ? C.threat.d3.upkeep : 1) * C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1);   // type and trait factors multiply in here later
   game.energy = Math.max(0, game.energy - u * dt);
   if (game.energy > 0) { game.starveT = 0; return; }
   if ((game.starveT = (game.starveT || 0) + dt) < C.starveEvery) return;
@@ -4123,6 +4128,7 @@ function render() {
   drawThreatPolyps(t); drawDisease(t);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
+  drawStarfish(t);
   for (const f of game.clown.fish) drawClown(f, t);
   drawResidents(t);
   if (!game.riding) drawLarva(t);
@@ -4704,9 +4710,11 @@ function updateSeason(dt) {
 function threatLine() {   // [text, class] for a threat that is running or 60 s away, else null
   const T = game.thr, C = CONFIG.threat;
   if (T.heat.on) return [`Heat wave! ${mmss(C.heat.len - T.heat.t)} left`, 'storm'];
+  const sn = starN(); if (sn) return [`${sn} starfish on the reef`, 'storm'];
   if (T.dis.on) return ['White band disease spreading', 'storm'];
   if (T.weed.on) return ['Seaweed bloom', 'warn'];
   if (threatOdds('heat') === 'yes' && seasonInto(nextAbs(1)) < 0) return [`Heat wave in ${mmss(-seasonInto(nextAbs(1)))}`, 'warn'];
+  if (threatOdds('star') === 'yes' && seasonInto(nextAbs(3)) < THREAT.star.late) return [has('D4') ? `Starfish at dusk: ${starCount()} coming` : 'Starfish arrive at dusk', 'warn'];
   if (threatOdds('weed') === 'yes' && seasonInto(nextAbs(3)) < 0) return [`Seaweed bloom in ${mmss(-seasonInto(nextAbs(3)))}`, 'warn'];
   return null;
 }
@@ -5000,7 +5008,7 @@ function findProblems() {
   if (R.zeroT >= C.starveEvery) add('P16', 45, 'Your reef is out of energy, and the dimmest polyps are starving.', 'Catch plankton by hand, feed at night, or pause budding until income catches up.', P.slice().sort((a, b) => lightOf(a) - lightOf(b)).slice(0, Math.ceil(n / 4)));
   if (R.capT >= C.reportFullSecs) add('P9', 10, 'Your energy is full, and the extra is going to waste.', 'Bud, or save toward an unlock in the tree.', []);
   if (R.affT >= C.reportTreeSecs) { const d = TREE.find(x => canBuy(x.id)); if (d) add('P10', 5, `${d.name} is ready to buy.`, 'Open the tree with T.', []); }
-  if (game.goals.stage >= 3 && n >= 2 && polypGroups(() => true).length === 1) add('P13', 15, 'All your coral is one colony. One storm can take it all.', 'Settle a new patch of rock, so the reef has a second home.', P.slice());
+  if (game.goals.stage >= 3 && n >= 2 && polypGroups(() => true).length === 1) add('P13', 15, 'All your coral is one colony. One storm or disease can take it all.', 'Settle a new patch of rock, so the reef has a second home.', P.slice());
   const RZ = game.res, near = (p, cells) => P.filter(q => Math.hypot((q.c + 0.5) * CELL - p.x, (q.r + 0.5) * CELL - p.y) <= cells * CELL), leaveIn = (k, since) => Math.max(0, Math.ceil((has('R5') ? C.res.r5Leave : C.res[k].leave) - since));
   for (const h of RZ.habs) if (h.broken !== null && h.res.length) { const K = RES[h.kind]; add('P8', 45, `The ${K.name.toLowerCase()}'s ${K.home} is broken. It leaves in ${leaveIn(h.kind, game.time - h.broken)} s.`, `Rebuild the ${K.home}: ${K.shape}.`, near(cellCenter(h.c, h.r), 4)); }
   if (RZ.clownBroken > 0 && game.clown.fish.length) add('P8', 45, `The clownfish's anemone is broken. It leaves in ${leaveIn('clown', RZ.clownBroken)} s.`, `Rebuild the anemone: ${RES.clown.shape}.`, near(RZ.list.find(q => q.kind === 'clown') || { x: 0, y: 0 }, 5));
@@ -5016,6 +5024,7 @@ function findProblems() {
     if (near.length >= C.threat.weed.p5) add('P5', 20, `Seaweed has covered ${near.length} cells and is creeping toward live coral.`, 'Grazers fix this: urchins come to seaweed near crevices, and parrotfish need dead coral and open water.', P.filter(p => near.some(w => Math.hypot(p.c - w.c, p.r - w.r) <= 3)));
   }
   if (P.some(p => p.inf)) { const g = diseaseGroup(); add('P12', 50, `White band disease is spreading through ${g.length} connected polyps.`, 'Cut a gap ahead of it, or bring it near cleaner shrimp.', g); }
+  if (starN()) { const sf = game.starfish.filter(f => !f.dead && f.mode !== 'leave'); add('P11', 50, `${sf.length} crown-of-thorns starfish are eating your coral.`, 'Sting each one three times, or grow branching thickets for guard crabs.', P.filter(p => sf.some(f => Math.hypot((p.c + 0.5) * CELL - f.x, (p.r + 0.5) * CELL - f.y) <= 4 * CELL))); }
   const top = C.reportTop.reduce((a, [from, k]) => n >= from ? k : a, 3);
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
 }
@@ -5643,10 +5652,151 @@ function drawDisease(t) {
     if (L) { ctx.strokeStyle = 'rgba(255,236,140,0.9)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(L.mx, L.my, 7 + Math.sin(t * 8), 0, 6.3); ctx.stroke(); }
   }
 }
+/* crown-of-thorns starfish (from Reef crest): they arrive at the dusk of a Wet season along the floor from both edges and eat the nearest unguarded polyp */
+const STAR = { sig: '', walk: null };
+function starWalk() {   // cells a starfish can crawl on: free water that touches rock, skeleton or coral (8 neighbours); cached until the coral changes
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length].join(',');
+  if (STAR.sig === sig && STAR.walk) return STAR.walk;
+  const cols = game.cols, rows = game.rows, w = new Uint8Array(cols * rows);
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    if (isRock(c, r) || cellAt(c, r)) continue;
+    let near = false;
+    for (let dr = -1; dr <= 1 && !near; dr++) for (let dc = -1; dc <= 1; dc++) { if (!dc && !dr) continue; const x = c + dc, y = r + dr; if (inBounds(x, y) && (isRock(x, y) || cellAt(x, y))) { near = true; break; } }
+    w[r * cols + c] = near ? 1 : 0;
+  }
+  STAR.sig = sig; STAR.walk = w; return w;
+}
+const starN = () => game.starfish.filter(s => s.mode !== 'leave' && !s.dead).length;
+function starCount() { return Math.min(CONFIG.threat.star.max, CONFIG.threat.star.base + Math.floor(game.polyps.length / CONFIG.threat.star.per)); }
+function spawnStar(side, near) {   // side -1 or 1; near: put it close to the reef (dev), else from the world edge (but at most startMax px from the reef)
+  const C = CONFIG.threat.star;
+  let x0 = 1e9, x1 = -1e9; for (const p of game.polyps) { x0 = Math.min(x0, p.c * CELL); x1 = Math.max(x1, (p.c + 1) * CELL); }
+  if (x0 > x1) { x0 = x1 = W / 2; }
+  let x = side < 0 ? 24 : W - 24;
+  if (C.startMax > 0) x = side < 0 ? Math.max(x, x0 - C.startMax) : Math.min(x, x1 + C.startMax);
+  if (near) x = side < 0 ? Math.max(24, x0 - near) : Math.min(W - 24, x1 + near);
+  x += rr(-90, 90);
+  const c = clamp(Math.floor(x / CELL), 1, game.cols - 2);
+  let r = game.floorRow[c] - 1; while (r > 2 && (cellAt(c, r) || isRock(c, r))) r--;
+  const s = { x: (c + 0.5) * CELL, y: (r + 0.5) * CELL, hp: C.hp, mode: 'move', path: [], pathT: 0, tgt: null, eat: 0, rot: Math.random() * 6.28, seed: Math.random() * 10, hurt: 0, alpha: 1, lx: 0, ly: 0, born: game.time, d2: 0 };
+  s.lx = s.x; s.ly = s.y; game.starfish.push(s); game.stats.starfishSeen++;
+  return s;
+}
+function startStar(a, dev) {
+  const T = game.thr, St = T.star, n = starCount(), C = CONFIG.threat.star;
+  St.ran = a; St.endAt = dev ? game.season.t + 240 : seasonStart(a + 1) + CONFIG.dayLen;
+  for (let i = 0; i < n; i++) spawnStar(i % 2 ? 1 : -1);
+  banner('Crown-of-thorns', `${n} starfish are creeping in along the floor. Sting them, or guard your branches with crabs`, '#ffb4b4');
+  toast(`${n} crown-of-thorns starfish have arrived`); sfx('rumble');
+}
+function starPath(s) {   // breadth first over crawlable cells to the nearest cell beside a polyp no crab guards
+  const walk = starWalk(), cols = game.cols, rows = game.rows, sc = clamp(Math.floor(s.x / CELL), 0, cols - 1), sr = clamp(Math.floor(s.y / CELL), 0, rows - 1);
+  const prev = new Int32Array(cols * rows).fill(-2), q = [sr * cols + sc], guard = new Map();
+  prev[sr * cols + sc] = -1;
+  const ok = p => { const k = key(p.c, p.r); let g = guard.get(k); if (g === undefined) { g = guarded(p); guard.set(k, g); } return !g; };
+  for (let i = 0; i < q.length; i++) {
+    const id = q[i], c = id % cols, r = (id / cols) | 0;
+    for (const [dc, dr] of NB_DIRS) { const p = livePolypAt(c + dc, r + dr); if (p && ok(p)) { const path = []; for (let x = id; x >= 0 && prev[x] !== -1; x = prev[x]) path.push({ x: ((x % cols) + 0.5) * CELL, y: (((x / cols) | 0) + 0.5) * CELL }); path.reverse(); return { path, tgt: p }; } }
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dc && !dr) continue;
+      const x = c + dc, y = r + dr; if (!inBounds(x, y) || !walk[y * cols + x] || prev[y * cols + x] !== -2) continue;
+      if (dc && dr && (isRock(x, r) || isRock(c, y))) continue;   // no cutting through a rock corner
+      prev[y * cols + x] = id; q.push(y * cols + x);
+    }
+  }
+  return null;
+}
+function starDie(s, by) {
+  s.dead = true; game.stats.starfishKilled++;
+  game.fx.push({ kind: 'ring', x: s.x, y: s.y, t: 0, life: 0.7 }); spawnParts('spark', s.x, s.y, 10); sfx('crunch', s.x, s.y);
+  if (!game.progress.starKill) { game.progress.starKill = true; toast('A starfish is dead'); }
+}
+function updateStar(dt) {
+  const T = game.thr, St = T.star, C = CONFIG.threat.star, a = seasonAbs(game.season.t);
+  if (a % SEASONS.length === THREAT.star.idx && T.plan.star[a] === true && St.ran !== a && game.goals.stage >= 4 && (game.dn.t % CONFIG.dayCycle) >= CONFIG.dayLen - CONFIG.dayFade) startStar(a);   // at dusk
+  if (!game.starfish.length) return;
+  const act = 1 - daylight(), sp = C.speed * lerp(C.day, 1, act), eatNeed = has('D3') ? C.eatD3 : C.eat;
+  for (const s of game.starfish) {
+    if (s.dead) continue;
+    s.hurt = Math.max(0, s.hurt - dt);
+    if (s.hp <= 0) { starDie(s); continue; }
+    if (s.mode !== 'leave' && game.season.t >= St.endAt && St.endAt >= 0) { s.mode = 'leave'; s.leaveT = 0; }
+    if (s.mode === 'leave') { s.leaveT += dt; s.alpha = 1 - s.leaveT / C.leaveSecs; if (s.leaveT >= C.leaveSecs) s.dead = true; continue; }
+    if (isRock(Math.floor(s.x / CELL), Math.floor(s.y / CELL))) { s.x = s.lx; s.y = s.ly; } else { s.lx = s.x; s.ly = s.y; }
+    s.pathT -= dt;
+    if (s.mode === 'eat') {
+      const p = s.tgt;
+      if (!p || p.dead || !game.polyps.includes(p) || guarded(p) || Math.hypot((p.c + 0.5) * CELL - s.x, (p.r + 0.5) * CELL - s.y) > CELL * 1.7) { s.mode = 'move'; s.tgt = null; s.path = []; s.pathT = 0; s.eat = 0; }
+      else {
+        const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL, k = 1 - Math.exp(-4 * dt);
+        s.x = lerp(s.x, px, k); s.y = lerp(s.y, py, k); s.rot += dt * 0.5;
+        s.eat += dt * lerp(C.day, 1, act);
+        if (Math.random() < dt * 3) spawnParts('dust', px, py, 1);
+        if (s.eat >= eatNeed) { s.eat = 0; game.stats.starfishEaten = (game.stats.starfishEaten || 0) + 1; killPolyp(p, game.progress.starEat ? '' : 'A starfish has eaten a polyp'); game.progress.starEat = true; s.mode = 'move'; s.tgt = null; s.path = []; s.pathT = 0; }
+        continue;
+      }
+    }
+    if (s.pathT <= 0 || (!s.path.length && !s.tgt)) {
+      s.pathT = C.repath; const r = starPath(s);
+      if (r) { s.path = r.path; s.tgt = r.tgt; } else { s.path = []; s.tgt = null; }
+    }
+    if (s.tgt && (s.tgt.dead || !game.polyps.includes(s.tgt))) { s.tgt = null; s.path = []; s.pathT = 0; }
+    if (s.path.length) {
+      const n = s.path[0], dx = n.x - s.x, dy = n.y - s.y, d = Math.hypot(dx, dy);
+      if (d < 3) s.path.shift(); else { const m = Math.min(d, sp * dt); s.x += dx / d * m; s.y += dy / d * m; s.rot += dt * 0.35; }
+    } else if (s.tgt) s.mode = 'eat';
+  }
+  game.starfish = game.starfish.filter(s => !s.dead);
+  if (St.ran >= 0 && !game.starfish.length && St.n !== -1) { St.n = -1; toast('The starfish are gone'); }
+  if (game.starfish.length) St.n = 0;
+}
+// D2 sweeper tentacles: an edge polyp stings a nibbler or starfish within 20 px of its edge every 4 s (1 damage), and clears one seaweed cell it touches every 15 s
+function updateSweepers(dt) {
+  if (!has('D2')) return;
+  const C = CONFIG.threat, foes = game.nibblers.concat(game.starfish).filter(n => !n.dead && n.mode !== 'leave');
+  for (const p of game.polyps) {
+    p.d2 = (p.d2 === undefined ? C.d2.every * Math.random() : p.d2) - dt; p.d2w = (p.d2w === undefined ? C.weed.d2 * Math.random() : p.d2w) - dt;
+    if (p.d2 <= 0 && foes.length && freeNeighbours(p).length) {
+      const f = foes.find(n => rectDist(n.x, n.y, p.c, p.r) <= C.d2.radius);
+      if (f) {
+        p.d2 = C.d2.every; const cc = cellCenter(p.c, p.r);
+        if (f.hp !== undefined && game.starfish.includes(f)) { f.hp -= C.star.d2Hp; f.hurt = 0.5; } else driveOff(f, cc.x, cc.y, CONFIG.nibblerFlee);
+        game.fx.push({ kind: 'sting', x: cc.x, y: cc.y, x1: f.x, y1: f.y, t: 0, life: 0.4, hit: true }); sfx('sting', cc.x, cc.y);
+      } else p.d2 = 0.3;
+    }
+    if (p.d2w <= 0 && game.seaweed.size) {
+      const k = NB_DIRS.map(([dc, dr]) => key(p.c + dc, p.r + dr)).find(x => game.seaweed.has(x));
+      if (k) { game.seaweed.delete(k); p.d2w = C.weed.d2; } else p.d2w = 1;
+    }
+  }
+}
+function drawStarOne(s, t) {
+  const hurt = s.hurt > 0, N = 9, R = 17 + (s.mode === 'eat' ? 1.5 * Math.sin(t * 6 + s.seed) : 0);
+  ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.rot); ctx.globalAlpha = Math.max(0, s.alpha);
+  if (has('D4')) { ctx.save(); ctx.rotate(-s.rot); ctx.strokeStyle = `rgba(255,120,120,${0.45 + 0.3 * Math.sin(t * 4 + s.seed)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, R + 6, 0, 6.3); ctx.stroke(); ctx.restore(); }   // crown watch: they show through rock
+  ctx.fillStyle = 'rgba(2,10,20,0.28)'; ctx.beginPath(); ctx.ellipse(1, 3, R * 0.9, R * 0.7, 0, 0, 6.3); ctx.fill();
+  for (let i = 0; i < N; i++) {   // arms: fat at the root, tapering to a point
+    const a = i / N * 6.283 + Math.sin(t * 0.8 + i * 1.7 + s.seed) * 0.06, len = R * (0.92 + 0.14 * Math.sin(i * 2.3 + s.seed)), w = 5.4;
+    const ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca, bend = Math.sin(t * 0.9 + i + s.seed) * 2.2;
+    ctx.fillStyle = hurt ? '#ffd6d0' : i % 2 ? '#8a2f6a' : '#a03562';
+    ctx.beginPath(); ctx.moveTo(ca * 3 + nx * w, sa * 3 + ny * w);
+    ctx.quadraticCurveTo(ca * len * 0.6 + nx * w * 0.6 + nx * bend, sa * len * 0.6 + ny * w * 0.6 + ny * bend, ca * len + nx * bend, sa * len + ny * bend);
+    ctx.quadraticCurveTo(ca * len * 0.6 - nx * w * 0.6 + nx * bend, sa * len * 0.6 - ny * w * 0.6 + ny * bend, ca * 3 - nx * w, sa * 3 - ny * w);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = hurt ? '#fff0ec' : '#c2476a'; ctx.beginPath(); ctx.arc(0, 0, 7.2, 0, 6.3); ctx.fill();
+  ctx.strokeStyle = hurt ? '#fff' : '#f0b45a'; ctx.lineWidth = 1.3; ctx.lineCap = 'round';
+  for (let i = 0; i < 26; i++) {   // the thorns: short bright spines over the disc and arms
+    const a = hash2(i, 3, 11) * 6.283, d = Math.sqrt(hash2(i, 5, 13)) * (R - 3), x = Math.cos(a) * d, y = Math.sin(a) * d, sa2 = a + (hash2(i, 7, 17) - 0.5) * 0.8;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(sa2) * 4.2, y + Math.sin(sa2) * 4.2); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawStarfish(t) { for (const s of game.starfish) if (!s.dead) drawStarOne(s, t); }
 function updateThreats(dt) {
   if (game.goals.stage < 2) return;
   planThreats();
-  updateHeat(dt); updateWeed(dt); updateDisease(dt);
+  updateHeat(dt); updateWeed(dt); updateDisease(dt); updateStar(dt); updateSweepers(dt);
 }
 function drawThreatPolyps(t) {   // bleached coral (white), seen over the tissue
   for (const p of game.polyps) {
