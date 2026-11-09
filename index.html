@@ -61,7 +61,7 @@
     background: radial-gradient(ellipse at 50% 20%, rgba(18, 88, 118, 0.7), rgba(2, 10, 22, 0.94) 72%); backdrop-filter: blur(5px); }
   #tree.open { display: flex; animation: tfade 0.25s ease-out; }
   @keyframes tfade { from { opacity: 0; } to { opacity: 1; } }
-  .tpanel { width: min(1080px, 94vw); max-height: 94vh; overflow: auto; box-sizing: border-box; padding: 20px 26px 16px; border-radius: 18px;
+  .tpanel { width: min(1240px, 96vw); max-height: 94vh; overflow: auto; box-sizing: border-box; padding: 20px 20px 16px; border-radius: 18px;
     background: linear-gradient(180deg, rgba(10, 46, 68, 0.8), rgba(3, 18, 34, 0.88)); border: 1px solid rgba(150, 220, 240, 0.22);
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
   .thead { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(150, 220, 240, 0.16); }
@@ -70,11 +70,11 @@
   .tres { display: flex; gap: 8px; }
   .tchip { padding: 5px 11px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); font-size: 12px; color: #9cc5d6; white-space: nowrap; }
   .tchip b { color: #fff; font-weight: 600; margin-left: 6px; }
-  .tcols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .tcols { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; gap: 10px; }
   .tcol h3 { margin: 0; padding-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: var(--ac); border-bottom: 2px solid var(--ac); }
   .tnode { position: relative; margin-top: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(160, 200, 220, 0.18); background: rgba(255, 255, 255, 0.04); transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
   .tnode + .tnode::before { content: ''; position: absolute; left: 22px; top: -17px; width: 2px; height: 17px; background: linear-gradient(var(--ac), rgba(255, 255, 255, 0.1)); opacity: 0.6; }
-  .tnode .nm { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: #fff; }
+  .tnode .nm { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: #fff; }
   .tnode .st { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 8px; white-space: nowrap; }
   .tnode .fxl { margin-top: 5px; font-size: 12.5px; line-height: 1.4; color: #bcdbe8; }
   .tnode .cost { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
@@ -262,6 +262,7 @@ const CONFIG = {
     dis: { chance: 0.5, delay: 30, every: 5, spread: 0.1, die: 40, cure: 10, p12Min: 1 },
     star: { chance: 0.5, base: 3, per: 50, max: 10, speed: 14, day: 1 / 3, eat: 6, eatD3: 9, hp: 3, sting: 1, d2Every: 4, d2Hp: 1, startMax: 1000, repath: 1.5, leaveSecs: 3 },
     d2: { every: 4, radius: 20 }, d3: { nibbler: 2, upkeep: 1.05 }, d5: { max: 20, hit: 14 },
+    revStings: 25, revNibbles: 60, revStarKilled: 5, revDiseaseLost: 10, revDeep: 15, revBleached: 10, revRecovered: 10,
     lateStar: 60, lateHeat: 3, lateWeed: 3,
   },
   longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
@@ -450,8 +451,22 @@ const TREE = [
     fx: () => `Each parrotfish bite makes ${CONFIG.res.parrot.sandS6} sand, not ${CONFIG.res.parrot.sand}. (Sand that washes away comes with the cyclone)`, done: 'Sand now piles up faster', ok: () => game.stats.sandMade >= CONFIG.res.revSand },
   { id: 'T4', tier: 2, branch: 'Coral types', name: 'Mixed thickets', hint: 'Grow three kinds of coral',
     fx: () => `A polyp beside another coral type: +${CONFIG.bio.t4Str} strength and +${Math.round((CONFIG.bio.t4Sun - 1) * 100)}% sun. White band disease cannot cross from one type to another`, done: 'Mixed coral holds and feeds better', ok: () => Object.values(typeCounts()).filter(n => n >= CONFIG.bio.revMixPolyps).length >= CONFIG.bio.revMixTypes },
+  { id: 'D2', tier: 1, branch: 'Defense', name: 'Sweeper tentacles', hint: 'Sting a lot',
+    fx: () => `Polyps with a water side sting a nibbler or starfish within ${CONFIG.threat.d2.radius} px every ${CONFIG.threat.d2.every} s, and clear one touching seaweed cell every ${CONFIG.threat.weed.d2} s`, done: 'Edge polyps now sting on their own', ok: () => game.stats.stings >= CONFIG.threat.revStings },
+  { id: 'D3', tier: 2, branch: 'Defense', name: 'Toxins', hint: 'Take a lot of bites',
+    fx: () => `Nibblers come half as often. Starfish take ${CONFIG.threat.star.eatD3} s to eat a polyp, not ${CONFIG.threat.star.eat}. Upkeep +${Math.round((CONFIG.threat.d3.upkeep - 1) * 100)}%`, done: 'The coral now tastes foul', ok: () => game.stats.nibbles >= CONFIG.threat.revNibbles },
+  { id: 'D4', tier: 3, branch: 'Defense', name: 'Crown watch', hint: 'Kill the starfish',
+    fx: () => 'A sting kills a starfish in one hit, not three. The forecast shows how many are coming, and starfish show through rock', done: 'You can see the crown-of-thorns coming', ok: () => game.stats.starfishKilled >= CONFIG.threat.revStarKilled },
+  { id: 'D5', tier: 3, branch: 'Defense', name: 'Firebreak', hint: 'Lose coral to disease',
+    fx: () => `Hold G and drag the right mouse across links between corals to seal up to ${CONFIG.threat.d5.max}. A sealed link carries no disease and no support. Drag across a seal to open it`, done: 'Hold G and drag the right mouse to seal links', ok: () => game.stats.diseaseLost >= CONFIG.threat.revDiseaseLost },
+  { id: 'C1', tier: 1, branch: 'Climate', name: 'Deep adaptation', hint: 'Live in the shade',
+    fx: () => `Light under ${CONFIG.threat.heat.c1Floor} counts as ${CONFIG.threat.heat.c1Floor} for sun income. Bleaching chance x${CONFIG.threat.heat.c1} for polyps where light is under ${CONFIG.threat.heat.c1Light}`, done: 'Deep coral now makes the most of dim water', ok: () => game.polyps.filter(p => lightOf(p) < CONFIG.threat.heat.c1Floor).length >= CONFIG.threat.revDeep },
+  { id: 'C2', tier: 2, branch: 'Climate', name: 'Heat hardening', hint: 'Survive bleaching',
+    fx: () => `Bleaching chance x${CONFIG.threat.heat.c2}`, done: 'The shallows now stand the heat better', ok: () => game.stats.bleached >= CONFIG.threat.revBleached },
+  { id: 'C3', tier: 2, branch: 'Climate', name: 'Recovery', hint: 'Nurse bleached coral back',
+    fx: () => `Bleached polyps recover in ${CONFIG.threat.heat.recoverC3} s, not ${CONFIG.threat.heat.recover}. Death at recovery ${Math.round(CONFIG.threat.heat.die * 100)}% down to ${Math.round(CONFIG.threat.heat.dieC3 * 100)}%. 1 in 10 comes back with more heat tolerance`, done: 'Bleached coral now recovers faster', ok: () => game.stats.recovered >= CONFIG.threat.revRecovered },
 ];
-const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Coral types', '#ff79c6']];
+const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Climate', '#6fd0ff'], ['Coral types', '#ff79c6']];
 const has = id => game.tree.state[id] === 'owned';
 const feedMult = p => p ? 1 + CONFIG.traitFeed * (linOf(p).traits.feed - 3) : 1;   // lineage trait: tentacle and self-feed reach
 const reach = () => (has('F2') ? CONFIG.longReach : CONFIG.tentacleReach) * feedMult(game.active);
