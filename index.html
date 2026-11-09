@@ -69,7 +69,7 @@
   .tres { display: flex; gap: 8px; }
   .tchip { padding: 5px 11px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); font-size: 12px; color: #9cc5d6; white-space: nowrap; }
   .tchip b { color: #fff; font-weight: 600; margin-left: 6px; }
-  .tcols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .tcols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
   .tcol h3 { margin: 0; padding-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: var(--ac); border-bottom: 2px solid var(--ac); }
   .tnode { position: relative; margin-top: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(160, 200, 220, 0.18); background: rgba(255, 255, 255, 0.04); transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
   .tnode + .tnode::before { content: ''; position: absolute; left: 22px; top: -17px; width: 2px; height: 17px; background: linear-gradient(var(--ac), rgba(255, 255, 255, 0.1)); opacity: 0.6; }
@@ -307,7 +307,7 @@ function inBounds(c, r) { return c >= 0 && r >= 0 && c < game.cols && r < game.r
 function isRock(c, r) { return !inBounds(c, r) ? (r >= 0 || false) : game.grid[r * game.cols + c] === 1; }
 function cellAt(c, r) { return game.cells.get(key(c, r)); }
 function floorY(x) { return game.floorRow[clamp(Math.floor(x / CELL), 0, game.cols - 1)] * CELL; }
-function currentAt(x, y, t) { return CONFIG.currentAmp * (Math.sin(t * 0.11 + y * 0.002) * 0.7 + Math.sin(t * 0.27 + 1.3 + x * 0.001) * 0.3); }
+function currentAt(x, y, t) { return CONFIG.currentAmp * (Math.sin(t * 0.11 + y * 0.002) * 0.7 + Math.sin(t * 0.27 + 1.3 + x * 0.001) * 0.3) + (game.storm ? stormSurge(x, y, t) : 0); }
 function playerPos() {
   if (game.stage === 'polyp' && game.active) return cellCenter(game.active.c, game.active.r);
   return { x: game.larva.x, y: game.larva.y };
@@ -342,8 +342,12 @@ const TREE = [
     fx: () => 'Q picks an anemone as the next bud. A pair of clownfish moves in soon after', done: 'Press Q to bud an anemone', ok: () => game.polyps.length >= CONFIG.revealAnemonePolyps },
   { id: 'D1', branch: 'Defense', name: 'Sting', hint: 'Something may come to nibble',
     fx: () => 'Right mouse or E stings toward the cursor. Stung nibblers flee', done: 'Right mouse or E stings', ok: () => game.stats.nibbles >= 1 },
+  { id: 'S1', branch: 'Structure', name: 'Thick base', hint: 'A storm will show where the reef is weak',
+    fx: () => `Polyps touching rock, and their neighbours, hold +${CONFIG.thickBase} firmer`, done: 'The reef thickens at its base', ok: () => game.stats.stormsSurvived >= 1 },
+  { id: 'S2', branch: 'Structure', name: 'Flexible tissue', hint: 'Lose branches to the sea, and the reef may learn to bend',
+    fx: () => `Branches flex instead of snapping: break chance x${CONFIG.flexMult}`, done: 'Branches now flex in the surge', ok: () => game.stats.stormLost >= CONFIG.revealStormLost },
 ];
-const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff']];
+const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff']];
 const has = id => game.tree.state[id] === 'owned';
 const reach = () => has('F2') ? CONFIG.longReach : CONFIG.tentacleReach;
 const autoRadius = () => has('F2') ? CONFIG.longAutoRadius : CONFIG.autoRadius;
@@ -655,6 +659,7 @@ function rectDist(px, py, c, r) {
   return Math.hypot(dx, dy);
 }
 function findSettleTarget() {
+  if (game.riding) return null;
   const L = game.larva, c = Math.floor(L.x / CELL), r = Math.floor(L.y / CELL);
   if (!inBounds(c, r) || isRock(c, r)) return null;
   const here = cellAt(c, r);
@@ -1759,12 +1764,12 @@ const palFor = kind => kind === 'skel' ? SKEL_PAL : has('F3') ? ALGAE_PAL : CORA
 const nodeCol = (u, pal) => mix3(pal.mid, pal.alt, tone(u.c, u.r) * 0.8);
 
 // every cell (any kind) with its nudged centre, parent cell and subtree size
-function buildModel(st) {
-  if (st === 4) { const nodes = wildSync(), list = [...nodes.values()]; for (const u of list) u.live = u.kind === 'skel' || growOf(u.q) >= 1; return { nodes, list }; }
+function buildModel(st, polys = game.polyps, skels = game.skeletons, all = false) {   // all: a fragment, every cell is grown in
+  if (st === 4) { const nodes = polys === game.polyps ? wildSync() : wildBuild(polys, skels), list = [...nodes.values()]; for (const u of list) u.live = all || u.kind === 'skel' || growOf(u.q) >= 1; return { nodes, list }; }
   const nodes = new Map(), list = [];
-  const add = (q, kind) => { const u = { c: q.c, r: q.r, kind, q, par: null, kids: [], size: 1, live: kind === 'skel' || growOf(q) >= 1 }; [u.x, u.y] = cpos(q.c, q.r, CAMP[st]); nodes.set(key(q.c, q.r), u); list.push(u); };
-  for (const p of game.polyps) add(p, 'poly');
-  for (const s of game.skeletons) add(s, 'skel');
+  const add = (q, kind) => { const u = { c: q.c, r: q.r, kind, q, par: null, kids: [], size: 1, live: all || kind === 'skel' || growOf(q) >= 1 }; [u.x, u.y] = cpos(q.c, q.r, CAMP[st]); nodes.set(key(q.c, q.r), u); list.push(u); };
+  for (const p of polys) add(p, 'poly');
+  for (const s of skels) add(s, 'skel');
   const under = (v, u) => { for (let n = 0; v && n < 500; n++, v = v.par) if (v === u) return true; return false; };
   for (const u of list) if (u.q.parent) { const v = nodes.get(key(u.q.parent.c, u.q.parent.r)); if (v && v !== u && !under(v, u)) u.par = v; }
   const rd = (c, r) => { let n = 0; while (!isRock(c, r + n + 1) && n < 60) n++; return n; };   // cells down to rock
@@ -1970,10 +1975,14 @@ function wildSync() {
   const full = sig + ',' + cellSig(game.polyps) + ',' + cellSig(game.skeletons);
   if (WT.full === full) return WT.info;
   WT.full = full;
+  WT.info = wildBuild(game.polyps, game.skeletons);
+  return WT.info;
+}
+function wildBuild(polys, skels) {   // the spanning tree of any group of cells (the whole reef, or a fragment)
   const nodes = new Map(), list = [];
   const add = (q, kind) => { const u = { c: q.c, r: q.r, kind, q, par: null, kids: [], size: 1, i: list.length, d: -1, live: true }; nodes.set(key(q.c, q.r), u); list.push(u); };
-  for (const p of game.polyps) add(p, 'poly');
-  for (const s of game.skeletons) add(s, 'skel');
+  for (const p of polys) add(p, 'poly');
+  for (const s of skels) add(s, 'skel');
   const under = (v, u) => { for (let n = 0; v && n < 600; n++, v = v.par) if (v === u) return true; return false; };
   for (const u of list) if (u.q.parent) { const v = nodes.get(key(u.q.parent.c, u.q.parent.r)); if (v && v !== u && !under(v, u)) u.par = v; }
   const seen = new Set(), rooted = u => isRock(u.c, u.r + 1) || isRock(u.c - 1, u.r) || isRock(u.c + 1, u.r) || isRock(u.c, u.r - 1);
@@ -1999,7 +2008,6 @@ function wildSync() {
     u.w = Math.min(12, 2.6 + 1.25 * Math.sqrt(u.size));   // limb width: thick at the base, thin at the tips
     u.sz = clamp(0.7 + 0.5 * hash2(u.c, u.r, 23) + (u.kids.length ? 0.04 * Math.min(3, Math.sqrt(u.size)) : -0.12), 0.7, 1.2);
   }
-  WT.info = nodes;
   return nodes;
 }
 // drawn position of a bud spot: where that polyp will be drawn (it will bud from the active polyp)
@@ -3032,10 +3040,11 @@ function drawOverlay(t) {
 }
 function worldTransform(g) {
   const v = game.view, c = game.cam;
-  g.setTransform(v.dpr * c.zoom, 0, 0, v.dpr * c.zoom, v.dpr * (v.w / 2 - c.x * c.zoom), v.dpr * (v.h / 2 - c.y * c.zoom));
+  g.setTransform(v.dpr * c.zoom, 0, 0, v.dpr * c.zoom, v.dpr * (v.w / 2 - c.x * c.zoom + (game.shx || 0)), v.dpr * (v.h / 2 - c.y * c.zoom + (game.shy || 0)));
 }
 function render() {
-  const t = game.time, L = game.look, on = L.on;
+  const t = game.time, L = game.look, on = L.on, shk = game.stormPw * CONFIG.stormShake;
+  game.shx = shk * (Math.sin(t * 53) + Math.sin(t * 31.7)) * 0.5; game.shy = shk * (Math.sin(t * 61 + 1) + Math.sin(t * 27.3)) * 0.5;   // a slight camera shake in a storm
   L.sigP = cellSig(game.polyps) + (has('F3') ? 7 : 0); L.sigS = cellSig(game.skeletons);
   const sm = L.sigP + L.sigS * 7 + (on.organic ? 1 : 0);
   if (sm !== L.sigM) { L.sigM = sm; refreshMask(); }
@@ -3053,14 +3062,16 @@ function render() {
   if (L.coral) drawCoralLayer(L.csPoly);
   else if (on.organic) drawCoralLayer(L.polyLayer);
   for (const p of game.polyps) (L.coral ? drawPolypStyled : drawPolypBody)(p, t, p === game.active && game.stage === 'polyp');
+  drawFrags(t);
   drawPolypTentacles(t);
   if (!post) { drawGuide(t); drawSpots(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
   for (const f of game.clown.fish) drawClown(f, t);
-  drawLarva(t);
+  if (!game.riding) drawLarva(t);
   if (on.layers) { drawSnow(t); drawForeground(t); worldTransform(ctx); }
+  if (game.stormPw > 0.01) { drawStormSky(t); worldTransform(ctx); }
   if (post) {   // hints, ghost cell and effects sit on their own canvas so the shaders never dim them
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
     worldTransform(uctx);
@@ -3078,6 +3089,7 @@ function updateMuteLabel() { el('muteNote').innerHTML = `<kbd style="font:inheri
 updateMuteLabel();
 function currentHint() {
   const pr = game.progress, n = game.polyps.length;
+  if (game.riding) return 'Adrift on a broken branch. It will land, and may take root';
   if (game.stage === 'larva') return pr.settled ? 'Find rock or your colony and press Space to settle again' : 'Swim (WASD) and find rock to settle on. Eat plankton for energy';
   if (!pr.tentacled) return 'Hold the mouse to catch plankton with your tentacles';
   const bud = clickMode() ? 'Hold the mouse on a glowing cell to bud a polyp' : spotMode() ? 'Hold the mouse on a glowing cell, or press a direction then hold Space, to bud' : 'Press a direction, then hold Space to bud a polyp';
@@ -3087,7 +3099,7 @@ function currentHint() {
 }
 function updateHud() {
   const p = playerPos(), l = light(p.y);
-  hud.stage.textContent = game.stage === 'larva' ? 'Larva' : game.polyps.length >= 2 ? 'Colony' : 'Polyp';
+  hud.stage.textContent = game.riding ? 'Adrift' : game.stage === 'larva' ? 'Larva' : game.polyps.length >= 2 ? 'Colony' : 'Polyp';
   hud.energy.textContent = Math.round(game.energy);
   hud.bar.style.width = (game.energy / CONFIG.maxEnergy * 100) + '%';
   hud.bar.style.background = game.energy < 8 ? '#ff8a7a' : '#7be3b0';
@@ -3633,16 +3645,210 @@ function drawStructure(t) {
   }
   ctx.restore();
 }
-function startStorm() {}
-function updateStorm(dt) {}
-function updateFrags(dt) {}
+/* ---------- storms: the water churns, weak branches snap off and drift away as fragments, some of which take root ---------- */
+const sm01 = x => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+const stormEnv = S => { const u = S.t / S.len; return u < 0.25 ? sm01(u / 0.25) : u < 0.65 ? 1 : sm01((1 - u) / 0.35); };   // ramps up, peaks, fades
+function startStorm(base) {
+  if (game.storm) return;
+  game.storm = { t: 0, len: CONFIG.stormSecs, base: base !== undefined ? base : game.stats.storms === 0 ? CONFIG.firstStormPower : 1, tick: 0, lost: 0, rooted: 0, rum: 0, dir: Math.random() < 0.5 ? -1 : 1, ended: false };
+  game.stats.storms++;
+  toast('The storm hits. Hold on'); beat(0.4, 0.5);
+}
+function stormSurge(x, y, t) { return game.storm ? game.storm.dir * CONFIG.stormCurrent * game.stormPw * (0.6 + 0.4 * Math.sin(t * 1.7 + y * 0.01)) : 0; }
+function updateStorm(dt) {
+  const S = game.storm;
+  if (!S) { game.stormPw = 0; return; }
+  S.t += dt;
+  const env = stormEnv(S);
+  game.stormPw = env * (0.5 + 0.5 * S.base);
+  if ((S.rum -= dt) <= 0 && env > 0.12) { S.rum = 1.5; sfx('rumble'); }
+  if (env >= 0.999) { S.tick += dt; while (S.tick >= CONFIG.stormTick) { S.tick -= CONFIG.stormTick; stormBreak(S.base); } }
+  if (S.t >= S.len) {
+    S.ended = true; game.storm = null; game.stormPw = 0; game.stats.stormsSurvived++;
+    stormReport(S);
+  }
+}
+function stormReport(S) {
+  if (!S.ended || S.reported || game.frags.some(f => f.storm === S)) return;
+  S.reported = true; toast(`Storm passed: lost ${S.lost} polyps, ${S.rooted} fragments took root`);
+}
+// each weak polyp may snap; the chance grows as the strength falls below stormSafe
+function stormBreak(power) {
+  const cand = game.polyps.filter(p => !touchesRock(p.c, p.r) && strength(p) < CONFIG.stormSafe);
+  for (let i = cand.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cand[i], cand[j]] = [cand[j], cand[i]]; }
+  let broke = 0;
+  for (const p of cand) {
+    if (p.frag || !game.cells.has(key(p.c, p.r))) continue;   // already carried off
+    const s = strength(p);
+    if (s >= CONFIG.stormSafe || touchesRock(p.c, p.r)) continue;
+    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1);
+    if (Math.random() < ch && breakOff(p)) broke++;
+  }
+  return broke;
+}
+// p snaps off: it and everything that was only held up through it leave as one fragment (null when that would leave too few polyps)
+function breakOff(p) {
+  const pk = key(p.c, p.r), held = new Set(), q = [];
+  for (const a of game.polyps) if (a !== p && touchesRock(a.c, a.r)) { held.add(key(a.c, a.r)); q.push(a); }
+  for (let i = 0; i < q.length; i++) for (const [dc, dr] of NB_DIRS) {   // everything still joined to rock without p
+    const k = key(q[i].c + dc, q[i].r + dr), o = game.cells.get(k);
+    if (o && k !== pk && !held.has(k)) { held.add(k); q.push(o.ref); }
+  }
+  const seen = new Set([pk]), cells = [p], polys = [p], skels = [];
+  for (let i = 0; i < cells.length; i++) for (const [dc, dr] of NB_DIRS) {
+    const k = key(cells[i].c + dc, cells[i].r + dr), o = game.cells.get(k);
+    if (o && !seen.has(k) && !held.has(k)) { seen.add(k); cells.push(o.ref); (o.kind === 'polyp' ? polys : skels).push(o.ref); }
+  }
+  if (game.polyps.length - polys.length < CONFIG.minPolyps) return null;
+  return makeFrag(polys, skels);
+}
+function makeFrag(polys, skels) {
+  const all = polys.concat(skels);
+  let cx = 0, cy = 0; for (const a of all) { cx += (a.c + 0.5) * CELL; cy += (a.r + 0.5) * CELL; } cx /= all.length; cy /= all.length;
+  const rest = game.polyps.filter(a => !polys.includes(a));
+  let mx = cx, my = cy; if (rest.length) { mx = rest.reduce((s, a) => s + (a.c + 0.5) * CELL, 0) / rest.length; my = rest.reduce((s, a) => s + (a.r + 0.5) * CELL, 0) / rest.length; }
+  const away = cx >= mx ? 1 : -1;
+  const f = { polys, skels, cx, cy, x: cx, y: cy, ang: 0, w: 0, vx: 0, vy: 0, px: away * CONFIG.fragmentPush, py: -CONFIG.fragmentPush * 0.4, age: 0, seed: Math.random() * 6, storm: game.storm, layers: null, st: -1, pts: new Map() };
+  for (const a of polys) { a.frag = f; game.cells.delete(key(a.c, a.r)); }
+  for (const a of skels) game.cells.delete(key(a.c, a.r));
+  game.polyps = game.polyps.filter(a => !a.frag);
+  game.skeletons = game.skeletons.filter(a => !skels.includes(a));
+  game.frags.push(f);
+  game.stats.stormLost += polys.length; if (game.storm) game.storm.lost += polys.length;
+  const a = game.active;
+  if (a && a.frag === f && game.stage === 'polyp') {   // the player rides it
+    game.riding = { frag: f, p: a }; game.active = null; game.stage = 'larva'; game.facing = null;
+    game.bud.t = 0; game.bud.armed = false; game.tent.ext = 0;
+    toast('Your branch snapped off. You are adrift on a fragment');
+  }
+  game.fx.push({ kind: 'ring', x: cx, y: cy, t: 0, life: 0.8, red: true });
+  spawnParts('dust', cx, cy, CONFIG.juice.dust); sfx('snap', cx, cy);
+  return f;
+}
+function fragPos(f, c, r) {   // world position of the cell centre after the fragment has drifted and tumbled
+  const dx = (c + 0.5) * CELL - f.cx, dy = (r + 0.5) * CELL - f.cy, ca = Math.cos(f.ang), sa = Math.sin(f.ang);
+  return { x: f.x + dx * ca - dy * sa, y: f.y + dx * sa + dy * ca };
+}
+function updateFrags(dt) {
+  const t = game.time;
+  for (const f of game.frags.slice()) {
+    f.age += dt;
+    f.vx += (currentAt(f.x, f.y, t) * 1.6 - f.vx) * (1 - Math.exp(-1.3 * dt));   // rides the current
+    f.px *= Math.exp(-1.2 * dt); f.py *= Math.exp(-1.2 * dt);
+    f.w = 0.4 * Math.sin(f.age * 0.9 + f.seed) * (1 + game.stormPw);
+    f.ang += f.w * dt;
+    f.x = clamp(f.x + (f.vx + f.px) * dt, CELL * 2, W - CELL * 2);
+    f.y += (CONFIG.fragmentSink * (1 + 0.4 * Math.sin(f.age * 1.3 + f.seed)) + f.py) * dt;
+    let hit = null;
+    if (f.age > CONFIG.fragmentAir) for (const a of f.polys.concat(f.skels)) {
+      const q = fragPos(f, a.c, a.r), c = Math.floor(q.x / CELL), r = Math.floor(q.y / CELL);
+      if (NB_DIRS.concat([[1, 1], [-1, 1], [1, -1], [-1, -1], [0, 0]]).some(([dc, dr]) => isRock(c + dc, r + dr))) { hit = q; break; }
+    }
+    if (hit) landFrag(f, hit);
+    else if (f.age > CONFIG.fragmentLife) crumbleFrag(f, { x: f.x, y: f.y });
+  }
+  const R = game.riding;
+  if (R) { const q = fragPos(R.frag, R.p.c, R.p.r), L = game.larva; L.x = q.x; L.y = q.y; L.vx = L.vy = 0; L.inv = 1; }
+}
+function landFrag(f, q) { if (Math.random() < CONFIG.fragmentRoot && rootFrag(f, q)) return; crumbleFrag(f, q); }
+function dropFrag(f) { game.frags = game.frags.filter(a => a !== f); if (f.storm) stormReport(f.storm); }
+// part of it takes root: up to fragmentRootMax polyps become a new patch on free rock-touching cells near q; the rest turn into a few skeleton bits or dust
+function rootFrag(f, q) {
+  const c0 = Math.floor(q.x / CELL), r0 = Math.floor(q.y / CELL), cand = [];
+  for (let dr = -7; dr <= 7; dr++) for (let dc = -7; dc <= 7; dc++) {
+    const c = c0 + dc, r = r0 + dr;
+    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r) && touchesRock(c, r)) cand.push([c, r, dc * dc + dr * dr]);
+  }
+  if (!cand.length) return false;
+  cand.sort((a, b) => a[2] - b[2]);
+  const rider = game.riding && game.riding.frag === f ? game.riding.p : null;
+  const order = f.polys.slice().sort((a, b) => (b === rider) - (a === rider)), n = Math.min(CONFIG.fragmentRootMax, order.length);
+  const pick = [cand[0]];
+  const rest = cand.slice(1).sort((a, b) => Math.hypot(a[0] - cand[0][0], a[1] - cand[0][1]) - Math.hypot(b[0] - cand[0][0], b[1] - cand[0][1]));
+  for (const k of rest) { if (pick.length >= n) break; if (Math.hypot(k[0] - cand[0][0], k[1] - cand[0][1]) <= 4) pick.push(k); }
+  const placed = [];
+  pick.forEach((k, i) => {
+    const p = order[i]; p.c = k[0]; p.r = k[1]; p.frag = null; p.dead = false; p.born = game.time; p.pop = 1; p.hp = CONFIG.polypHp; p.parent = i ? { c: pick[0][0], r: pick[0][1] } : null;
+    game.polyps.push(p); game.cells.set(key(p.c, p.r), { kind: 'polyp', ref: p }); placed.push(p);
+    game.fx.push({ kind: 'ring', x: (p.c + 0.5) * CELL, y: (p.r + 0.5) * CELL, t: 0, life: 0.7 });
+  });
+  let bits = 0;
+  for (const p of placed) for (const [dc, dr] of NB_DIRS) {
+    if (bits >= Math.min(2, order.length - placed.length)) break;
+    const c = p.c + dc, r = p.r + dr;
+    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r)) { const s = { c, r, parent: { c: p.c, r: p.r } }; game.skeletons.push(s); game.cells.set(key(c, r), { kind: 'skel', ref: s }); bits++; }
+  }
+  spawnParts('dust', q.x, q.y, 6); sfx('thud');
+  if (f.storm) f.storm.rooted++;
+  game.stats.rooted++;
+  if (rider) {
+    game.riding = null; setActive(rider); game.stage = 'polyp'; game.hop = null;
+    toast('The fragment took root. You settle on a new patch');
+  }
+  for (const p of order.slice(placed.length)) p.frag = null;
+  dropFrag(f);
+  return true;
+}
+function crumbleFrag(f, q) {
+  for (const a of f.polys.concat(f.skels).slice(0, 24)) { const w = fragPos(f, a.c, a.r); spawnParts('dust', w.x, w.y, 2); }
+  game.fx.push({ kind: 'ring', x: q.x, y: q.y, t: 0, life: 0.7, red: true });
+  for (const p of f.polys) p.frag = null;
+  const R = game.riding;
+  if (R && R.frag === f) {
+    game.riding = null; game.stage = 'larva'; game.active = null;
+    freeLarva(clamp(Math.floor(q.x / CELL), 1, game.cols - 2), clamp(Math.floor(q.y / CELL), 1, game.rows - 2), 1.5);
+    toast('The fragment crumbled. You swim free as a larva');
+  }
+  dropFrag(f);
+}
+// the cached look of a fragment, built the same way as the reef so it keeps its shape (rebuilt when the coral style changes)
+function ensureFragLayers(f) {
+  const st = game.look.coral; if (f.st === st && f.layers) return;
+  f.st = st; f.pts = new Map();
+  if (!st) { f.layers = []; for (const a of f.polys.concat(f.skels)) f.pts.set(key(a.c, a.r), cellCenter(a.c, a.r)); return; }
+  const M = buildModel(st, f.polys, f.skels, true);
+  for (const u of M.list) f.pts.set(key(u.c, u.r), { x: u.x, y: u.y });
+  f.layers = [styleLayer(M, st, 'skel'), styleLayer(M, st, 'poly')];
+}
+function drawFrags(t) {
+  for (const f of game.frags) {
+    ensureFragLayers(f);
+    ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.ang); ctx.translate(-f.cx, -f.cy);
+    for (const l of f.layers) drawCoralLayer(l);
+    if (!f.layers.length) for (const a of f.skels.concat(f.polys)) { const q = f.pts.get(key(a.c, a.r)); ctx.fillStyle = a.dead === undefined ? '#e2d9c5' : '#f07c6e'; ctx.beginPath(); ctx.arc(q.x, q.y, 10, 0, 6.3); ctx.fill(); }
+    for (const p of f.polys) {   // a mouth on each polyp
+      const q = f.pts.get(key(p.c, p.r)) || cellCenter(p.c, p.r), riding = game.riding && game.riding.p === p;
+      if (riding) {
+        const g = ctx.createRadialGradient(q.x, q.y, 4, q.x, q.y, 34); g.addColorStop(0, 'rgba(255,245,170,0.5)'); g.addColorStop(1, 'rgba(255,245,170,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(q.x, q.y, 34, 0, 6.3); ctx.fill();
+      }
+      if (p.anemone) continue;
+      ctx.fillStyle = riding ? '#ffe6dc' : '#ffcfc2'; ctx.beginPath(); ctx.arc(q.x, q.y, 4, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#7a2a3a'; ctx.beginPath(); ctx.arc(q.x, q.y - 0.2, 1.7, 0, 6.3); ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+// the darkened, streaming water: a dim wash and long streaks of silt racing across the screen
+function drawStormSky(t) {
+  const v = game.view, pw = game.stormPw, dir = game.storm ? game.storm.dir : 1;
+  ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
+  ctx.fillStyle = `rgba(3,12,28,${CONFIG.stormDark * pw})`; ctx.fillRect(0, 0, v.w, v.h);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 70; i++) {
+    const h1 = hash2(i, 1, 91), h2 = hash2(i, 2, 92), h3 = hash2(i, 3, 93), sp = 500 + 900 * h3, len = 30 + 110 * h1;
+    const x = ((h1 * v.w * 1.7 + dir * t * sp) % (v.w + 300) + (v.w + 300)) % (v.w + 300) - 150, y = h2 * v.h + Math.sin(t * 2 + i) * 8;
+    ctx.strokeStyle = `rgba(200,225,235,${0.2 * pw * (0.4 + h3)})`; ctx.lineWidth = 1 + 1.6 * h3;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - dir * len, y + len * 0.12); ctx.stroke();
+  }
+}
 
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
   game.time += dt;
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
-  if (game.stage === 'larva') updateLarva(dt); else game.settleTarget = null;
+  if (game.stage === 'larva' && !game.riding) updateLarva(dt); else game.settleTarget = null;
   if (!devs.noFish) updateFish(dt);
   if (!devs.noNib) updateNibblers(dt);
   updateClown(dt);
