@@ -227,7 +227,7 @@ const CONFIG = {
   flowDir: 1, flowRegain: 0.08, flowFloor: 0.25, flowBlock: { branch: 0.15, anemone: 0.10, plate: 0.25, brain: 0.60, fan: 0.30, skel: 0.30, rock: 1.0 }, flowStreaks: 220,
   shadeRows: 8, shade: { branch: 0.12, anemone: 0.05, plate: 0.45, brain: 0.20, fan: 0.05, skel: 0.10 }, plateSideShade: 0.5, shadeLowLight: 0.25,
   // reef report
-  reportAutoSecs: 7, reportHiSecs: 5, reportTop: [[0, 3], [100, 4], [200, 5]], reportFlowLow: 0.3, reportFlowN: 8, reportWeakN: 10, reportArmN: 8, reportShadeN: 10, reportFullSecs: 30, reportTreeSecs: 60,
+  reportAutoSecs: 7, reportHiSecs: 5, reportTop: [[0, 3], [100, 4], [200, 5]], reportFlowLow: 0.3, reportFlowN: 8, reportWeakN: 10, reportArmN: 8, reportShadeN: 10, reportHotN: 15, reportFullSecs: 30, reportTreeSecs: 60,
   // seasons and storms (a year = 4 seasons; the clock runs from the Colony stage on; stormAt = storm starts, s into the storm season)
   yearSecs: 480, seasonSecs: 120, firstCalmSecs: 360, forecastSecs: 60, stormSecs: 25, stormSeason: 2, stormAt: [35, 85], stormTick: 2, stormSafe: 4, breakK: 0.5, firstStormPower: 0.6, flexMult: 0.5, revealStormLost: 8,
   stormCurrent: 150, stormShake: 7, stormDark: 0.5,
@@ -238,7 +238,7 @@ const CONFIG = {
   sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 } },
+  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 } },
   // biodiversity (content.md 0.1): B = resident species values x happiness factor + coral types + lineages; income x (1 + mult x B); BP per second = B / bpDiv from Colony on
   bio: { calcSecs: 0.5, typeValue: 2, lineageMin: 10, lineageValue: 1, lineageCap: 8, mult: 0.01, bpDiv: 120, happy: 1, content: 0.8, unhappy: 0.5, t4Sun: 1.1, t4Str: 0.6, revMixTypes: 3, revMixPolyps: 10 },
   // residents (content.md 3). Per kind: stage = goals.stage needed, arrive = s after the habitat exists, max = most at once, value = species value, leave = s the habitat may stay broken
@@ -254,6 +254,15 @@ const CONFIG = {
     moray: { stage: 3, arrive: 60, max: 2, value: 5, leave: 20, minLen: 2, scare: 8, eat: 20, seen: 60, idleSpeed: 70, strikeSpeed: 230, peek: 0.7 },
     goby: { stage: 3, arrive: 40, max: 2, value: 2, value2: 2, leave: 30, cols: 4, up: 2, alarm: 8, alarmDmg: 0.5, alarmSecs: 5, alarmRange: 10, sandEvery: 20, sandRange: 6 },
     turtle: { stage: 3, value: 6, stay: 90, cols: 5, light: 0.5, up: 3, graze: 3, grazeRange: 12, speed: 60 },
+  },
+  // threats (content.md 4.3 to 4.6): heat wave and bleaching, seaweed, white band disease, crown-of-thorns starfish
+  threat: {
+    heat: { chance: 0.6, len: 80, check: 10, base: 0.05, f3: 1.6, c1: 0.5, c1Light: 0.6, c2: 0.6, lightLo: 0.5, lightSpan: 0.4, heatK: 0.2, recover: 90, recoverC3: 45, die: 0.3, dieC3: 0.08, caught: 3, caughtDie: 1 / 3, sportC3: 0.1, c1Floor: 0.4, whiten: 3 },
+    weed: { chance: 0.7, every: 5, bg: 0.02, bloom: 0.2, seeds: 3, grazerGap: 15, seedMin: 5, seedMax: 30, light: 0.75, lightMax: 2, weakHp: 0.4, smother: 0.6, d2: 15, cap: 700, p5: 15, p5Cells: 10 },
+    dis: { chance: 0.5, delay: 30, every: 5, spread: 0.1, die: 40, cure: 10, p12Min: 1 },
+    star: { chance: 0.5, base: 3, per: 50, max: 10, speed: 14, day: 1 / 3, eat: 6, eatD3: 9, hp: 3, sting: 1, d2Every: 4, d2Hp: 1, startMax: 1000, repath: 1.5, leaveSecs: 3 },
+    d2: { every: 4, radius: 20 }, d3: { nibbler: 2, upkeep: 1.05 }, d5: { max: 20, hit: 14 },
+    lateStar: 60, lateHeat: 3, lateWeed: 3,
   },
   longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
   algaeSunMult: 3,
@@ -327,7 +336,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0 },
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1 },   // reef report
   season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
@@ -337,7 +346,8 @@ const game = {
   calcium: 0, calciumOn: false,
   species: [],
   res: { list: [], habs: [], rush: 0, tickT: 0, sig: '', clownBroken: 0, turtleYear: -1, pin: null, fishE: 0, noneT: 0 },   // residents: list of animals, habitats found on the grid
-  bio: { B: 0, parts: [], t: 0 }, bp: 0, sand: 0, seaweed: new Set(), starfish: [],   // seaweed and starfish arrive in later slices; the hooks are here
+  bio: { B: 0, parts: [], t: 0 }, bp: 0, sand: 0, seaweed: new Set(), starfish: [],
+  thr: { plan: { heat: {}, weed: {}, star: {} }, n: { heat: 0, weed: 0, star: 0 }, heat: { on: false, t: 0, checkT: 0, hit: [], ran: -1 }, weed: { on: false, t: 0, tick: 0, ran: -1 }, dis: { on: false, tick: 0, startAt: -1, seals: new Set() }, star: { ran: -1, endAt: -1, n: 0 } },   // threats: which seasons will bring them, and their running state
   goals: { stage: 0, chk: 0, shown: 0 },   // stage = how many STAGES are reached (0 = none yet); never goes down
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
@@ -720,7 +730,7 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank, c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
+        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (p.cap.poly.bl) p.cap.poly.bl.n++; gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank, c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
         continue;
       }
     }
@@ -846,12 +856,12 @@ function freeLarva(c0, r0, inv) {
   L.x = best.x; L.y = best.y; L.vx = dx * 14; L.vy = dy * 14 - 6; L.inv = inv;
 }
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
-function killPolyp(p) {
+function killPolyp(p, why) {   // why: the toast for a polyp that was not the active one ('' for none)
   const cc = drawPos(p), was = p === game.active && game.stage === 'polyp';
   toSkeleton(p);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.7, red: true });
   spawnParts('dust', cc.x, cc.y, CONFIG.juice.dust);
-  if (!was) { toast('A polyp was eaten and left a skeleton'); return; }
+  if (!was) { const m = why === undefined ? 'A polyp was eaten and left a skeleton' : why; if (m) toast(m); return; }
   let nb = null;
   for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     const o = cellAt(p.c + dc, p.r + dr);
@@ -1939,7 +1949,7 @@ function updatePolyps(dt) {
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const l = lightOf(p);
-    game.energy = Math.min(cap, game.energy + CONFIG.sunRate * l * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * dl * dt);   // more factors (heat) multiply in here later
+    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * dl * dt);   // more factors (heat) multiply in here later
     if (l >= CONFIG.dimBelow && dl > 0.5) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
     if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * dt);
@@ -1964,7 +1974,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (isNight()) game.stats.nightPlankton++; }
+          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
@@ -4108,6 +4118,7 @@ function render() {
   drawPolypTentacles(t);
   if (!post) { drawGuide(t); drawSpots(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
+  drawThreatPolyps(t);
   for (const f of game.fish) drawFish(f, t);
   for (const n of game.nibblers) drawNibbler(n, t);
   for (const f of game.clown.fish) drawClown(f, t);
@@ -4303,7 +4314,7 @@ function devSettle() {
 }
 // meet the goals of stage n (1 = Polyp ...) instantly, then run the stage-up moment(s)
 function devStage(n) {
-  if (n > 3) { toast('Not reachable yet', true); return; }
+  if (n > 4) { toast('Not reachable yet', true); return; }
   if (!game.progress.settled || game.stage === 'larva' && !game.polyps.length) devSettle();
   game.progress.settled = true;
   if (n >= 2) devGrow(Math.max(0, CONFIG.stageColonyPolyps - game.polyps.length));
@@ -4314,6 +4325,7 @@ function devStage(n) {
     for (let k = 0; k < 6 && patchCount() < CONFIG.stageReefPatches; k++) devPatch();
   }
   if (n > game.goals.stage) checkStage();
+  if (n >= 4 && game.goals.stage === 3) stageUp(4);   // Reef crest has no goals yet: the dev tools can still take the game there, to try what it opens
 }
 function devSpawnRes(kind) {   // a resident of this kind right now, ignoring its habitat
   if (kind === 'clown') { if (anemones().length && !game.clown.fish.length) spawnClowns(); else toast('Needs an anemone and no clownfish yet', true); return null; }
@@ -4655,7 +4667,7 @@ window.addEventListener('resize', resize);
 /* ---------- seasons: a year of four seasons on a clock that runs from the Colony stage; storms are announced ahead ---------- */
 const SEASONS = [
   { name: 'Calm', col: '#8fc4dc', info: 'Quiet water. A good time to grow and to brace the reef. The first Calm is long, to settle in.' },
-  { name: 'Warm', col: '#ffb36b', soon: true, info: 'Heat waves will bleach the shallows. Calm for now.' },
+  { name: 'Warm', col: '#ffb36b', info: 'From the Reef stage, a heat wave can bleach the bright shallows. Deep coral and heat-tolerant lineages are safer.' },
   { name: 'Storm season', col: '#a998ff', info: 'Two storms roll through. Weak, thin branches snap and drift off as fragments; some take root elsewhere.' },
   { name: 'Wet', col: '#6fd0b8', soon: true, info: 'Runoff brings seaweed and nutrients. Calm for now.' },
 ];
@@ -4686,12 +4698,19 @@ function updateSeason(dt) {
   }
   if (S.t >= s && S.fired !== s) { S.fired = s; startStorm(); }
 }
+function threatLine() {   // [text, class] for a threat that is running or 60 s away, else null
+  const T = game.thr, C = CONFIG.threat;
+  if (T.heat.on) return [`Heat wave! ${mmss(C.heat.len - T.heat.t)} left`, 'storm'];
+  if (threatOdds('heat') === 'yes' && seasonInto(nextAbs(1)) < 0) return [`Heat wave in ${mmss(-seasonInto(nextAbs(1)))}`, 'warn'];
+  return null;
+}
 const yearPhase = () => { const t = game.season.t, a = seasonAbs(t); return (seasonIdx(t) + (t - seasonStart(a)) / (a ? CONFIG.seasonSecs : CONFIG.firstCalmSecs)) / SEASONS.length; };
 function seasonText() {   // [name, forecast line, class]
   const S = game.season, nm = SEASONS[seasonIdx(S.t)].name;
   if (game.storm) return [nm, `Storm! ${mmss(game.storm.len - game.storm.t)} left`, 'storm'];
   const s = nextStormStart(S.t);
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
+  const th = threatLine(); if (th) return [nm, th[0], th[1]];
   return [nm, 'Calm', ''];
 }
 const seasonEl = document.getElementById('season'), seasonCard = document.getElementById('seasoncard');
@@ -4717,10 +4736,16 @@ function updateSeasonUi() {
   }
   if (seasonCard.style.display === 'block') { seasonCard.style.top = seasonEl.style.top; }
 }
+const THREAT_NAME = { heat: ['Heat wave', 'Warm'], weed: ['Seaweed bloom', 'Wet'], star: ['Starfish outbreak', 'Wet'] };
+function oddsHtml() {   // what each threat will do in its next season: certain, possible, or exactly coming
+  let h = '';
+  for (const k in THREAT_NAME) { const o = threatOdds(k); if (o) h += `<div class="od"><b>${THREAT_NAME[k][0]}</b> next ${THREAT_NAME[k][1]}: ${o === 'yes' ? 'coming' : o}</div>`; }
+  return h ? `<div class="k od">${h}</div>` : '';
+}
 function renderSeasonCard() {
   const cur = seasonIdx(game.season.t);
   seasonCard.innerHTML = '<h4>The year</h4>' + SEASONS.map((s, i) => `<div class="sn${i === cur ? ' cur' : ''}"><b style="color:${s.col}">${s.name}</b> <i>${i === 0 ? CONFIG.firstCalmSecs + ' s the first time, then ' + seasonLen() : seasonLen()} s${s.soon ? ', coming soon' : ''}</i><p>${s.info}</p></div>`).join('') +
-    `<div class="k">A year is ${CONFIG.yearSecs} s. Each season holds one day and one night. The clock starts when the reef becomes a colony.</div>`;
+    oddsHtml() + `<div class="k">A year is ${CONFIG.yearSecs} s. Each season holds one day and one night. The clock starts when the reef becomes a colony.</div>`;
 }
 seasonEl.addEventListener('click', () => {
   const open = seasonCard.style.display !== 'block';
@@ -4976,6 +5001,10 @@ function findProblems() {
   for (const r of RZ.list) if (resLive(r) && !r.visitor && r.hap < C.res.hapContent && !(r.hab && r.hab.broken !== null) && !(r.kind === 'clown' && RZ.clownBroken > 0)) { const [miss, fix] = missingOf(r); add('P7', 15, `The ${RES[r.kind].name.toLowerCase()} is unhappy: ${miss}.`, fix, near(r, 5)); }
   if (game.goals.stage >= 2 && RZ.noneT >= C.res.noneSecs) add('P17', 25, 'No animals have moved in yet.', 'Bud an anemone (Q) for clownfish, grow a dense branching thicket for crabs, or leave a roofed cave for a cleaner shrimp.', []);
   if (game.time - (RZ.urchinChew === undefined ? -999 : RZ.urchinChew) < 30) add('P14', 20, 'Urchins have run out of seaweed and are chewing your coral.', 'Let a small seaweed patch stay, or fill in the crevices near the coral.', P.filter(p => p.hurt > 0 || p.hp < CONFIG.polypHp));
+  if (threatOdds('heat') === 'yes' && seasonInto(nextAbs(1)) < 0) {
+    const hot = P.filter(p => heatDepth(p) >= 0.5);
+    if (hot.length >= C.reportHotN) add('P6', 35, `${hot.length} polyps sit in the hot shallows, and a heat wave is coming.`, 'Grow deeper for now, keep heat-tolerant lineages, and feed well at night.', hot);
+  }
   const top = C.reportTop.reduce((a, [from, k]) => n >= from ? k : a, 3);
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
 }
@@ -5315,6 +5344,102 @@ function drawStormSky(t) {
   }
 }
 
+/* ---------- threats: heat waves and bleaching, seaweed, white band disease, crown-of-thorns starfish (content.md 4.3 to 4.6) ---------- */
+const THREAT = { heat: { idx: 1, min: 3, late: CONFIG.threat.lateHeat }, weed: { idx: 3, min: 3, late: CONFIG.threat.lateWeed }, star: { idx: 3, min: 4, late: CONFIG.threat.lateStar } };   // season index it comes in, stage needed, s into the season it can still be decided
+const nextAbs = idx => { let a = seasonAbs(game.season.t); while (a % SEASONS.length !== idx) a++; return a; };   // this season if it is that one, else the next one that is
+const seasonInto = a => game.season.t - seasonStart(a);
+// decides, once per season, whether a threat comes: the first after its stage is certain, then a chance. The forecast shows it from 60 s ahead
+function planThreats() {
+  const T = game.thr;
+  if (game.goals.stage < 2) return;
+  for (const k in THREAT) {
+    const D = THREAT[k]; if (game.goals.stage < D.min) continue;
+    const a = nextAbs(D.idx); if (T.plan[k][a] !== undefined) continue;
+    const into = seasonInto(a);
+    if (into < -CONFIG.forecastSecs) continue;
+    if (into > D.late) { T.plan[k][a] = false; continue; }   // the stage was reached too late for this season
+    const certain = T.n[k] === 0; T.n[k]++;
+    T.plan[k][a] = certain || Math.random() < CONFIG.threat[k].chance;
+  }
+}
+// what the forecast knows about a threat in the next season of its kind: 'yes' (decided, within 60 s), 'certain', 'possible' or null (stage not reached, or decided against)
+function threatOdds(k) {
+  const D = THREAT[k], T = game.thr; if (game.goals.stage < D.min) return null;
+  const a = nextAbs(D.idx), into = seasonInto(a), pl = T.plan[k][a];
+  if (pl === true && into > -CONFIG.forecastSecs - 1 && into < D.late + 1) return 'yes';
+  if (pl === false) return null;
+  return T.n[k] === 0 ? 'certain' : 'possible';
+}
+function banner(h, p, col) {
+  const b = document.getElementById('banner'); b.innerHTML = `<h1>${h}</h1><p>${p}</p>`; b.style.color = col || '';
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+}
+/* heat wave: the 80 s of a Warm day, checked every 10 s. Shallow coral may bleach; a bleached polyp makes no sun, and recovers (or dies) later */
+const heatDepth = p => clamp((light(p.r * CELL + CELL / 2) - CONFIG.threat.heat.lightLo) / CONFIG.threat.heat.lightSpan, 0, 1);   // 0 deep, 1 in the bright shallows
+function bleachChance(p) {
+  const C = CONFIG.threat.heat, lg = light(p.r * CELL + CELL / 2);
+  return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1);
+}
+function startHeat(a) {
+  const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a;
+  banner('Heat wave', 'The shallows are too warm. Bright coral may bleach', '#ffd9a0');
+  toast('A heat wave has begun: shallow coral may bleach'); sfx('forecast');
+}
+function endHeat() {
+  const H = game.thr.heat, T = game.thr, C = CONFIG.threat; H.on = false;
+  toast('The heat wave has passed');
+  if (game.goals.stage >= 4 && H.hit.length && Math.random() < C.dis.chance) T.dis.startAt = game.season.t + C.dis.delay;   // disease may follow
+}
+function bleach(p) {
+  p.bl = { t: 0, n: 0 }; game.thr.heat.hit.push(p); game.stats.bleached++;
+  if (!game.progress.bleached) { game.progress.bleached = true; toast('Coral is bleaching: the polyps turn white and stop making sun'); }
+}
+function heatSport(p) {   // C3: some recovered polyps come back with more heat tolerance (and less of another trait)
+  const par = linOf(p); if (par.traits.heat >= 5) return;
+  const ks = Object.keys(par.traits).filter(k => k !== 'heat' && par.traits[k] > 1); if (!ks.length) return;
+  const traits = Object.assign({}, par.traits); traits.heat++; traits[ks[Math.floor(Math.random() * ks.length)]]--;
+  const L = { id: game.lineages.length, hue: (par.hue + CONFIG.sportHueMin + Math.random() * (CONFIG.sportHueMax - CONFIG.sportHueMin)) % 360, traits, parent: par.id };
+  game.lineages.push(L); p.lin = L.id; game.stats.sports++; toast('A polyp came back from bleaching tougher: Heat tolerance up');
+}
+function updateBleach(dt) {
+  const C = CONFIG.threat.heat, need = has('C3') ? C.recoverC3 : C.recover;
+  for (const p of game.polyps.slice()) {
+    if (!p.bl) continue;
+    p.bl.t += dt; if (p.bl.t < need) continue;
+    const dieP = (has('C3') ? C.dieC3 : C.die) * (p.bl.n >= C.caught ? C.caughtDie : 1);
+    if (Math.random() < dieP) { game.stats.bleachDied++; killPolyp(p, ''); continue; }
+    p.bl = null; game.stats.recovered++;
+    const cc = cellCenter(p.c, p.r); spawnParts('heal', cc.x, cc.y - 4, 3);
+    if (has('C3') && Math.random() < C.sportC3) heatSport(p);
+  }
+}
+function updateHeat(dt) {
+  const T = game.thr, H = T.heat, C = CONFIG.threat.heat, a = seasonAbs(game.season.t);
+  if (!H.on && a % SEASONS.length === THREAT.heat.idx && T.plan.heat[a] === true && H.ran !== a && seasonInto(a) >= 0) startHeat(a);
+  if (H.on) {
+    H.t += dt; H.checkT += dt;
+    while (H.checkT >= C.check) { H.checkT -= C.check; for (const p of game.polyps) if (!p.bl && Math.random() < bleachChance(p)) bleach(p); }
+    if (H.t >= C.len) endHeat();
+  }
+  updateBleach(dt);
+}
+function updateThreats(dt) {
+  if (game.goals.stage < 2) return;
+  planThreats();
+  updateHeat(dt);
+}
+function drawThreatPolyps(t) {   // bleached coral (white), seen over the tissue
+  for (const p of game.polyps) {
+    if (!p.bl) continue;
+    const cc = polypPos(p), k = clamp(p.bl.t / CONFIG.threat.heat.whiten, 0, 1);
+    ctx.save(); ctx.translate(cc.x, cc.y);
+    const g = ctx.createRadialGradient(0, 0, 2, 0, 0, 15);
+    g.addColorStop(0, `rgba(250,248,240,${0.95 * k})`); g.addColorStop(0.65, `rgba(244,240,230,${0.82 * k})`); g.addColorStop(1, 'rgba(240,236,226,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 6.3); ctx.fill();
+    ctx.restore();
+  }
+}
+
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
@@ -5329,7 +5454,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
+  updateSeason(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
