@@ -4497,6 +4497,15 @@ function devHabitats() {
   if (s) for (let k = 0; k < 8; k++) for (let j = 1; j <= 2; j++) { const r = game.floorRow[s.c + k] - j; if (free(s.c + k, r)) toSkeleton(addPolyp(s.c + k, r)); }
   SUP.sig = null; FLD.sig = null;
 }
+function devSport() {   // a bud from the active polyp that is a sport, right now
+  const a = game.active; if (!a) { toast('Settle first', true); return; }
+  const o = NB_DIRS.map(([dc, dr]) => [a.c + dc, a.r + dr]).find(([c, r]) => validBudCell(c, r, 'branch', a)); if (!o) { toast('No free cell beside the active polyp', true); return; }
+  const p = addPolyp(o[0], o[1], 'branch', a); p.parent = { c: a.c, r: a.r }; game.stats.buds++; makeSport(p, a);
+}
+function devSpawnNow() {   // start a spawning night at once (Reef crest on): the clock does not move
+  if (game.goals.stage < 4) devStage(4);
+  game.sp.nightAbs = -1; game.sp.plan = []; startSpawnNight(seasonAbs(game.season.t));
+}
 function devThrive() {
   devSettle();
   if (game.stage !== 'polyp' || !game.active) { toast('Needs rock to settle on first', true); return; }
@@ -4538,6 +4547,11 @@ function devThrive() {
   const act = game.active, cand = game.polyps.filter(p => p !== act);
   for (let i = 0; i < 6 && cand.length; i++) { const q = cand.splice(Math.floor(Math.random() * cand.length), 1)[0]; q.anemone = true; q.type = 'anemone'; }
   devMix(act);
+  for (let i = 0; i < 3; i++) {   // a few sport lineages, each a small neighbourhood of polyps
+    const q = game.polyps[Math.floor(Math.random() * game.polyps.length)], T = Object.assign({}, game.lineages[0].traits), up = pick1(POWER), dn = pick1(POWER.filter(k => k !== up));
+    T[up]++; T[dn]--; T.form = 1 + Math.floor(Math.random() * 5);
+    const L = newLineage(0, T, true); for (const o of game.polyps) if (Math.hypot(o.c - q.c, o.r - q.r) <= 3 && o !== act) o.lin = L.id;
+  }
   if (anemones().length && !game.clown.fish.length) { game.clown.t = -1; spawnClowns(); }
   const tips = game.polyps.filter(p => p !== act && !p.anemone && NB_DIRS.filter(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp'; }).length === 1);
   for (let i = 0; i < 5 && tips.length; i++) toSkeleton(tips.splice(Math.floor(Math.random() * tips.length), 1)[0]);
@@ -4605,6 +4619,8 @@ const devGroups = [
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Threats', ['<button data-a="thr" data-v="heat">start heat wave</button><button data-a="thr" data-v="weed">seed seaweed bloom</button><button data-a="thr" data-v="inf">infect a polyp</button>', '<button data-a="thr" data-v="star">spawn starfish outbreak</button><button data-a="thr" data-v="clear">clear all threats</button>']],
   ['Events', ['<button data-a="evnow" data-v="CE1">CE1 turtle</button><button data-a="evnow" data-v="CE2">CE2 rivals</button><button data-a="evnow" data-v="CE3">CE3 boat</button><button data-a="evnow" data-v="CE4">CE4 divers</button><button data-a="evnow" data-v="CE5">CE5 net</button>', '<button data-a="evnow" data-v="CE6">CE6 brown water</button><button data-a="evnow" data-v="CE7">CE7 spawn</button><button data-a="evnow" data-v="CE8">CE8 manta</button><button data-a="evnow" data-v="CE9">CE9 parrotfish</button><button data-a="evnow" data-v="CE10">CE10 cold</button>', '<label><input type="checkbox" data-t="noEvents"> events off</label><button data-a="reppop">report pop-up on/off</button>']],
+  ['Genetics', ['<button data-a="sportnow">force a sport now</button><button data-a="spawnnow">spawning night now</button><button data-a="broodnow">brood now</button><button data-a="xopen">open X panel</button>',
+    '<select data-gt><option value="growth">Growth</option><option value="tough">Toughness</option><option value="heat">Heat tolerance</option><option value="feed">Feeding</option><option value="form">Form</option></select><button data-a="gtrait" data-v="-1">-1</button><button data-a="gtrait" data-v="1">+1</button> trait of the active lineage <button data-a="gbank">bank this genome</button>']],
   ['Achievements', ['<button data-a="achall">grant all</button><button data-a="achreset">reset</button><button data-a="achopen">open list</button>']],
   ['Toggles', [
     '<label><input type="checkbox" data-t="god"> god mode</label><label><input type="checkbox" data-t="noFish"> predators off</label>',
@@ -4660,6 +4676,12 @@ function devBuild() {
     else if (a === 'achall') { for (const d of ACH) if (!d.later) award(d.id); }
     else if (a === 'achreset') { Object.assign(game.ach, { got: {}, order: [], thread: false, stormStart: null }); renderAch(true); }
     else if (a === 'achopen') toggleAch();
+    else if (a === 'sportnow') devSport();
+    else if (a === 'spawnnow') devSpawnNow();
+    else if (a === 'broodnow') startBrood();
+    else if (a === 'xopen') toggleX();
+    else if (a === 'gbank') { if (game.active) game.sp.bank.push(Object.assign({}, linOf(game.active).traits)); }
+    else if (a === 'gtrait') { const k = devPanel.querySelector('[data-gt]').value, L = linOf(game.active); if (game.active) { L.traits[k] = clamp(L.traits[k] + (+b.dataset.v), 1, 5); lineColour(L); game.linVer = (game.linVer || 0) + 1; toast(`${TRAITS[k]} is now ${L.traits[k]} (the budget is not enforced here)`, true); } }
     else if (a === 'res') devSpawnRes(vs);
     else if (a === 'happy') { devs.happy = !devs.happy; if (devs.happy) for (const r of game.res.list) r.hap = r.hapT = 100; }
     else if (a === 'bp50') game.bp += 50;
