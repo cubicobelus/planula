@@ -2023,7 +2023,7 @@ function spotPos(c, r) {
 const drawPos = p => game.look.coral === 4 ? polypPos(p) : cellCenter(p.c, p.r);
 function paintWild(g, M, layer, pal, kind) {
   const limbs = [], buds = [], limb = (pts, w0, w1, c0, c1, ws) => limbs.push({ pts, w0, w1, c0, c1, ws });
-  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), colOf = u => { const k = tipk(u); return mix3(mix3(nodeCol(u, pal), pal.shade, 0.24 * (1 - k)), pal.lit, 0.34 * k); };   // darker at the base, paler at the tips
+  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), tint = (u, c) => u.kind !== 'skel' && u.q.lin ? hueRot(c, game.lineages[u.q.lin].hue) : c, colOf = u => { const k = tipk(u); return mix3(mix3(nodeCol(u, pal), tint(u, pal.shade), 0.24 * (1 - k)), tint(u, pal.lit), 0.34 * k); };   // darker at the base, paler at the tips
   const quad = (a, b, c, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, p = (1 - t) * (1 - t), q = 2 * t * (1 - t), s = t * t; o.push([p * a[0] + q * b[0] + s * c[0], p * a[1] + q * b[1] + s * c[1]]); } return o; };
   for (const u of layer) {
     const P = u.par, col = colOf(u), h = k => hash2(u.c, u.r, k), fm = u.kind === 'skel' ? 0 : linOf(u.q).traits.form - 3;   // form: limbs lean up and branch more (or less)
@@ -2142,6 +2142,11 @@ function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue 
     g.addColorStop(0, 'rgba(255,245,170,0.5)'); g.addColorStop(1, 'rgba(255,245,170,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 34, 0, 6.3); ctx.fill();
     ctx.strokeStyle = `rgba(255,255,255,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 6.3); ctx.stroke();
+  }
+  if (p.lin) {   // a mutant lineage glows in its own colour
+    const hc = hueRot([255, 190, 170], game.lineages[p.lin].hue), g = ctx.createRadialGradient(0, 0, 3, 0, 0, 22);
+    g.addColorStop(0, rgba(hc, 0.95)); g.addColorStop(0.5, rgba(hc, 0.45)); g.addColorStop(1, rgba(hc, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 6.3); ctx.fill();
   }
   if (!p.anemone) {
     if (st === 2 || st === 4) {   // a bright dot on the limb (wild: sized per polyp, paler at the tips)
