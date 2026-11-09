@@ -5666,10 +5666,10 @@ function drawDisease(t) {
   for (const p of game.polyps) {   // the white band creeps across the polyp, front first
     if (!p.inf) continue;
     const cc = polypPos(p), u = clamp(p.inf.t / CONFIG.threat.dis.die, 0, 1), a = p.seed * 2.1;
-    ctx.save(); ctx.translate(cc.x, cc.y); ctx.beginPath(); ctx.arc(0, 0, 13, 0, 6.3); ctx.clip(); ctx.rotate(a);
-    const edge = -13 + 26 * (0.12 + 0.88 * u);
-    ctx.fillStyle = 'rgba(246,242,232,0.9)'; ctx.fillRect(-14, -14, edge + 14, 28);
-    ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.moveTo(edge - 2, -14); ctx.lineTo(edge + 3 + Math.sin(t * 3 + p.seed) * 1.5, -14); ctx.lineTo(edge + 3, 14); ctx.lineTo(edge - 2, 14); ctx.closePath(); ctx.fill();
+    ctx.save(); ctx.translate(cc.x, cc.y); ctx.beginPath(); ctx.arc(0, 0, 11, 0, 6.3); ctx.clip(); ctx.rotate(a);
+    const edge = -11 + 22 * (0.12 + 0.88 * u);
+    ctx.fillStyle = 'rgba(246,242,232,0.86)'; ctx.fillRect(-12, -12, edge + 12, 24);
+    ctx.fillStyle = 'rgba(255,255,255,0.95)'; ctx.beginPath(); ctx.moveTo(edge - 2, -12); ctx.lineTo(edge + 3 + Math.sin(t * 3 + p.seed) * 1.5, -12); ctx.lineTo(edge + 3, 12); ctx.lineTo(edge - 2, 12); ctx.closePath(); ctx.fill();
     ctx.restore();
     if (p.inf.cure > 0) { ctx.strokeStyle = `rgba(150,255,190,${0.5 + 0.4 * Math.sin(t * 8)})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cc.x, cc.y, 15, 0, 6.3); ctx.stroke(); }
   }
