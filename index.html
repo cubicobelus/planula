@@ -238,14 +238,14 @@ const CONFIG = {
   sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 } },
+  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 } },
   // biodiversity (content.md 0.1): B = resident species values x happiness factor + coral types + lineages; income x (1 + mult x B); BP per second = B / bpDiv from Colony on
   bio: { calcSecs: 0.5, typeValue: 2, lineageMin: 10, lineageValue: 1, lineageCap: 8, mult: 0.01, bpDiv: 120, happy: 1, content: 0.8, unhappy: 0.5, t4Sun: 1.1, t4Str: 0.6, revMixTypes: 3, revMixPolyps: 10 },
   // residents (content.md 3). Per kind: stage = goals.stage needed, arrive = s after the habitat exists, max = most at once, value = species value, leave = s the habitat may stay broken
   res: {
     tick: 1.2, hapStart: 60, hapBase: 40, hapFood: 30, hapSafe: 15, hapClean: 15, hapCrowd: 15, hapRate: 8, hapHappy: 70, hapContent: 40, hapLeave: 25, hapLeaveSecs: 60, brokenHap: 30,
     jobHappy: 1.25, jobContent: 1, jobUnhappy: 0.6, safeSecs: 30, safeCells: 6, crowdCells: 5, cleanCells: 10, noneSecs: 60, noneMinPolyps: 20,
-    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4,
+    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4,
     clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5, leaveSpeed: 120 },
     crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
     shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.6, radius: 4, r3Radius: 7, fishCells: 10 },
@@ -436,6 +436,8 @@ const TREE = [
     fx: () => `Each habitat holds 2 of its resident (not the moray). The second makes the job x${CONFIG.res.r4Job} and the species value x${CONFIG.res.r4Value}, and ends crowding`, done: 'Habitats now have room for two', ok: () => game.res.habs.filter(h => h.res.length).length >= CONFIG.res.revHabs },
   { id: 'R5', tier: 3, branch: 'Residents', name: 'Scent signals', hint: 'A busy reef calls more guests',
     fx: () => `Guests arrive in ${CONFIG.res.r5Arrive} s, and wait ${CONFIG.res.r5Leave} s before leaving a broken home`, done: 'The reef now calls guests faster', ok: () => game.species.length >= CONFIG.res.revSpecies },
+  { id: 'S6', tier: 3, branch: 'Structure', name: 'Sand trap', hint: 'Make sand',
+    fx: () => `Each parrotfish bite makes ${CONFIG.res.parrot.sandS6} sand, not ${CONFIG.res.parrot.sand}. (Sand that washes away comes with the cyclone)`, done: 'Sand now piles up faster', ok: () => game.stats.sandMade >= CONFIG.res.revSand },
   { id: 'T4', tier: 2, branch: 'Coral types', name: 'Mixed thickets', hint: 'Grow three kinds of coral',
     fx: () => `A polyp beside another coral type: +${CONFIG.bio.t4Str} strength and +${Math.round((CONFIG.bio.t4Sun - 1) * 100)}% sun`, done: 'Mixed coral holds and feeds better', ok: () => Object.values(typeCounts()).filter(n => n >= CONFIG.bio.revMixPolyps).length >= CONFIG.bio.revMixTypes },
 ];
@@ -4016,7 +4018,7 @@ function drawGoby(r, t) {   // a sand burrow with a tiny speckled goby on guard 
   ctx.fillStyle = '#e8d49a'; for (const [px, py] of [[-24, 1], [23, 2], [-16, -3], [18, -4], [-5, 9]]) { circ(px, py, 2); ctx.fill(); }
   const dive = al ? 1 : 0, wob = Math.sin(t * 1.6 + r.seed);
   // goby (left)
-  ctx.save(); ctx.translate(-9, -5 + dive * 9 + wob * 0.5); ctx.scale(2.4, 2.4);
+  ctx.save(); ctx.translate(-16, -5 + dive * 9 + wob * 0.5); ctx.scale(2.4, 2.4);
   ctx.fillStyle = '#d6c08a'; ctx.strokeStyle = '#6a5a30'; ctx.lineWidth = 0.7;
   ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-9, -2.6 + Math.sin(t * (al ? 24 : 6)) * 1.2); ctx.lineTo(-9, 2.4 + Math.sin(t * (al ? 24 : 6)) * 1.2); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.ellipse(0, 0, 6, 3.4, 0, 0, 6.3); ctx.fill(); ctx.stroke();
@@ -4025,7 +4027,7 @@ function drawGoby(r, t) {   // a sand burrow with a tiny speckled goby on guard 
   eyeAt(3.4, -1.2, 1.5, 0.3);
   ctx.restore();
   // pistol shrimp (right)
-  ctx.save(); ctx.translate(12, -2 + dive * 5); ctx.scale(2.3, 2.3);
+  ctx.save(); ctx.translate(15, -2 + dive * 5); ctx.scale(2.2, 2.2);
   ctx.strokeStyle = '#8a3a14'; ctx.lineWidth = 0.7; ctx.fillStyle = '#ff8a3a';
   ctx.beginPath(); ctx.ellipse(0, 0, 5, 2.7, 0, 0, 6.3); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(5, -1); ctx.lineTo(8.5, -1.6); ctx.lineTo(8.5, 1.2); ctx.lineTo(5, 1); ctx.fillStyle = '#ff9a50'; ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#ff8a3a'; ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-8.5, -2); ctx.lineTo(-8.5, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
