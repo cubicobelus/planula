@@ -213,7 +213,7 @@
 "use strict";
 
 const CONFIG = {
-  worldW: 2800, worldH: 1500, cell: 26,
+  worldW: 4628, lagoonW: 2800, slopeCol: 108, flatCol: 148, worldH: 1500, cell: 26,   // the lagoon is columns 0 to 107 (2800 px), then 40 columns of reef slope, then 30 of reef flat (regions)
   seed: 7,
   title: 'reef', showTitle: true,   // placeholder name; the title card is skipped with #notitle in the URL
   // reef stages (see STAGES): income boost per stage, and the goal sizes
@@ -386,6 +386,7 @@ const game = {
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
   newRock: [],              // S4: skeleton cells that turned into rock
+  regs: { slope: { open: false, a: 0 }, flat: { open: false, a: 0 } },
   sp: { nights: [], on: null, larvae: [], eggs: [], pairs: null, bank: [], bankNext: 0, plant: false, seen: -1 },   // spawning (slice 7)
   ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
   rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
@@ -407,7 +408,9 @@ const game = {
 };
 
 /* ---------- helpers ---------- */
-const W = CONFIG.worldW, H = CONFIG.worldH, CELL = CONFIG.cell;
+const W = CONFIG.worldW, H = CONFIG.worldH, CELL = CONFIG.cell, LAG = CONFIG.lagoonW;   // W: the whole world; LAG: the lagoon, where the plankton, fish and visitors live
+const regionAt = x => x >= CONFIG.flatCol * CELL ? 'flat' : x >= CONFIG.slopeCol * CELL ? 'slope' : 'lagoon';
+const REGION_FLOW = { lagoon: 1, slope: 1.4, flat: 0.8 };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const key = (c, r) => c + ',' + r;
@@ -422,7 +425,7 @@ function inBounds(c, r) { return c >= 0 && r >= 0 && c < game.cols && r < game.r
 function isRock(c, r) { return !inBounds(c, r) ? (r >= 0 || false) : game.grid[r * game.cols + c] === 1; }
 function cellAt(c, r) { return game.cells.get(key(c, r)); }
 function floorY(x) { return game.floorRow[clamp(Math.floor(x / CELL), 0, game.cols - 1)] * CELL; }
-function currentAt(x, y, t) { return CONFIG.currentAmp * (Math.sin(t * 0.11 + y * 0.002) * 0.7 + Math.sin(t * 0.27 + 1.3 + x * 0.001) * 0.3) + (game.storm ? stormSurge(x, y, t) : 0); }
+function currentAt(x, y, t) { return REGION_FLOW[regionAt(x)] * CONFIG.currentAmp * (Math.sin(t * 0.11 + y * 0.002) * 0.7 + Math.sin(t * 0.27 + 1.3 + x * 0.001) * 0.3) + (game.storm ? stormSurge(x, y, t) : 0); }
 function playerPos() {
   if (game.stage === 'polyp' && game.active) return cellCenter(game.active.c, game.active.r);
   return { x: game.larva.x, y: game.larva.y };
@@ -741,9 +744,13 @@ function generateWorld() {
   ];
   for (let c = 0; c < cols; c++) {
     let f = 38 + 2.0 * Math.sin(c * 0.09) + 0.9 * Math.sin(c * 0.23 + 2) + rand() * 0.6;
-    for (const o of outcrops) f -= o.h * Math.exp(-Math.pow((c - o.c) / o.w, 2)) * (0.9 + rand() * 0.2);
+    if (c < CONFIG.slopeCol) for (const o of outcrops) f -= o.h * Math.exp(-Math.pow((c - o.c) / o.w, 2)) * (0.9 + rand() * 0.2);
     const k = clamp(1 - Math.max(0, SHELF.c0 - c, c - SHELF.c1) / 4, 0, 1);   // a flat sandy shelf with eased ends
     if (k > 0) f = lerp(f, SHELF.row, k * k * (3 - 2 * k));
+    if (c >= CONFIG.slopeCol) {   // the regions: a slope that drops from row 44 to 50, then a high bright flat at about row 16
+      const u = (c - CONFIG.slopeCol) / (CONFIG.flatCol - CONFIG.slopeCol - 1), up = clamp((c - CONFIG.flatCol) / 8, 0, 1);
+      f = c < CONFIG.flatCol ? 44 + 6 * u + 0.8 * Math.sin(c * 0.5) + rand() * 0.5 : lerp(50, 16 + 1.4 * Math.sin(c * 0.35) + rand() * 0.5, up * up * (3 - 2 * up));
+    }
     game.floorRow[c] = clamp(Math.round(f), 6, rows - 4);
     for (let r = game.floorRow[c]; r < rows; r++) game.grid[r * cols + c] = 1;
   }
@@ -777,7 +784,7 @@ function generateWorld() {
 /* ---------- plankton ---------- */
 function spawnAmbient() {
   for (let i = 0; i < 30; i++) {
-    const x = rr(0, W), y = rr(25, H - 60);
+    const x = rr(0, LAG), y = rr(25, H - 60);
     const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
     if (isRock(c, r)) continue;
     if (Math.random() < clamp((floorY(x) - y) / 350, 0.06, 1)) { game.plankton.push(mkPlankton(x, y, false)); return; }
@@ -785,7 +792,7 @@ function spawnAmbient() {
 }
 function spawnRising() {   // a night plankton lifts off the bottom edge
   for (let i = 0; i < 20; i++) {
-    const x = rr(0, W), y = floorY(x) - rr(2, 60), c = Math.floor(x / CELL), r = Math.floor(y / CELL);
+    const x = rr(0, LAG), y = floorY(x) - rr(2, 60), c = Math.floor(x / CELL), r = Math.floor(y / CELL);
     if (isRock(c, r)) continue;
     const q = mkPlankton(x, y, false); q.rise = 0.6 + Math.random() * 0.4; game.plankton.push(q); return;
   }
@@ -795,7 +802,7 @@ function maybeBloom() {
   if (game.time < game.bloom.next) return;
   const p = playerPos();
   for (let i = 0; i < 60; i++) {
-    const x = rr(200, W - 200), y = rr(160, H - 400);
+    const x = rr(200, LAG - 200), y = rr(160, H - 400);
     if (Math.hypot(x - p.x, y - p.y) < CONFIG.bloomMinPlayerDist) continue;
     if (floorY(x) - y < CONFIG.bloomFloorClear) continue;
     for (let k = 0; k < CONFIG.bloomSize; k++) {
@@ -831,7 +838,7 @@ function updatePlankton(dt) {
     p.x += (cur * 0.9 + Math.sin(t * 0.7 + p.ph) * 6) * dt;
     p.y += (Math.cos(t * 0.5 + p.ph * 1.7) * 5 - 1.5 - (p.rise || 0) * CONFIG.nightRise) * dt;
     if (p.rise) p.rise = Math.max(0, p.rise - dt * CONFIG.nightRiseDecay);
-    if (p.x < 0) p.x += W; if (p.x > W) p.x -= W;
+    if (p.x < 0) p.x += LAG; if (p.x > LAG) p.x -= LAG;
     p.y = clamp(p.y, 6, H - 10);
     if (isRock(Math.floor(p.x / CELL), Math.floor(p.y / CELL))) p.y -= 40 * dt + 2;
     if (p.b) { bc++; bx += p.x; by += p.y; } else if (p.leave === undefined) { ambient++; free.push(p); }
@@ -1199,9 +1206,9 @@ function clownAnchor(f) {
 }
 function spawnClowns() {
   const an = anemones()[0]; if (!an) return;
-  const c = cellCenter(an.c, an.r), dir = c.x > W / 2 ? -1 : 1;   // they swim in from the open side
+  const c = cellCenter(an.c, an.r), dir = c.x > LAG / 2 ? -1 : 1;   // they swim in from the open side
   for (let i = 0; i < 2; i++) {
-    let x = clamp(c.x + dir * (520 + i * 50), 40, W - 40), y = Math.max(100, c.y - 90 - i * 30);
+    let x = clamp(c.x + dir * (520 + i * 50), 40, LAG - 40), y = Math.max(100, c.y - 90 - i * 30);
     for (let k = 0; k < 30 && blockedAt(x, y, 7, ''); k++) y -= 30;
     game.clown.fish.push({ x, y: Math.max(60, y), vx: 0, vy: 0, head: dir > 0 ? Math.PI : 0, mode: 'home', cool: 0, seed: Math.random() * 10, orbit: i * Math.PI });
   }
@@ -1218,8 +1225,8 @@ function updateClown(dt) {
   if (!C.fish.length) { if (C.t === -1 && C.left) { C.t = null; C.left = false; } return; }
   for (const f of C.fish) {
     if (f.leave) {   // the pair swims off the way it came
-      const dir = f.x < W / 2 ? -1 : 1, ls = CONFIG.res.clown.leaveSpeed; f.x += dir * ls * dt; f.y -= ls * 0.25 * dt; f.head = dir > 0 ? 0 : Math.PI; f.vx = dir * ls; f.vy = -ls * 0.25;
-      if (f.x < -30 || f.x > W + 30 || f.y < -30) f.gone = true;
+      const dir = f.x < LAG / 2 ? -1 : 1, ls = CONFIG.res.clown.leaveSpeed; f.x += dir * ls * dt; f.y -= ls * 0.25 * dt; f.head = dir > 0 ? 0 : Math.PI; f.vx = dir * ls; f.vy = -ls * 0.25;
+      if (f.x < -30 || f.x > LAG + 30 || f.y < -30) f.gone = true;
       continue;
     }
     f.cool = Math.max(0, f.cool - dt);
@@ -1440,8 +1447,8 @@ function devPoint(kind) {   // a home for a resident placed by the dev tools (or
   return { x: (cx + (kind === 'moray' ? 5 : kind === 'turtle' ? -6 : 3)) * CELL, y: kind === 'turtle' ? Math.max(100, (cy - 6) * CELL) : y };
 }
 function spawnRes(kind, h, dev) {
-  const R = game.res, C = CONFIG.res, hp = h ? habHome(h) : devPoint(kind), dir = hp.x > W / 2 ? -1 : 1;
-  const x = clamp(hp.x + dir * C.arriveDist, 40, W - 40), y = clamp(hp.y - 140, 60, H - 60);
+  const R = game.res, C = CONFIG.res, hp = h ? habHome(h) : devPoint(kind), dir = hp.x > LAG / 2 ? -1 : 1;
+  const x = clamp(hp.x + dir * C.arriveDist, 40, LAG - 40), y = clamp(hp.y - 140, 60, H - 60);
   const r = { kind, hab: h || null, home: h ? null : hp, dev: !!dev, x, y, vx: 0, vy: 0, head: dir > 0 ? Math.PI : 0, face: -dir, mode: 'arrive', hap: C.hapStart, hapT: C.hapStart, parts: null, lowT: 0, seed: Math.random() * 10, born: game.time,
     t: 0, threatAt: -999, seen: -999, job: 0, tm: 0, tm2: 0, act: null, trail: [], pos: 0, alpha: 1 };
   if (kind === 'turtle') { r.visitor = true; r.hap = r.hapT = 100; }
@@ -1830,7 +1837,7 @@ function updateRes(r, dt) {
   }
   if (r.kind === 'clown') return;
   if (r.mode === 'leave') {
-    r.leaveT += dt; const dir = r.x < W / 2 ? -1 : 1;
+    r.leaveT += dt; const dir = r.x < LAG / 2 ? -1 : 1;
     r.x += dir * C.leaveSpeed * dt; r.y -= C.leaveRise * dt; r.face = dir; r.head = dir > 0 ? 0 : Math.PI; r.alpha = Math.max(0, 1 - r.leaveT / C.leaveSecs);
     if (r.leaveT > C.leaveSecs) r.gone = true;
     return;
@@ -1939,7 +1946,7 @@ function updateFish(dt) {
     f.vx = lerp(f.vx, (tx - f.x) / dd * sp, k); f.vy = lerp(f.vy, (ty - f.y) / dd * sp, k);
     const nx = f.x + f.vx * dt, ny = f.y + f.vy * dt;
     let hit = false;
-    if (blockedAt(nx, f.y, R * 0.7, '') || nx < 40 || nx > W - 40) { f.vx *= -0.5; hit = true; } else f.x = nx;
+    if (blockedAt(nx, f.y, R * 0.7, '') || nx < 40 || nx > LAG - 40) { f.vx *= -0.5; hit = true; } else f.x = nx;
     if (blockedAt(f.x, ny, R * 0.7, '') || ny < 40) { f.vy *= -0.5; hit = true; } else f.y = ny;
     if (hit && f.mode === 'patrol') pickWaypoint(f);
     if (Math.hypot(f.vx, f.vy) > 8) f.head = Math.atan2(f.vy, f.vx);
@@ -1972,7 +1979,7 @@ function spawnNibbler() {
   for (let i = 0; i < 40; i++) {
     const a = Math.random() * 6.283, d = 450 + Math.random() * 350;
     const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * 0.6;
-    if (x < 60 || x > W - 60 || y < 80 || blockedAt(x, y, CONFIG.nibblerRadius + 4, '')) continue;
+    if (x < 60 || x > LAG - 60 || y < 80 || blockedAt(x, y, CONFIG.nibblerRadius + 4, '')) continue;
     game.nibblers.push({ x, y, vx: 0, vy: 0, head: 0, mode: 'seek', tgt: null, ap: null, bite: 0, chomp: 0, age: 0, fleeT: 0, fx: x, fy: y, stung: 0, seed: Math.random() * 10 });
     return;
   }
@@ -2007,8 +2014,8 @@ function updateNibblers(dt) {
       tx = n.x + dx / m * 200; ty = n.y + dy / m * 200 - 25; sp = CONFIG.nibblerFleeSpeed;
       if (n.fleeT <= 0) { n.mode = 'seek'; n.tgt = null; }
     } else if (n.mode === 'leave') {
-      tx = n.x < W / 2 ? -200 : W + 200; ty = n.y - 80; sp = CONFIG.nibblerSpeed * 1.4;
-      if (n.x < -30 || n.x > W + 30 || n.age > CONFIG.nibblerLife + 30) n.gone = true;
+      tx = n.x < LAG / 2 ? -200 : LAG + 200; ty = n.y - 80; sp = CONFIG.nibblerSpeed * 1.4;
+      if (n.x < -30 || n.x > LAG + 30 || n.age > CONFIG.nibblerLife + 30) n.gone = true;
     } else {
       if (!n.tgt || n.tgt.dead || !game.polyps.includes(n.tgt)) { n.tgt = pickNibbleTarget(n); n.bite = 0; }
       if (!n.tgt) n.mode = 'leave';
@@ -2040,7 +2047,7 @@ function updateNibblers(dt) {
     const dd = Math.hypot(tx - n.x, ty - n.y) || 1, k = 1 - Math.exp(-3 * dt);
     n.vx = lerp(n.vx, (tx - n.x) / dd * sp, k); n.vy = lerp(n.vy, (ty - n.y) / dd * sp, k);
     const nx = n.x + n.vx * dt, ny = n.y + n.vy * dt;
-    const out = n.mode === 'leave' && (nx < 36 || nx > W - 36);   // leaving fish swim off through the world edge
+    const out = n.mode === 'leave' && (nx < 36 || nx > LAG - 36);   // leaving fish swim off through the world edge
     if (out || !blockedAt(nx, n.y, R, '')) n.x = nx; else { n.vx *= -0.3; n.vy -= 40; }
     if (out || !blockedAt(n.x, ny, R, '')) n.y = ny; else { n.vy *= -0.3; n.vy -= 20; }
     if (n.mode !== 'bite' && Math.hypot(n.vx, n.vy) > 8) n.head = Math.atan2(n.vy, n.vx);
@@ -4235,7 +4242,7 @@ function render() {
   drawResidents(t); drawEventWorld(t); drawPlans(t); drawSpawn(t);
   if (!game.riding) drawLarva(t);
   if (on.layers) { drawSnow(t); drawForeground(t); worldTransform(ctx); }
-  drawNight(t); worldTransform(ctx);
+  drawRegions(t); drawNight(t); worldTransform(ctx);
   if (game.stormPw > 0.01) { drawStormSky(t); worldTransform(ctx); }
   if (post) {   // hints, ghost cell and effects sit on their own canvas so the shaders never dim them
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
@@ -4544,7 +4551,7 @@ function devThrive() {
 function devBloom() {
   const p = playerPos();
   for (let i = 0; i < 40; i++) {
-    const x = clamp(p.x + rr(-220, 220), 60, W - 60), y = clamp(p.y + rr(-200, 100), 60, H - 60);
+    const x = clamp(p.x + rr(-220, 220), 60, LAG - 60), y = clamp(p.y + rr(-200, 100), 60, H - 60);
     if (isRock(Math.floor(x / CELL), Math.floor(y / CELL))) continue;
     for (let k = 0; k < CONFIG.bloomSize; k++) {
       const a = Math.random() * 6.28, d = Math.sqrt(Math.random()) * CONFIG.bloomSpread, px = x + Math.cos(a) * d, py = y + Math.sin(a) * d * 0.7;
@@ -4570,7 +4577,7 @@ function devFish() {
   const L = game.larva;
   for (let i = 0; i < 40; i++) {
     const a = Math.random() * 6.283, x = L.x + Math.cos(a) * 160, y = L.y + Math.sin(a) * 160;
-    if (x < 60 || x > W - 60 || y < 60 || blockedAt(x, y, CONFIG.fishRadius, '')) continue;
+    if (x < 60 || x > LAG - 60 || y < 60 || blockedAt(x, y, CONFIG.fishRadius, '')) continue;
     game.fish.push({ x, y, vx: 0, vy: 0, mode: 'chase', tx: x, ty: y, cool: 0, x0: 0, x1: W, head: 0 });
     return;
   }
@@ -5480,7 +5487,7 @@ function stormBreak(power) {
     if (p.frag || !game.cells.has(key(p.c, p.r))) continue;   // already carried off
     const s = strength(p) - (game.ev.net && underNet(p, netOn()) ? CONFIG.ev.ce5.power : 0);   // a ghost net: +20 storm power is 2 on the 0..10 strength scale
     if (s >= CONFIG.stormSafe || touchesRock(p.c, p.r)) continue;
-    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1) * (has('S5') && p.r <= CONFIG.unl.s5.rows ? CONFIG.unl.s5.storm : 1) * (typeOf(p) === 'fan' ? CONFIG.fanBreak : 1);
+    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * stormRegionK(p) * (has('S2') ? CONFIG.flexMult : 1) * (has('S5') && p.r <= CONFIG.unl.s5.rows ? CONFIG.unl.s5.storm : 1) * (typeOf(p) === 'fan' ? CONFIG.fanBreak : 1);
     if (Math.random() < ch && breakOff(p)) broke++;
   }
   return broke;
@@ -5684,7 +5691,7 @@ function banner(h, p, col) {
 const heatDepth = p => clamp((light(p.r * CELL + CELL / 2) - CONFIG.threat.heat.lightLo) / CONFIG.threat.heat.lightSpan, 0, 1);   // 0 deep, 1 in the bright shallows
 function bleachChance(p) {
   const C = CONFIG.threat.heat, lg = light(p.r * CELL + CELL / 2);
-  return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * (has('C4') && lightOf(p) >= CONFIG.unl.c4.light ? CONFIG.unl.c4.bleach : 1) * evBleach(p);
+  return C.base * heatRegionK(p) * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * (has('C4') && lightOf(p) >= CONFIG.unl.c4.light ? CONFIG.unl.c4.bleach : 1) * evBleach(p);
 }
 function startHeat(a) {
   const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a; H.lost0 = game.stats.polypsLost; H.lit = game.polyps.filter(p => lightOf(p) >= 0.5).length;
@@ -5967,10 +5974,10 @@ function starCount() { return Math.min(CONFIG.threat.star.max, CONFIG.threat.sta
 function spawnStar(side, near) {   // side -1 or 1; near: put it close to the reef (dev), else from the world edge (but at most startMax px from the reef)
   const C = CONFIG.threat.star;
   let x0 = 1e9, x1 = -1e9; for (const p of game.polyps) { x0 = Math.min(x0, p.c * CELL); x1 = Math.max(x1, (p.c + 1) * CELL); }
-  if (x0 > x1) { x0 = x1 = W / 2; }
-  let x = side < 0 ? 24 : W - 24;
+  if (x0 > x1) { x0 = x1 = LAG / 2; }
+  let x = side < 0 ? 24 : LAG - 24;
   if (C.startMax > 0) x = side < 0 ? Math.max(x, x0 - C.startMax) : Math.min(x, x1 + C.startMax);
-  if (near) x = side < 0 ? Math.max(24, x0 - near) : Math.min(W - 24, x1 + near);
+  if (near) x = side < 0 ? Math.max(24, x0 - near) : Math.min(LAG - 24, x1 + near);
   x += rr(-90, 90);
   const c = clamp(Math.floor(x / CELL), 1, game.cols - 2);
   let r = game.floorRow[c] - 1; while (r > 2 && (cellAt(c, r) || isRock(c, r))) r--;
@@ -6222,7 +6229,7 @@ const EVENTS = [
     a: 'Invite', aInfo: 'It stays 60 s. +8 biodiversity while it stays, +30 BP, and plankton x1.3. The shrimp heal nothing while it stays.', b: 'Not now', bInfo: 'Nothing happens.',
     doA() {
       const C = CONFIG.ev.ce8, c = reefCentre(); game.bp += C.bp; game.stats.bpMade += C.bp;
-      EVS().manta = { until: game.time + C.stay, t0: game.time, x: c.c * CELL, y: Math.max(120, (c.r - 7) * CELL), dir: c.c * CELL > W / 2 ? 1 : -1 };
+      EVS().manta = { until: game.time + C.stay, t0: game.time, x: c.c * CELL, y: Math.max(120, (c.r - 7) * CELL), dir: c.c * CELL > LAG / 2 ? 1 : -1 };
       EVS().plank.push({ m: C.plank, until: game.time + C.stay }); game.bio.t = 0; calcBio(); return `The manta glides in (+${C.bp} BP)`;
     },
     doB() { return 'The manta glides away'; } },
@@ -6474,7 +6481,7 @@ function settleLarva(lv) {   // it takes root on the nearest free cell beside ro
   return p;
 }
 function startSpawnNight(abs) {
-  const S = game.sp, list = spawners(), dir = Math.sign(currentAt(W / 2, H / 2, game.time)) || 1;
+  const S = game.sp, list = spawners(), dir = Math.sign(currentAt(LAG / 2, H / 2, game.time)) || 1;
   S.nightAbs = abs; S.t = 0; S.plan = [];
   if (!list.length) return;
   for (const c of list) {
@@ -6571,7 +6578,7 @@ function renderX() {
   if (has('X3')) {
     h += '<h5>Pairs for the next spawning night</h5>';
     if (!list.length) h += '<div class="xr"><i>No colony is ready to spawn (8 or more polyps, healthy, not bleached).</i></div>';
-    const dir = Math.sign(currentAt(W / 2, H / 2, game.time)) || 1;
+    const dir = Math.sign(currentAt(LAG / 2, H / 2, game.time)) || 1;
     for (const c of list) {
       const want = S.pairs && S.pairs[c.key], auto = pairOf(c, list, dir), cur = want === '' ? null : want ? list.find(o => o.key === want) || null : auto;
       const A = linOf({ lin: domLin(c) }).traits;
@@ -6615,6 +6622,26 @@ xEl.addEventListener('change', e => {
   xEl.dataset.h = ''; renderX();
 });
 for (const ev of ['mousedown', 'wheel', 'contextmenu', 'keydown']) xEl.addEventListener(ev, e => e.stopPropagation());
+/* ---------- regions: the reef slope (east of the lagoon, opens at Reef) and the reef flat (beyond it, opens at Reef crest) ---------- */
+const REGIONS = { slope: { name: 'Reef slope', at: 3, x0: () => CONFIG.slopeCol * CELL, x1: () => CONFIG.flatCol * CELL, info: 'Deeper and dimmer, with a flow x1.4 and storms x1.1' },
+  flat: { name: 'Reef flat', at: 4, x0: () => CONFIG.flatCol * CELL, x1: () => W, info: 'Shallow and bright, with a flow x0.8, but heat waves bite 30% harder' } };
+const regionOpen = k => game.goals.stage >= REGIONS[k].at;
+const stormRegionK = p => p.c >= CONFIG.slopeCol && p.c < CONFIG.flatCol ? 1.1 : 1;
+const heatRegionK = p => p.c >= CONFIG.flatCol ? 1.3 : 1;
+function updateRegions(dt) {
+  const R = game.regs;
+  for (const k in REGIONS) {
+    const o = regionOpen(k);
+    if (o && !R[k].open) { R[k].open = true; if (game.time > 1) toast(`${REGIONS[k].name} is open: ${REGIONS[k].info}`); }
+    R[k].a = clamp(R[k].a + (o ? dt / 3 : 0), 0, 1);
+  }
+}
+function drawRegions(t) {   // unopened regions sit under a dark veil; the edge of an opened one is marked with a soft light
+  for (const k in REGIONS) {
+    const g = REGIONS[k], a = game.regs[k].a, x0 = g.x0(), x1 = g.x1();
+    if (a < 1) { ctx.fillStyle = `rgba(2,10,22,${0.93 * (1 - a)})`; ctx.fillRect(x0, 0, x1 - x0, H); }
+  }
+}
 const ACH = [
   { id: 'A1', name: 'First bud', desc: 'Bud your first polyp', chk: () => game.stats.buds >= 1 },
   { id: 'A2', name: 'Night rush', desc: 'Catch 30 plankton by hand in one night' },
@@ -6839,7 +6866,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
