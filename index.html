@@ -154,6 +154,12 @@
   #evcard .eo.no { opacity: 0.55; cursor: not-allowed; } #evcard kbd { font: inherit; font-weight: 700; padding: 1px 7px; border-radius: 4px; background: rgba(255,255,255,0.18); color: #fff; margin-top: 1px; }
   #evcard .eo b { display: block; color: #fff; font-weight: 600; } #evcard .eo span { color: #9cc5d6; } #evcard .eo em { color: #ffb0a0; font-style: normal; }
   #evcard .ebar { margin-top: 10px; height: 5px; border-radius: 3px; background: rgba(120, 190, 220, 0.16); overflow: hidden; } #evcard .ebar u { display: block; height: 100%; background: linear-gradient(90deg, #ffb36b, #ffe08a); } #evcard .ek { margin-top: 4px; font-size: 11px; color: #8aa0b2; }
+  #achpanel { position: fixed; left: 50%; top: 96px; transform: translateX(-50%); z-index: 35; display: none; width: 700px; max-width: 94vw; box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(4, 22, 40, 0.96); border: 1px solid rgba(150, 220, 240, 0.35); color: #dbeaf2; font-size: 12.5px; cursor: pointer; }
+  #achpanel h4 { margin: 0 0 8px; font-size: 15px; color: #ffe3b0; } #achpanel h4 i { float: right; font-style: normal; font-size: 11px; color: #8aa0b2; font-weight: 400; }
+  #achpanel .ag { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; } #achpanel .ai { display: flex; gap: 8px; padding: 5px 7px; border-radius: 7px; background: rgba(120, 190, 220, 0.07); opacity: 0.6; }
+  #achpanel .ai u { text-decoration: none; width: 18px; height: 18px; flex: none; border-radius: 9px; border: 1.5px solid #4c6b7e; text-align: center; line-height: 16px; font-size: 12px; color: #1c1405; }
+  #achpanel .ai.got { opacity: 1; background: rgba(255, 214, 120, 0.12); } #achpanel .ai.got u { background: #ffd679; border-color: #ffd679; } #achpanel .ai.later { opacity: 0.35; }
+  #achpanel .ai b { display: block; color: #fff; font-weight: 600; } #achpanel .ai span { color: #9cc5d6; }
   #report .rt { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(150, 220, 240, 0.18); } #report .rt h5 { margin: 0 0 5px; font-size: 12px; color: #cfe6f0; font-weight: 600; }
   #report .rb { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 12px; color: #9cc5d6; } #report .rb span { width: 62px; } #report .rb i { flex: 1; height: 7px; border-radius: 4px; background: rgba(120, 190, 220, 0.14); overflow: hidden; } #report .rb u { display: block; height: 100%; border-radius: 4px; } #report .rb em { width: 24px; text-align: right; font-style: normal; color: #fff; } #report .rb.wk span { color: #ffd9a0; }
   #report .ra { margin-top: 4px; font-size: 11.5px; color: #9cc5d6; } #report .ra b { color: #ffd9a0; font-weight: 600; }
@@ -187,7 +193,7 @@
 </div>
 <div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="title"></div>
 <div id="hint"></div>
-<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div>
+<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div>
 <div id="abar"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
@@ -359,9 +365,10 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0 },
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
+  ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
   rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1 },   // reef report
   season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
@@ -897,6 +904,7 @@ function freeLarva(c0, r0, inv) {
 }
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
 function killPolyp(p, why) {   // why: the toast for a polyp that was not the active one ('' for none)
+  game.stats.polypsLost++;
   const cc = drawPos(p), was = p === game.active && game.stage === 'polyp';
   toSkeleton(p);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.7, red: true });
@@ -2022,7 +2030,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
+          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (isNight()) { const A = game.ach, nn = Math.floor(game.dn.t / CONFIG.dayCycle); if (A.nightN !== nn) { A.nightN = nn; A.nightC = 0; } if (++A.nightC >= 30) award('A2'); } if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
@@ -4248,6 +4256,7 @@ const BAR = [
   { id: 'sting', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
   { id: 'struct', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
   { id: 'report', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
+  { id: 'ach', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
   { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && !!game.active.lin, dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
   { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
   { id: 'mute', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
@@ -4535,6 +4544,7 @@ const devGroups = [
   ['Spawn', ['<button data-a="nib">nibbler</button><button data-a="bloom">plankton bloom</button><button data-a="clown">clownfish</button><button data-a="fish">predator fish</button>']],
   ['Threats', ['<button data-a="thr" data-v="heat">start heat wave</button><button data-a="thr" data-v="weed">seed seaweed bloom</button><button data-a="thr" data-v="inf">infect a polyp</button>', '<button data-a="thr" data-v="star">spawn starfish outbreak</button><button data-a="thr" data-v="clear">clear all threats</button>']],
   ['Events', ['<button data-a="evnow" data-v="CE1">CE1 turtle</button><button data-a="evnow" data-v="CE2">CE2 rivals</button><button data-a="evnow" data-v="CE3">CE3 boat</button><button data-a="evnow" data-v="CE4">CE4 divers</button><button data-a="evnow" data-v="CE5">CE5 net</button>', '<button data-a="evnow" data-v="CE6">CE6 brown water</button><button data-a="evnow" data-v="CE7">CE7 spawn</button><button data-a="evnow" data-v="CE8">CE8 manta</button><button data-a="evnow" data-v="CE9">CE9 parrotfish</button><button data-a="evnow" data-v="CE10">CE10 cold</button>', '<label><input type="checkbox" data-t="noEvents"> events off</label>']],
+  ['Achievements', ['<button data-a="achall">grant all</button><button data-a="achreset">reset</button><button data-a="achopen">open list</button>']],
   ['Toggles', [
     '<label><input type="checkbox" data-t="god"> god mode</label><label><input type="checkbox" data-t="noFish"> predators off</label>',
     '<label><input type="checkbox" data-t="noNib"> nibblers off</label><label><input type="checkbox" data-t="grid"> grid lines</label><label><input type="checkbox" data-t="stats"> stats overlay</label>',
@@ -4585,6 +4595,9 @@ function devBuild() {
     else if (a === 'fish') devFish();
     else if (a === 'thr') devThreat(vs);
     else if (a === 'evnow') devEvent(vs);
+    else if (a === 'achall') { for (const d of ACH) if (!d.later) award(d.id); }
+    else if (a === 'achreset') { Object.assign(game.ach, { got: {}, order: [], thread: false, stormStart: null }); renderAch(true); }
+    else if (a === 'achopen') toggleAch();
     else if (a === 'res') devSpawnRes(vs);
     else if (a === 'happy') { devs.happy = !devs.happy; if (devs.happy) for (const r of game.res.list) r.hap = r.hapT = 100; }
     else if (a === 'bp50') game.bp += 50;
@@ -4695,7 +4708,9 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleMute(); return; }
   if (lookKey(e)) return;
   if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleStructure(); return; }
+  if (e.code === 'KeyJ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleAch(); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
+  if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
   if (game.tree.open) return;
   if (!GAME_KEYS.has(e.code)) return;
@@ -4760,7 +4775,7 @@ function updateSeason(dt) {
   if (game.goals.stage < 2) return;   // paused until the reef is a colony
   const S = game.season; S.t += dt;
   const ab = seasonAbs(S.t);
-  if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { S.abs = ab; reportAuto(); }
+  if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { const prev = S.abs; S.abs = ab; achSeason(prev, ab); reportAuto(); }
   const s = nextStormStart(S.t); if (s === null) return;
   if (S.t < s && s - S.t <= CONFIG.forecastSecs && S.fc !== s) {
     S.fc = s; toast(`Storm warning: a storm will hit in ${mmss(s - S.t)}`); sfx('forecast');
@@ -5332,7 +5347,7 @@ function makeFrag(polys, skels) {
   game.polyps = game.polyps.filter(a => !a.frag);
   game.skeletons = game.skeletons.filter(a => !skels.includes(a));
   game.frags.push(f);
-  game.stats.stormLost += polys.length; if (game.storm) game.storm.lost += polys.length;
+  game.stats.stormLost += polys.length; game.stats.polypsLost += polys.length; if (game.storm) game.storm.lost += polys.length;
   const a = game.active;
   if (a && a.frag === f && game.stage === 'polyp') {   // the player rides it
     game.riding = { frag: f, p: a }; game.active = null; game.stage = 'larva'; game.facing = null;
@@ -5498,13 +5513,14 @@ function bleachChance(p) {
   return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * evBleach(p);
 }
 function startHeat(a) {
-  const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a;
+  const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a; H.lost0 = game.stats.polypsLost; H.lit = game.polyps.filter(p => lightOf(p) >= 0.5).length;
   banner('Heat wave', 'The shallows are too warm. Bright coral may bleach', '#ffd9a0');
   toast('A heat wave has begun: shallow coral may bleach'); sfx('forecast');
 }
 function endHeat() {
   const H = game.thr.heat, T = game.thr, C = CONFIG.threat; H.on = false;
   toast('The heat wave has passed');
+  if (H.lit >= 30 && game.stats.polypsLost === H.lost0) award('A8');
   if (game.goals.stage >= 4 && H.hit.length && Math.random() < C.dis.chance) T.dis.startAt = game.season.t + C.dis.delay;   // disease may follow
 }
 function bleach(p) {
@@ -5662,6 +5678,7 @@ function diseaseCrosses(a, b) { return !sealed(a.c, a.r, b.c, b.r) && !(has('T4'
 function infect(p, first) {
   if (p.inf || p.dead) return false;
   p.inf = { t: 0, cure: 0 }; const D = game.thr.dis;
+  if (!D.on) D.lost0 = game.stats.diseaseLost;
   if (!D.on || first) {
     D.on = true;
     banner('White band disease', 'A white band is creeping across your coral. Cut a gap ahead of it, or bring it near a cleaner shrimp', '#f4efe6');
@@ -5687,7 +5704,7 @@ function updateDisease(dt) {
   }
   if (!D.on) return;
   const sick = game.polyps.filter(p => p.inf);
-  if (!sick.length) { D.on = false; toast('The white band disease has run its course'); return; }
+  if (!sick.length) { D.on = false; toast('The white band disease has run its course'); if (game.stats.diseaseLost - (D.lost0 || 0) <= 8) award('A10'); return; }
   const shr = game.res.list.filter(r => r.kind === 'shrimp' && resLive(r) && r.mode !== 'arrive'), rad = (has('R3') ? CONFIG.res.shrimp.r3Radius : CONFIG.res.shrimp.radius) * CELL;
   for (const p of sick) {
     const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL;
@@ -5790,7 +5807,7 @@ function spawnStar(side, near) {   // side -1 or 1; near: put it close to the re
 }
 function startStar(a, dev) {
   const T = game.thr, St = T.star, n = starCount(), C = CONFIG.threat.star;
-  St.ran = a; St.endAt = dev ? game.season.t + 240 : seasonStart(a + 1) + CONFIG.dayLen;
+  St.eaten0 = game.stats.starfishEaten || 0; St.ran = a; St.endAt = dev ? game.season.t + 240 : seasonStart(a + 1) + CONFIG.dayLen;
   for (let i = 0; i < n; i++) spawnStar(i % 2 ? 1 : -1);
   banner('Crown-of-thorns', `${n} starfish are creeping in along the floor. Sting them, or guard your branches with crabs`, '#ffb4b4');
   toast(`${n} crown-of-thorns starfish have arrived`); sfx('rumble');
@@ -5854,7 +5871,7 @@ function updateStar(dt) {
     } else if (s.tgt) s.mode = 'eat';
   }
   game.starfish = game.starfish.filter(s => !s.dead);
-  if (St.ran >= 0 && !game.starfish.length && St.n !== -1) { St.n = -1; toast('The starfish are gone'); }
+  if (St.ran >= 0 && !game.starfish.length && St.n !== -1) { St.n = -1; toast('The starfish are gone'); if ((game.stats.starfishEaten || 0) - (St.eaten0 || 0) < 10) award('A9'); }
   if (game.starfish.length) St.n = 0;
 }
 // D2 sweeper tentacles: an edge polyp stings a nibbler or starfish within 20 px of its edge every 4 s (1 damage), and clears one seaweed cell it touches every 15 s
@@ -6207,6 +6224,105 @@ function drawEventWorld(t) {
   }
 }
 
+/* ---------- achievements (content 8): a toast when earned, a list on J; kept for this run only ---------- */
+const ACH = [
+  { id: 'A1', name: 'First bud', desc: 'Bud your first polyp', chk: () => game.stats.buds >= 1 },
+  { id: 'A2', name: 'Night rush', desc: 'Catch 30 plankton by hand in one night' },
+  { id: 'A3', name: 'Unbroken', desc: 'Lose no polyps in a storm season, with 40 or more polyps' },
+  { id: 'A4', name: 'Bridge builder', desc: 'An arch of 20 or more joined cells, its middle held 3 or more cells above the floor, survives a storm season' },
+  { id: 'A5', name: 'No straight lines', desc: '100 or more polyps, and no row or column holds more than 5 in a row', chk: () => game.polyps.length >= 100 && maxRun() <= 5, slow: true },
+  { id: 'A6', name: 'Full house', desc: 'All 9 resident species at once (the turtle counts while visiting)', chk: () => game.species.length >= 9 },
+  { id: 'A7', name: 'Coral garden', desc: 'All 5 coral types with 10 or more live polyps each', chk: () => { const tc = typeCounts(); return Object.keys(TYPE_NAME).every(t => (tc[t] || 0) >= 10); } },
+  { id: 'A8', name: 'Cool head', desc: 'A heat wave with no polyps lost, with 30 or more polyps in light 0.5 or more' },
+  { id: 'A9', name: 'Starfish stopper', desc: 'End a crown-of-thorns outbreak having lost under 10 polyps' },
+  { id: 'A10', name: 'Firebreak', desc: 'End a disease outbreak having lost 8 or fewer polyps' },
+  { id: 'A11', name: 'Sport of kings', desc: 'Grow a lineage that began as a sport to 20 polyps', chk: () => { const n = {}; for (const p of game.polyps) n[p.lin || 0] = (n[p.lin || 0] || 0) + 1; return game.lineages.some(L => L.parent >= 0 && (n[L.id] || 0) >= 20); } },
+  { id: 'A12', name: 'Big spawn', desc: 'Have 25 colonies at once', later: true },
+  { id: 'A13', name: 'Sand castle', desc: 'Make 300 sand', chk: () => game.stats.sandMade >= 300 },
+  { id: 'A14', name: 'Cyclone proof', desc: 'Lose under 10% of your polyps in the final cyclone', later: true },
+  { id: 'A15', name: 'Landlord', desc: '8 residents happy at once', chk: () => game.res.list.filter(r => resLive(r) && hapLevel(r) === 2).length >= 8 },
+  { id: 'A16', name: 'Thread-free', desc: 'Reach Reef without ever having an arm of 8 or more polyps that is one polyp thick', chk: () => game.goals.stage >= 3 && !game.ach.thread },
+  { id: 'A17', name: 'Castaway', desc: 'The island rises', later: true },
+];
+const achEl = document.getElementById('achpanel');
+function award(id) {
+  const A = game.ach; if (A.got[id] !== undefined) return;
+  const d = ACH.find(x => x.id === id); if (!d) return;
+  A.got[id] = game.time; A.order.push(id);
+  toast(`Achievement: ${d.name}`); sfx('species'); renderAch(true);
+}
+function maxRun() {   // the longest straight run of polyps along any row or column
+  const S = new Set(game.polyps.map(p => key(p.c, p.r))); let m = 0;
+  for (const p of game.polyps) for (const [dc, dr] of [[1, 0], [0, 1]]) {
+    if (S.has(key(p.c - dc, p.r - dr))) continue;
+    let n = 1; while (S.has(key(p.c + dc * n, p.r + dr * n))) n++; if (n > m) m = n;
+  }
+  return m;
+}
+function armLong() {   // the P3 test: a group of polyps that each have 2 or fewer solid neighbours
+  const thin = game.polyps.filter(p => NB_DIRS.reduce((a, [dc, dr]) => a + (isRock(p.c + dc, p.r + dr) || cellAt(p.c + dc, p.r + dr) ? 1 : 0), 0) <= 2);
+  const tp = new Set(thin.map(p => key(p.c, p.r)));
+  return polypGroups(p => tp.has(key(p.c, p.r))).some(g => g.length >= CONFIG.reportArmN);
+}
+function archExists() {
+  const cell = new Set(), A = [];
+  for (const p of game.polyps) if (!p.dead && !p.frag) cell.add(key(p.c, p.r));
+  for (const s of game.skeletons) cell.add(key(s.c, s.r));
+  const seen = new Set();
+  for (const k0 of cell) {
+    if (seen.has(k0)) continue;
+    const comp = [], q = [k0]; seen.add(k0);
+    for (let i = 0; i < q.length; i++) { const [c, r] = q[i].split(',').map(Number); comp.push([c, r]); for (const [dc, dr] of NB_DIRS) { const k = key(c + dc, r + dr); if (cell.has(k) && !seen.has(k)) { seen.add(k); q.push(k); } } }
+    if (comp.length < 20) continue;
+    const anch = comp.filter(([c, r]) => touchesRock(c, r)).slice(0, 14);
+    if (anch.length < 2) continue;
+    const cs = new Set(comp.map(([c, r]) => key(c, r)));
+    for (const [ac, ar] of anch) {
+      const prev = new Map([[key(ac, ar), null]]), order = [[ac, ar]];
+      for (let i = 0; i < order.length; i++) { const [c, r] = order[i]; for (const [dc, dr] of NB_DIRS) { const k = key(c + dc, r + dr); if (cs.has(k) && !prev.has(k)) { prev.set(k, key(c, r)); order.push([c + dc, r + dr]); } } }
+      for (const [bc, br] of anch) {
+        if (!prev.has(key(bc, br))) continue;
+        const path = []; for (let k = key(bc, br); k; k = prev.get(k)) path.push(k.split(',').map(Number));
+        if (path.length < 20) continue;
+        const a = Math.floor(path.length / 3), b = Math.ceil(path.length * 2 / 3);
+        let ok = true;
+        for (let i = a; i < b && ok; i++) { const [c, r] = path[i]; let rr = r + 1; while (rr < game.rows && !isRock(c, rr)) rr++; if (rr - r < 3) ok = false; }
+        if (ok) return true;
+      }
+    }
+  }
+  return false;
+}
+// called when the season changes: judge the storm season that just ended
+function achSeason(prev, next) {
+  const A = game.ach, n = SEASONS.length;
+  if (prev % n === 2) {   // a storm season ended
+    if (A.stormStart) {
+      if (game.stats.storms > A.stormStart.storms && game.stats.polypsLost === A.stormStart.lost && A.stormStart.n >= 40) award('A3');
+      if (A.stormStart.arch && game.stats.storms > A.stormStart.storms && archExists()) award('A4');
+    }
+    A.stormStart = null;
+  }
+  if (next % n === 2) A.stormStart = { storms: game.stats.storms, lost: game.stats.polypsLost, n: game.polyps.length, arch: archExists() };
+}
+function updateAch(dt) {
+  const A = game.ach; A.t -= dt; if (A.t > 0) return; A.t = 1;
+  A.slowT = (A.slowT || 0) + 1;
+  if (game.goals.stage < 3 && !A.thread && A.slowT % 3 === 0 && game.polyps.length >= CONFIG.reportArmN && armLong()) A.thread = true;
+  for (const d of ACH) if (d.chk && A.got[d.id] === undefined && (!d.slow || A.slowT % 5 === 0)) { try { if (d.chk()) award(d.id); } catch (e) { } }
+}
+let achSig = '';
+function renderAch(force) {
+  const A = game.ach, sig = A.order.join(',') + '|' + game.goals.stage;
+  if (!force && sig === achSig && achEl.style.display === 'block') return;
+  achSig = sig;
+  achEl.innerHTML = `<h4>Achievements<i>${A.order.length} of ${ACH.filter(x => !x.later).length} - J closes</i></h4><div class="ag">` +
+    ACH.map(d => { const got = A.got[d.id] !== undefined; return `<div class="ai${got ? ' got' : ''}${d.later ? ' later' : ''}"><u>${got ? '&#10003;' : d.later ? '' : ''}</u><div><b>${d.name}</b><span>${d.desc}${d.later ? ' (later)' : ''}</span></div></div>`; }).join('') + '</div>';
+}
+function toggleAch() { const on = achEl.style.display !== 'block'; if (on) { renderAch(true); achEl.style.display = 'block'; } else achEl.style.display = 'none'; }
+achEl.addEventListener('click', () => { achEl.style.display = 'none'; });
+for (const ev of ['mousedown', 'wheel', 'contextmenu']) achEl.addEventListener(ev, e => e.stopPropagation());
+
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
@@ -6221,7 +6337,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
