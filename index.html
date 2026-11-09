@@ -245,13 +245,13 @@ const CONFIG = {
   res: {
     tick: 1.2, hapStart: 60, hapBase: 40, hapFood: 30, hapSafe: 15, hapClean: 15, hapCrowd: 15, hapRate: 8, hapHappy: 70, hapContent: 40, hapLeave: 25, hapLeaveSecs: 60, brokenHap: 30,
     jobHappy: 1.25, jobContent: 1, jobUnhappy: 0.6, safeSecs: 30, safeCells: 6, crowdCells: 5, cleanCells: 10, noneSecs: 60, noneMinPolyps: 20,
-    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130,
-    clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5 },
-    crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90 },
+    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4,
+    clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5, leaveSpeed: 120 },
+    crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
     shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.6, radius: 4, r3Radius: 7, fishCells: 10 },
-    parrot: { stage: 3, arrive: 45, max: 4, value: 4, leave: 60, dead: 15, keep: 5, box: 20, per: 15, openW: 6, openH: 4, openLight: 0.35, openRange: 10, bite: 12, bites: 4, sand: 1, sandS6: 1.5, reach: 10, scrape: 30, scrapeHp: 1, food: 10, speed: 70 },
+    parrot: { stage: 3, arrive: 45, max: 4, value: 4, leave: 60, dead: 15, keep: 5, box: 20, per: 15, openW: 6, openH: 4, openLight: 0.35, openRange: 10, bite: 12, bites: 4, sand: 1, sandS6: 1.5, reach: 10, scrape: 30, scrapeHp: 1, food: 10, speed: 70, loafSpeed: 28, sleepSpeed: 40 },
     urchin: { stage: 3, arrive: 30, max: 6, value: 2, leave: 90, weed: 4, range: 6, per: 4, graze: 8, grazeRange: 4, chew: 20, chewHp: 1, hungry: 30, speed: 16 },
-    moray: { stage: 3, arrive: 60, max: 2, value: 5, leave: 20, minLen: 2, scare: 8, eat: 20, seen: 60 },
+    moray: { stage: 3, arrive: 60, max: 2, value: 5, leave: 20, minLen: 2, scare: 8, eat: 20, seen: 60, idleSpeed: 70, strikeSpeed: 230, peek: 0.7 },
     goby: { stage: 3, arrive: 40, max: 2, value: 2, value2: 2, leave: 30, cols: 4, up: 2, alarm: 8, alarmDmg: 0.5, alarmSecs: 5, alarmRange: 10, sandEvery: 20, sandRange: 6 },
     turtle: { stage: 3, value: 6, stay: 90, cols: 5, light: 0.5, up: 3, graze: 3, grazeRange: 12, speed: 60 },
   },
@@ -1103,7 +1103,7 @@ function updateClown(dt) {
   if (!C.fish.length) { if (C.t === -1 && C.left) { C.t = null; C.left = false; } return; }
   for (const f of C.fish) {
     if (f.leave) {   // the pair swims off the way it came
-      const dir = f.x < W / 2 ? -1 : 1; f.x += dir * 120 * dt; f.y -= 30 * dt; f.head = dir > 0 ? 0 : Math.PI; f.vx = dir * 120; f.vy = -30;
+      const dir = f.x < W / 2 ? -1 : 1, ls = CONFIG.res.clown.leaveSpeed; f.x += dir * ls * dt; f.y -= ls * 0.25 * dt; f.head = dir > 0 ? 0 : Math.PI; f.vx = dir * ls; f.vy = -ls * 0.25;
       if (f.x < -30 || f.x > W + 30 || f.y < -30) f.gone = true;
       continue;
     }
@@ -1516,7 +1516,7 @@ function jobCrab(r, dt, m) {
   }
   for (const s of game.starfish) {   // a starfish in the thicket is pushed out and hurt (starfish arrive in a later slice)
     const d = Math.hypot(s.x - hc.x, s.y - hc.y); if (d >= C.guard * CELL) continue;
-    s.x += (s.x - hc.x) / (d || 1) * 40 * dt; s.y += (s.y - hc.y) / (d || 1) * 20 * dt;
+    s.x += (s.x - hc.x) / (d || 1) * C.shove * dt; s.y += (s.y - hc.y) / (d || 1) * C.shove * 0.5 * dt;
     if ((r.tm2 -= dt) <= 0) { r.tm2 = C.pushEvery / m; s.hp = (s.hp === undefined ? 3 : s.hp) - C.pushHp; r.job = 0.7; r.fight = true; }
   }
   r.job = Math.max(0, r.job - dt);
@@ -1548,7 +1548,7 @@ function jobParrot(r, dt, m) {
   r.job = Math.max(0, r.job - dt);
   if (night) {
     if (r.mode !== 'sleep') { r.mode = 'sleep'; r.act = null; r.sl = sleepSpot(r, hp); }
-    const d = steer(r, r.sl.x, r.sl.y + 4, 40, dt, 8);
+    const d = steer(r, r.sl.x, r.sl.y + 4, C.sleepSpeed, dt, 8);
     r.asleep = d < 10; return;
   }
   r.asleep = false; if (r.mode === 'sleep') r.mode = 'home';
@@ -1593,7 +1593,7 @@ function jobParrot(r, dt, m) {
     } else a.t = 0;
   } else {   // loaf about the open water
     if ((r.tm -= dt) <= 0 || !r.wp) { r.tm = 2 + Math.random() * 3; r.wp = { x: hp.x + (Math.random() - 0.5) * CELL * 4, y: hp.y + (Math.random() - 0.5) * CELL * 2 }; }
-    steer(r, r.wp.x, r.wp.y, 28, dt, 9);
+    steer(r, r.wp.x, r.wp.y, C.loafSpeed, dt, 9);
   }
 }
 function jobUrchin(r, dt, m) {
@@ -1641,13 +1641,13 @@ function jobMoray(r, dt, m) {
   let prey = null, bd = 1e9;
   for (const n of game.nibblers) { const d = Math.hypot(n.x - M.x, n.y - M.y); if (d < R) { r.seen = now; if (d < bd && n.mode !== 'leave') { bd = d; prey = n; } } }
   r.eatT = (r.eatT === undefined ? C.eat : r.eatT) - dt * m;
-  let tx, ty, sp = 70;
+  let tx, ty, sp = C.idleSpeed;
   if (night && prey && r.eatT <= 0) {
-    tx = prey.x; ty = prey.y; sp = 230; r.hunting = true;
+    tx = prey.x; ty = prey.y; sp = C.strikeSpeed; r.hunting = true;
     if (Math.hypot(prey.x - r.x, prey.y - r.y) < 16) { prey.gone = true; r.eatT = C.eat; r.job = 0.8; game.stats.eelEaten++; game.fx.push({ kind: 'bite', x: prey.x, y: prey.y, t: 0, life: 0.55 }); spawnParts('puff', prey.x, prey.y, 6); sfx('crunch', prey.x, prey.y); }
   } else {
     r.hunting = false;
-    const out = h ? CELL * 0.7 : 0, sw = Math.sin(now * 1.3 + r.seed);
+    const out = h ? CELL * C.peek : 0, sw = Math.sin(now * 1.3 + r.seed);
     tx = M.x + dir[0] * out + dir[1] * sw * 6 + (night ? dir[0] * 10 : 0); ty = M.y + dir[1] * out + dir[0] * sw * 6;
   }
   if (h) {   // head moves in free water; the body follows through the tunnel
@@ -1713,8 +1713,8 @@ function updateRes(r, dt) {
   if (r.kind === 'clown') return;
   if (r.mode === 'leave') {
     r.leaveT += dt; const dir = r.x < W / 2 ? -1 : 1;
-    r.x += dir * 110 * dt; r.y -= 36 * dt; r.face = dir; r.head = dir > 0 ? 0 : Math.PI; r.alpha = Math.max(0, 1 - r.leaveT / 4);
-    if (r.leaveT > 4) r.gone = true;
+    r.x += dir * C.leaveSpeed * dt; r.y -= C.leaveRise * dt; r.face = dir; r.head = dir > 0 ? 0 : Math.PI; r.alpha = Math.max(0, 1 - r.leaveT / C.leaveSecs);
+    if (r.leaveT > C.leaveSecs) r.gone = true;
     return;
   }
   if (r.mode === 'arrive') {
