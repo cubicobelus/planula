@@ -61,7 +61,7 @@
     background: radial-gradient(ellipse at 50% 20%, rgba(18, 88, 118, 0.7), rgba(2, 10, 22, 0.94) 72%); backdrop-filter: blur(5px); }
   #tree.open { display: flex; animation: tfade 0.25s ease-out; }
   @keyframes tfade { from { opacity: 0; } to { opacity: 1; } }
-  .tpanel { width: min(1240px, 96vw); max-height: 94vh; overflow: auto; box-sizing: border-box; padding: 20px 20px 16px; border-radius: 18px;
+  .tpanel { width: min(1240px, 96vw); max-height: 94vh; overflow: auto; scrollbar-width: thin; scrollbar-color: rgba(150, 220, 240, 0.5) transparent; box-sizing: border-box; padding: 20px 20px 16px; border-radius: 18px;
     background: linear-gradient(180deg, rgba(10, 46, 68, 0.8), rgba(3, 18, 34, 0.88)); border: 1px solid rgba(150, 220, 240, 0.22);
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
   .thead { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(150, 220, 240, 0.16); }
@@ -266,7 +266,9 @@ const CONFIG = {
   sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 } },
+  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
+  // slice 6b unlocks (content 1): reveal counts and effect numbers. Strength is 0..10 in the game, so the spec's +25 is 2.5 and +5 is 0.5
+  unl: { f5: { rev: 80, near: 3, upkeep: 0.7, heal: 2, dis: 1.5 }, f6: { rev: 20, revFlow: 0.8, bonus: 1.25, run: 6 }, g3: { cd: 60, max: 4, range: 12, speed: 420 }, g5: { revSecs: 60, cap: 40, ca: 1.5, str: 0.5 }, g4: { rev: 30, every: 10, frac: 0.5 }, s4: { rev: 25, secs: 60 }, s5: { rev: 10, rows: 6, str: 2.5, storm: 0.8 }, c4: { rev: 30, light: 0.65, sun: 1.25, bleach: 0.7 } },
   // biodiversity (content.md 0.1): B = resident species values x happiness factor + coral types + lineages; income x (1 + mult x B); BP per second = B / bpDiv from Colony on
   bio: { calcSecs: 0.5, typeValue: 2, lineageMin: 10, lineageValue: 1, lineageCap: 8, mult: 0.01, bpDiv: 120, happy: 1, content: 0.8, unhappy: 0.5, t4Sun: 1.1, t4Str: 0.6, revMixTypes: 3, revMixPolyps: 10 },
   // residents (content.md 3). Per kind: stage = goals.stage needed, arrive = s after the habitat exists, max = most at once, value = species value, leave = s the habitat may stay broken
@@ -365,9 +367,11 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0 },
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
+  g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
+  newRock: [],              // S4: skeleton cells that turned into rock
   ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
   rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1 },   // reef report
@@ -424,7 +428,7 @@ function budCost(tp = game.nextType) {
 }
 // energy cap: the larger of the flat floor and a few branching buds' worth, so a big colony can always afford its next bud
 const energyCap = () => Math.max(CONFIG.maxEnergy, CONFIG.capBudMult * budCost(false));
-const calciumCap = () => CONFIG.calciumMax + game.polyps.reduce((a, p) => a + TY(typeOf(p)).caCap, 0);
+const calciumCap = () => CONFIG.calciumMax + (has('G5') ? CONFIG.unl.g5.cap : 0) + game.polyps.reduce((a, p) => a + TY(typeOf(p)).caCap, 0);
 function budCalcium(tp = game.nextType) { tp = tyN(tp); return has('G1') ? CONFIG.budCalcium * TY(tp).ca : 0; }
 // null when a price {e, ca, bp} can be paid, otherwise what is missing (buds pay energy and calcium, unlocks may also cost BP)
 function shortOf(c) {
@@ -496,6 +500,22 @@ const TREE = [
     fx: () => `Bleaching chance x${CONFIG.threat.heat.c2}`, done: 'The shallows now stand the heat better', ok: () => game.stats.bleached >= CONFIG.threat.revBleached },
   { id: 'C3', tier: 2, branch: 'Climate', name: 'Recovery', hint: 'Nurse bleached coral back',
     fx: () => `Bleached polyps recover in ${CONFIG.threat.heat.recoverC3} s, not ${CONFIG.threat.heat.recover}. Death at recovery ${Math.round(CONFIG.threat.heat.die * 100)}% down to ${Math.round(CONFIG.threat.heat.dieC3 * 100)}%. 1 in 10 comes back with more heat tolerance`, done: 'Bleached coral now recovers faster', ok: () => game.stats.recovered >= CONFIG.threat.revRecovered },
+  { id: 'F5', tier: 2, branch: 'Feeding', name: 'Shared tissue', hint: 'Grow one big connected colony',
+    fx: () => `Polyps with ${CONFIG.unl.f5.near} or more polyp neighbours: upkeep -${Math.round((1 - CONFIG.unl.f5.upkeep) * 100)}%, healing x${CONFIG.unl.f5.heal}. Disease spreads x${CONFIG.unl.f5.dis} between them`, done: 'Packed polyps now share their food', ok: () => game.stats.bigColony >= CONFIG.unl.f5.rev },
+  { id: 'F6', tier: 2, branch: 'Feeding', name: 'Current channels', hint: 'Put many polyps right in the current',
+    fx: () => `A water cell with solid above and below is a channel: it passes the current on with no loss, and the ${CONFIG.unl.f6.run} cells past its exit catch +${Math.round((CONFIG.unl.f6.bonus - 1) * 100)}% plankton`, done: 'Channels now carry the current through the reef', ok: () => game.stats.flowHigh >= CONFIG.unl.f6.rev },
+  { id: 'G3', tier: 1, branch: 'Growth', name: 'Fragmenting', hint: 'A broken branch might live on',
+    fx: () => `F on a branch tip snaps off up to ${CONFIG.unl.g3.max} polyps and throws them where you aim (within ${CONFIG.unl.g3.range} cells). They take root if they land by rock or skeleton. Recharges in ${CONFIG.unl.g3.cd} s`, done: 'Press F on a branch tip to throw a fragment', ok: () => game.stats.rooted >= 1 },
+  { id: 'G5', tier: 2, branch: 'Growth', name: 'Dense skeleton', hint: 'Fill your calcium store',
+    fx: () => `Calcium store +${CONFIG.unl.g5.cap}, calcium income x${CONFIG.unl.g5.ca}, and every polyp holds ${CONFIG.unl.g5.str} firmer`, done: 'The skeleton thickens', ok: () => (game.stats.caCapT || 0) >= CONFIG.unl.g5.revSecs },
+  { id: 'G4', tier: 3, branch: 'Growth', name: 'Growth plans', hint: 'Guide growth again and again', needs: 'G2',
+    fx: () => `P sets a plan for a colony: Up, Wide, Thicken or Off. While energy is over ${Math.round(CONFIG.unl.g4.frac * 100)}% of the store, each planned colony buds by itself every ${CONFIG.unl.g4.every} s. Plans pause in storm waves`, done: 'Press P to set a growth plan for a colony', ok: () => (game.stats.guideRuns || 0) >= CONFIG.unl.g4.rev },
+  { id: 'S4', tier: 2, branch: 'Structure', name: 'Coralline cement', hint: 'Let dead coral pile up',
+    fx: () => `Dead coral touching rock counts as rock for support. After ${CONFIG.unl.s4.secs} s it turns into new rock, and parrotfish leave it alone`, done: 'Dead coral now cements into rock', ok: () => (game.stats.skelN || 0) >= CONFIG.unl.s4.rev },
+  { id: 'S5', tier: 3, branch: 'Structure', name: 'Reef crest form', hint: 'Grow up into the waves',
+    fx: () => `Polyps in the top ${CONFIG.unl.s5.rows + 1} rows hold +${CONFIG.unl.s5.str} firmer and take x${CONFIG.unl.s5.storm} storm power`, done: 'The crest now stands up to the waves', ok: () => (game.stats.crestN || 0) >= CONFIG.unl.s5.rev },
+  { id: 'C4', tier: 3, branch: 'Climate', name: 'Fluorescent pigments', hint: 'Crowd the bright shallows',
+    fx: () => `Polyps in light ${CONFIG.unl.c4.light} or more: sun x${CONFIG.unl.c4.sun}, bleaching x${CONFIG.unl.c4.bleach}`, done: 'Bright polyps now glow and shrug off heat', ok: () => (game.stats.litN || 0) >= CONFIG.unl.c4.rev },
 ];
 const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Climate', '#6fd0ff'], ['Coral types', '#ff79c6']];
 const has = id => game.tree.state[id] === 'owned';
@@ -664,7 +684,7 @@ function renderTree() {
     if (br === 'Residents') h += `<div class="tspecies">${game.species.length ? `Moved in: <b>${game.species.join(', ')}</b>` : 'No one has moved in yet.'}</div>`;
     h += '</div>';
   }
-  h += '</div><div class="tfoot"><span>Click a revealed idea to learn it</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>';
+  h += '</div><div class="tfoot"><span>Click a revealed idea to learn it. The mouse wheel scrolls the list</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>';
   treeEl.innerHTML = h;
 }
 function openTree() {
@@ -806,6 +826,7 @@ function gain(a, x, y) {
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inherits that lineage)
   const p = { c, r, lin: from && from.lin || 0, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: tyN(type) === 'anemone', type: tyN(type), born: game.time };   // born: only for the grow-in drawing
+  if (from && from.plan) p.plan = from.plan;   // G4: a bud keeps its colony's plan
   game.polyps.push(p); game.seaweed.delete(key(c, r));
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
   return p;
@@ -1077,7 +1098,7 @@ function updateGuide(dt) {
   g.t += dt;
   if (g.t < CONFIG.guideInterval) return;
   while (g.path.length && cellAt(g.path[0].c, g.path[0].r)) g.path.shift();   // already grown by hand
-  if (!g.path.length) { game.guide = null; toast('Guided growth complete'); return; }
+  if (!g.path.length) { game.guide = null; game.stats.guideRuns++; toast('Guided growth complete'); return; }
   if (!validBudCell(g.path[0].c, g.path[0].r)) {
     const np = planPath(g.target.c, g.target.r);
     if (!np || !validBudCell(np[0].c, np[0].r)) { cancelGuide('Guided growth: the way is blocked'); return; }
@@ -1096,7 +1117,7 @@ function updateGuide(dt) {
   if (from) rollSport(gp, from.ref);
   game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
   g.t = 0; g.wait = 0;
-  if (!g.path.length) { game.guide = null; toast('Guided growth complete'); }
+  if (!g.path.length) { game.guide = null; game.stats.guideRuns++; toast('Guided growth complete'); }
 }
 
 /* ---------- sting: the active polyp lashes out toward the cursor and drives nibblers away ---------- */
@@ -1623,7 +1644,7 @@ function jobParrot(r, dt, m) {
   r.biteT = (r.biteT === undefined ? C.bite * 0.5 : r.biteT) - dt * m; r.scrapeT = (r.scrapeT === undefined ? C.scrape : r.scrapeT) - dt * m;
   if (!r.act && r.biteT <= 0) {
     let best = null, bd = 1e9;   // the nearest dead cell with open water beside it
-    for (const s of game.skeletons) { const d = Math.hypot((s.c + 0.5) * CELL - r.x, (s.r + 0.5) * CELL - r.y); if (d < bd && d <= C.reach * CELL && freeNeighbours(s).length) { bd = d; best = s; } }
+    for (const s of game.skeletons) { if (!skelEdible(s)) continue; const d = Math.hypot((s.c + 0.5) * CELL - r.x, (s.r + 0.5) * CELL - r.y); if (d < bd && d <= C.reach * CELL && freeNeighbours(s).length) { bd = d; best = s; } }
     if (best) r.act = { kind: 'skel', s: best, t: 0 }; else r.biteT = 2;
   } else if (!r.act && r.scrapeT <= 0) {
     let best = null, bd = 1e9;
@@ -2002,14 +2023,15 @@ function updateNibblers(dt) {
 function updatePolyps(dt) {
   const t = game.time;
   const sunK = has('F3') ? CONFIG.algaeSunMult : 1, dl = daylight(), cap = energyCap(), bm = bioMult(), t4 = has('T4'), evs = evSun();
+  const f5 = has('F5'), c4 = has('C4'), g5 = has('G5');
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const l = lightOf(p);
-    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * dl * evs * dt);   // more factors (heat) multiply in here later
+    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * (c4 && l >= CONFIG.unl.c4.light ? CONFIG.unl.c4.sun : 1) * dl * evs * dt);   // more factors (heat) multiply in here later
     if (l >= CONFIG.dimBelow && dl > 0.5) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
-    if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * dt);
-    if (game.calciumOn) game.calcium = Math.min(calciumCap(), game.calcium + CONFIG.calciumRate * TY(typeOf(p)).caRate * dt);
+    if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * (f5 && denseP(p) ? CONFIG.unl.f5.heal : 1) * dt);
+    if (game.calciumOn) game.calcium = Math.min(calciumCap(), game.calcium + CONFIG.calciumRate * TY(typeOf(p)).caRate * (g5 ? CONFIG.unl.g5.ca : 1) * dt);
   }
   upkeep(dt);
   if (game.hop) { game.hop.t += dt; if (game.hop.t > 0.35) game.hop = null; }
@@ -2058,7 +2080,7 @@ function updatePolyps(dt) {
 function upkeep(dt) {
   const C = CONFIG;
   if (game.goals.stage < C.upkeepStage || !game.polyps.length) return;
-  let u = 0; for (const p of game.polyps) u += (has('D3') ? C.threat.d3.upkeep : 1) * C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1);   // type and trait factors multiply in here later
+  let u = 0; for (const p of game.polyps) u += (has('D3') ? C.threat.d3.upkeep : 1) * C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1) * (has('F5') && denseP(p) ? CONFIG.unl.f5.upkeep : 1);   // type and trait factors multiply in here later
   game.energy = Math.max(0, game.energy - u * dt);
   if (game.energy > 0) { game.starveT = 0; return; }
   if ((game.starveT = (game.starveT || 0) + dt) < C.starveEvery) return;
@@ -4180,7 +4202,7 @@ function render() {
   for (const n of game.nibblers) drawNibbler(n, t);
   drawStarfish(t);
   for (const f of game.clown.fish) drawClown(f, t);
-  drawResidents(t); drawEventWorld(t);
+  drawResidents(t); drawEventWorld(t); drawPlans(t);
   if (!game.riding) drawLarva(t);
   if (on.layers) { drawSnow(t); drawForeground(t); worldTransform(ctx); }
   drawNight(t); worldTransform(ctx);
@@ -4256,6 +4278,8 @@ const BAR = [
   { id: 'sting', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
   { id: 'struct', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
   { id: 'report', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
+  { id: 'frag', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', tip: 'Snap off a branch tip and throw it where you aim', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => pressFrag() },
+  { id: 'plan', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
   { id: 'ach', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
   { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && !!game.active.lin, dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
   { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
@@ -4696,7 +4720,7 @@ function drawDevGrid() {
 }
 
 /* ---------- input ---------- */
-const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE', 'KeyQ']);
+const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE', 'KeyQ', 'KeyF']);
 for (const ev of ['keydown', 'mousedown', 'pointerdown', 'touchstart']) window.addEventListener(ev, () => audio.init(), { capture: true });   // browsers only allow sound after an input
 for (const ev of ['keydown', 'mousedown']) window.addEventListener(ev, e => { if (!game.titleOn) return; e.stopPropagation(); e.preventDefault(); closeTitle(); }, { capture: true });   // the first key or click only closes the title card
 function toggleMute() { audio.setMuted(!audio.muted); updateMuteLabel(); }
@@ -4708,6 +4732,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleMute(); return; }
   if (lookKey(e)) return;
   if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleStructure(); return; }
+  if (e.code === 'KeyP' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) cyclePlan(); return; }
   if (e.code === 'KeyJ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleAch(); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
@@ -4721,6 +4746,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') pressSpace();
   else if (e.code === 'KeyR') bail();
   else if (e.code === 'KeyE') doSting();
+  else if (e.code === 'KeyF') pressFrag();
   else if (e.code === 'KeyQ') cycleType(e.shiftKey ? -1 : 1);
   else if (game.stage === 'polyp') {
     const d = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' }[e.code];
@@ -4867,17 +4893,25 @@ const TYPE_IDX = { branch: 0, plate: 1, brain: 2, fan: 3, anemone: 4 };
 const FLD = { sig: null, flow: null, shade: new Map() };
 function fields() {
   let an = 0; for (const p of game.polyps) if (typeOf(p) !== 'branch') an += 1 + TYPE_IDX[typeOf(p)];
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, an, CONFIG.flowDir, typeSig()].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('F6') ? 1 : 0, an, CONFIG.flowDir, typeSig()].join(',');
   if (FLD.sig === sig) return FLD;
   FLD.sig = sig;
   const C = CONFIG, cols = game.cols, rows = game.rows, fl = FLD.flow && FLD.flow.length === cols * rows ? FLD.flow : new Float32Array(cols * rows), d = C.flowDir >= 0 ? 1 : -1;
+  const f6 = has('F6'), solid = (c, r) => isRock(c, r) || game.cells.has(key(c, r)); FLD.chan = new Set();
   for (let r = 0; r < rows; r++) {
-    let s = 1;
+    let s = 1, run = 0;
     for (let i = 0; i < cols; i++) {
       const c = d > 0 ? i : cols - 1 - i;
       fl[r * cols + c] = s;   // the stream arriving at this cell
+      if (run > 0) { FLD.chan.add(r * cols + c); run--; }
       if (isRock(c, r)) s *= 1 - C.flowBlock.rock;
-      else { const o = game.cells.get(key(c, r)); if (!o) s = Math.min(1, s + C.flowRegain); else s *= 1 - (o.kind === 'skel' ? C.flowBlock.skel : C.flowBlock[typeOf(o.ref)]); }
+      else {
+        const o = game.cells.get(key(c, r));
+        if (!o) {
+          s = Math.min(1, s + C.flowRegain);
+          if (f6 && r > 0 && solid(c, r - 1) && solid(c, r + 1)) { s = 1; fl[r * cols + c] = 1; run = C.unl.f6.run; }   // F6: a channel carries the stream on with no loss; the cells past its exit feed better
+        } else s *= 1 - (o.kind === 'skel' ? C.flowBlock.skel : C.flowBlock[typeOf(o.ref)]);
+      }
     }
   }
   FLD.flow = fl; FLD.shade = new Map();
@@ -4894,17 +4928,20 @@ function fields() {
   }
   return FLD;
 }
-const flowCell = (c, r) => CONFIG.flowFloor + (1 - CONFIG.flowFloor) * (inBounds(c, r) ? fields().flow[r * game.cols + c] : 1);   // flow factor 0.25..1 at a cell
+const flowCell = (c, r) => { const F = fields(), f = CONFIG.flowFloor + (1 - CONFIG.flowFloor) * (inBounds(c, r) ? F.flow[r * game.cols + c] : 1); return F.chan.size && F.chan.has(r * game.cols + c) ? Math.min(1, f * CONFIG.unl.f6.bonus) : f; };   // flow factor 0.25..1 at a cell
 const flowOf = p => flowCell(p.c, p.r);
 const shadeOf = p => fields().shade.get(key(p.c, p.r)) ?? 1;
 const lightOf = p => light(p.r * CELL + CELL / 2) * shadeOf(p) * (game.seaweed.size ? Math.pow(CONFIG.threat.weed.light, weedTouch(p)) : 1) * (game.ev.net && underNet(p, netOn()) ? CONFIG.ev.ce5.light : 1);   // effective light: depth, shade from coral above, seaweed beside it (the season comes later)
 /* ---------- structure: how well each polyp is held up (0..10), cached until the cells change ---------- */
 const mixedSide = p => NB_DIRS.some(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp' && !o.ref.dead && typeOf(o.ref) !== typeOf(p); });   // T4: a side neighbour of another coral type
 const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
-const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b));
+const skelRooted = (c, r) => { const o = cellAt(c, r); return !!o && o.kind === 'skel' && !o.ref.rival && NB_DIRS.some(([a, b]) => isRock(c + a, r + b)); };   // S4: dead coral touching rock
+const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b) || (has('S4') && skelRooted(c + a, r + b)));
+const skelEdible = q => !(has('S4') && skelRooted(q.c, q.r));
+const denseP = p => { let n = 0; for (const [dc, dr] of NB_DIRS) if (livePolypAt(p.c + dc, p.r + dr)) n++; return n >= CONFIG.unl.f5.near; };
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S4') ? 1 : 0, has('S5') ? 1 : 0, has('G5') ? 1 : 0, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
   if (SUP.sig === sig) return SUP;
   SUP.sig = sig;
   const val = new Map(), pred = new Map(), q = [], anch = new Set();
@@ -4935,6 +4972,8 @@ function supportMap() {
     }
     let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3) + TY(typeOf(p)).str;
     if (has('S1') && nearAnchor) s += CONFIG.thickBase;
+    if (has('S5') && p.r <= CONFIG.unl.s5.rows) s += CONFIG.unl.s5.str;
+    if (has('G5')) s += CONFIG.unl.g5.str;
     if (has('T4') && mixedSide(p)) s += CONFIG.bio.t4Str;
     SUP.str.set(k, clamp(s, 0, CONFIG.supBase));
   }
@@ -5313,7 +5352,7 @@ function stormBreak(power) {
     if (p.frag || !game.cells.has(key(p.c, p.r))) continue;   // already carried off
     const s = strength(p) - (game.ev.net && underNet(p, netOn()) ? CONFIG.ev.ce5.power : 0);   // a ghost net: +20 storm power is 2 on the 0..10 strength scale
     if (s >= CONFIG.stormSafe || touchesRock(p.c, p.r)) continue;
-    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1) * (typeOf(p) === 'fan' ? CONFIG.fanBreak : 1);
+    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1) * (has('S5') && p.r <= CONFIG.unl.s5.rows ? CONFIG.unl.s5.storm : 1) * (typeOf(p) === 'fan' ? CONFIG.fanBreak : 1);
     if (Math.random() < ch && breakOff(p)) broke++;
   }
   return broke;
@@ -5366,6 +5405,13 @@ function updateFrags(dt) {
   const t = game.time;
   for (const f of game.frags.slice()) {
     f.age += dt;
+    if (f.throw) {   // G3: thrown to where the player aimed
+      const dx = f.throw.x - f.x, dy = f.throw.y - f.y, dd = Math.hypot(dx, dy), m = Math.min(dd, CONFIG.unl.g3.speed * dt);
+      if (dd > 1e-3) { f.x += dx / dd * m; f.y += dy / dd * m; }
+      f.ang += 3 * dt; f.w = 3;
+      if (dd < 10 || f.age > 4) { const q = { x: f.x, y: f.y }; if (!rootFrag(f, q)) crumbleFrag(f, q); }
+      continue;
+    }
     f.vx += (currentAt(f.x, f.y, t) * 1.6 - f.vx) * (1 - Math.exp(-1.3 * dt));   // rides the current
     f.px *= Math.exp(-1.2 * dt); f.py *= Math.exp(-1.2 * dt);
     f.w = 0.4 * Math.sin(f.age * 0.9 + f.seed) * (1 + game.stormPw);
@@ -5390,12 +5436,12 @@ function rootFrag(f, q) {
   const c0 = Math.floor(q.x / CELL), r0 = Math.floor(q.y / CELL), cand = [];
   for (let dr = -7; dr <= 7; dr++) for (let dc = -7; dc <= 7; dc++) {
     const c = c0 + dc, r = r0 + dr;
-    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r) && touchesRock(c, r) && !game.seaweed.has(key(c, r))) cand.push([c, r, dc * dc + dr * dr]);   // seaweed holds no new coral
+    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r) && (touchesRock(c, r) || (f.throw && NB_DIRS.some(([a, b]) => { const o = cellAt(c + a, r + b); return o && o.kind === 'skel'; }))) && !game.seaweed.has(key(c, r))) cand.push([c, r, dc * dc + dr * dr]);   // seaweed holds no new coral
   }
   if (!cand.length) return false;
   cand.sort((a, b) => a[2] - b[2]);
   const rider = game.riding && game.riding.frag === f ? game.riding.p : null;
-  const order = f.polys.slice().sort((a, b) => (b === rider) - (a === rider)), n = Math.min(CONFIG.fragmentRootMax, order.length);
+  const order = f.polys.slice().sort((a, b) => (b === rider) - (a === rider)), n = Math.min(f.throw ? CONFIG.unl.g3.max : CONFIG.fragmentRootMax, order.length);
   const pick = [cand[0]];
   const rest = cand.slice(1).sort((a, b) => Math.hypot(a[0] - cand[0][0], a[1] - cand[0][1]) - Math.hypot(b[0] - cand[0][0], b[1] - cand[0][1]));
   for (const k of rest) { if (pick.length >= n) break; if (Math.hypot(k[0] - cand[0][0], k[1] - cand[0][1]) <= 4) pick.push(k); }
@@ -5510,7 +5556,7 @@ function banner(h, p, col) {
 const heatDepth = p => clamp((light(p.r * CELL + CELL / 2) - CONFIG.threat.heat.lightLo) / CONFIG.threat.heat.lightSpan, 0, 1);   // 0 deep, 1 in the bright shallows
 function bleachChance(p) {
   const C = CONFIG.threat.heat, lg = light(p.r * CELL + CELL / 2);
-  return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * evBleach(p);
+  return C.base * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * (has('C4') && lightOf(p) >= CONFIG.unl.c4.light ? CONFIG.unl.c4.bleach : 1) * evBleach(p);
 }
 function startHeat(a) {
   const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a; H.lost0 = game.stats.polypsLost; H.lit = game.polyps.filter(p => lightOf(p) >= 0.5).length;
@@ -5719,7 +5765,7 @@ function updateDisease(dt) {
     D.tick -= C.every;
     for (const p of sick) {
       if (!p.inf || p.dead) continue;
-      for (const [dc, dr] of NB_DIRS) { const b = livePolypAt(p.c + dc, p.r + dr); if (b && !b.inf && diseaseCrosses(p, b) && Math.random() < C.spread) infect(b); }
+      for (const [dc, dr] of NB_DIRS) { const b = livePolypAt(p.c + dc, p.r + dr); if (b && !b.inf && diseaseCrosses(p, b) && Math.random() < C.spread * (has('F5') && denseP(p) && denseP(b) ? CONFIG.unl.f5.dis : 1)) infect(b); }
     }
   }
 }
@@ -6323,6 +6369,114 @@ function toggleAch() { const on = achEl.style.display !== 'block'; if (on) { ren
 achEl.addEventListener('click', () => { achEl.style.display = 'none'; });
 for (const ev of ['mousedown', 'wheel', 'contextmenu']) achEl.addEventListener(ev, e => e.stopPropagation());
 
+/* ---------- slice 6b unlocks: tree stats, G3 fragmenting, G4 growth plans, S4 cement ---------- */
+function updateTreeStats(dt) {
+  const S = game.stats;
+  if (game.calciumOn && game.calcium >= calciumCap() - 0.01) S.caCapT += dt;
+  game.tstT = (game.tstT || 0) - dt; if (game.tstT > 0) return; game.tstT = 2;
+  const P = game.polyps; if (!P.length) return;
+  let big = 0; for (const g of polypGroups(() => true)) big = Math.max(big, g.length);
+  S.bigColony = Math.max(S.bigColony, big);
+  S.flowHigh = Math.max(S.flowHigh, P.filter(p => flowOf(p) >= CONFIG.unl.f6.revFlow).length);
+  S.skelN = Math.max(S.skelN, game.skeletons.length);
+  S.crestN = Math.max(S.crestN, P.filter(p => p.r <= CONFIG.unl.s5.rows).length);
+  S.litN = Math.max(S.litN, P.filter(p => lightOf(p) >= CONFIG.unl.c4.light).length);
+}
+function updateS4(dt) {   // dead coral touching rock turns into rock after a while
+  if (!has('S4')) return;
+  game.s4T = (game.s4T || 0) - dt; if (game.s4T > 0) return; game.s4T = 1;
+  const C = CONFIG.unl.s4; let any = false;
+  for (const q of game.skeletons.slice()) {
+    if (!skelRooted(q.c, q.r)) { q.rt = 0; continue; }
+    q.rt = (q.rt || 0) + 1; if (q.rt < C.secs) continue;
+    game.grid[q.r * game.cols + q.c] = 1; game.cells.delete(key(q.c, q.r)); game.newRock.push({ c: q.c, r: q.r });
+    game.skeletons = game.skeletons.filter(a => a !== q); any = true;
+    spawnParts('dust', (q.c + 0.5) * CELL, (q.r + 0.5) * CELL, 3);
+  }
+  if (any) { SUP.sig = null; FLD.sig = null; }
+}
+function pressFrag() {
+  if (!has('G3') || game.tree.open || game.titleOn) return;
+  const a = game.active, G = CONFIG.unl.g3;
+  if (game.stage !== 'polyp' || !a) { toast('Settle on a polyp first'); return; }
+  if (game.time < game.g3.next) { toast(`Fragmenting recharges in ${Math.ceil(game.g3.next - game.time)} s`, true); return; }
+  const nbs = p => NB_DIRS.map(([dc, dr]) => livePolypAt(p.c + dc, p.r + dr)).filter(Boolean);
+  if (touchesRock(a.c, a.r) || nbs(a).length !== 1) { toast('Move to a branch tip first: a polyp with one neighbour, off the rock', true); return; }
+  const dist = new Map(), q = [];   // steps from rock along the polyps
+  for (const p of game.polyps) if (touchesRock(p.c, p.r)) { dist.set(p, 0); q.push(p); }
+  for (let i = 0; i < q.length; i++) for (const b of nbs(q[i])) if (!dist.has(b)) { dist.set(b, dist.get(q[i]) + 1); q.push(b); }
+  const pick = [a], seen = new Set([a]);
+  while (pick.length < G.max) {   // walk back toward the rock: the polyps farthest from it go
+    const cur = pick[pick.length - 1], nx = nbs(cur).filter(b => !seen.has(b) && (dist.get(b) ?? 99) > 0 && (dist.get(b) ?? 99) < (dist.get(cur) ?? 99))[0];
+    if (!nx) break; pick.push(nx); seen.add(nx);
+  }
+  while (pick.length && game.polyps.length - pick.length < CONFIG.minPolyps) pick.pop();
+  if (!pick.length) { toast('Too few polyps to spare'); return; }
+  const w = screenToWorld(game.mouse.sx, game.mouse.sy), ax = (a.c + 0.5) * CELL, ay = (a.r + 0.5) * CELL;
+  let dx = w.x - ax, dy = w.y - ay; const m = Math.hypot(dx, dy), lim = G.range * CELL;
+  if (m > lim) { dx *= lim / m; dy *= lim / m; }
+  const was = [game.stats.stormLost, game.stats.polypsLost];
+  const f = makeFrag(pick, []); game.stats.stormLost = was[0]; game.stats.polypsLost = was[1];
+  f.throw = { x: ax + dx, y: ay + dy }; f.storm = null; game.g3.next = game.time + G.cd; game.stats.frags++;
+  toast(`${pick.length} polyp${pick.length > 1 ? 's' : ''} snap off and fly`);
+}
+const PLAN_NAME = { off: 'Off', up: 'Up', wide: 'Wide', thick: 'Thicken' }, PLAN_ORDER = ['off', 'up', 'wide', 'thick'];
+function colonyOf(p) { const g = polypGroups(() => true).find(x => x.includes(p)); return g || [p]; }
+function planOf(g) {
+  const n = { off: 0, up: 0, wide: 0, thick: 0 }; for (const p of g) n[p.plan || 'off']++;
+  return PLAN_ORDER.reduce((b, k) => n[k] > n[b] ? k : b, 'off');
+}
+function cyclePlan() {
+  if (!has('G4')) return;
+  const a = game.active; if (game.stage !== 'polyp' || !a) { toast('Settle on a polyp first'); return; }
+  const g = colonyOf(a), nx = PLAN_ORDER[(PLAN_ORDER.indexOf(planOf(g)) + 1) % 4];
+  for (const p of g) p.plan = nx === 'off' ? undefined : nx;
+  game.plans.lt = 0; game.plans.cur = nx; toast(`Growth plan for this colony: ${PLAN_NAME[nx]}`, true); sfx('budDone');
+}
+function planBud(g, plan) {
+  if (budShort('branch')) return false;
+  const cand = new Map(), cx = g.reduce((s, p) => s + p.c, 0) / g.length, cy = g.reduce((s, p) => s + p.r, 0) / g.length;
+  for (const p of g) for (const [dc, dr] of NB_DIRS) { const c = p.c + dc, r = p.r + dr, k = key(c, r); if (!cand.has(k) && validBudCell(c, r, 'branch', p)) cand.set(k, { c, r, from: p }); }
+  if (!cand.size) return false;
+  const L = [...cand.values()]; let pick = null;
+  if (plan === 'up') pick = L.sort((a, b) => a.r - b.r || Math.abs(a.c - cx) - Math.abs(b.c - cx))[0];
+  else if (plan === 'wide') pick = L.sort((a, b) => Math.abs(b.c - cx) - Math.abs(a.c - cx) || Math.abs(a.r - cy) - Math.abs(b.r - cy))[0];
+  else {   // thicken: an empty neighbour of the weakest polyp
+    const weak = g.slice().sort((a, b) => strength(a) - strength(b));
+    for (const p of weak) { pick = L.find(x => x.from === p) || null; if (pick) break; }
+  }
+  if (!pick) return false;
+  game.energy -= budCost('branch'); game.calcium -= budCalcium('branch');
+  const p = addPolyp(pick.c, pick.r, 'branch', pick.from); p.parent = { c: pick.from.c, r: pick.from.r }; rollSport(p, pick.from);
+  game.stats.buds++; game.stats.planBuds++;
+  game.fx.push({ kind: 'ring', x: (pick.c + 0.5) * CELL, y: (pick.r + 0.5) * CELL, t: 0, life: 0.6 });
+  return true;
+}
+function updatePlans(dt) {
+  const Pl = game.plans, C = CONFIG.unl.g4;
+  if (!has('G4')) { Pl.labels = []; return; }
+  if ((Pl.lt -= dt) <= 0) {
+    Pl.lt = 1; Pl.labels = []; Pl.cur = game.active ? planOf(colonyOf(game.active)) : 'off';
+    for (const g of polypGroups(() => true)) { const pl = planOf(g); if (pl === 'off') continue; const top = g.reduce((a, p) => p.r < a.r ? p : a, g[0]); Pl.labels.push({ x: (top.c + 0.5) * CELL, y: top.r * CELL - 12, plan: pl }); }
+  }
+  if (game.storm) return;   // plans pause during storm waves
+  if ((Pl.t += dt) < C.every) return; Pl.t = 0;
+  if (game.energy <= energyCap() * C.frac) return;
+  for (const g of polypGroups(() => true)) { const pl = planOf(g); if (pl === 'off') continue; if (game.energy <= energyCap() * C.frac) break; planBud(g, pl); }
+}
+function drawPlans(t) {
+  for (const L of game.plans.labels) {
+    ctx.save(); ctx.translate(L.x, L.y - Math.sin(t * 2) * 2); ctx.font = '700 13px "Segoe UI", sans-serif'; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(8,30,50,0.75)'; roundRectPath(-30, -13, 60, 18, 8); ctx.fill();
+    ctx.fillStyle = '#ffe3a0'; ctx.fillText((L.plan === 'up' ? '\u25B2 ' : L.plan === 'wide' ? '\u25C4\u25BA ' : '\u25A0 ') + PLAN_NAME[L.plan], 0, 0);
+    ctx.restore();
+  }
+  for (const q of game.newRock) {   // S4: dead coral that cemented into rock
+    const g = ctx.createLinearGradient(0, q.r * CELL, 0, (q.r + 1) * CELL); g.addColorStop(0, '#b09886'); g.addColorStop(1, '#8a7870');
+    ctx.fillStyle = g; roundRectPath(q.c * CELL - 0.5, q.r * CELL - 0.5, CELL + 1, CELL + 1, 6); ctx.fill();
+  }
+}
+
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
@@ -6337,7 +6491,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt);
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
