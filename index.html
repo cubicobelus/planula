@@ -3065,10 +3065,10 @@ function render() {
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
     worldTransform(uctx);
     const scene = ctx; ctx = uctx;
-    drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
+    drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
     ctx = scene;
     present();
-  } else { drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
+  } else { drawStructure(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
 }
 
 /* ---------- HUD ---------- */
@@ -3117,6 +3117,8 @@ const BAR = [
     go: () => game.guide ? cancelGuide('Guided growth cancelled') : toast('Hold G and click a cell to grow towards it') },
   { id: 'anemone', label: () => `Anemone ${game.nextAnemone ? 'on' : 'off'}`, key: () => 'Q', show: () => has('R1'), on: () => game.nextAnemone, dis: () => polypNow() ? '' : 'Settle first', tip: 'Make the next bud an anemone', go: () => toggleAnemone() },
   { id: 'sting', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
+  { id: 'struct', label: () => 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown(), dis: () => '', tip: 'Show how well each polyp is held up. Red may snap in a storm', go: () => toggleStructure() },
+  { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && !!game.active.lin, dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
   { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
   { id: 'mute', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
   { id: 'dev', label: () => 'Dev', key: () => '\\', show: () => true, on: () => devs.open, dis: () => '', tip: 'Developer tools', go: () => devToggle() },
@@ -3172,7 +3174,7 @@ function updateBar() {
 }
 
 /* ---------- developer tools: backslash toggles a side panel (time, resources, tree, colony, spawn, toggles, CONFIG) ---------- */
-const devs = { open: false, paused: false, speed: 1, inf: false, god: false, noFish: false, noNib: false, grid: false, stats: false, sig: '', samples: [], fps: 60, cfg0: null, built: false, tick: 0 };
+const devs = { open: false, paused: false, speed: 1, inf: false, god: false, noFish: false, noNib: false, noStorms: false, struct: false, grid: false, stats: false, sig: '', samples: [], fps: 60, cfg0: null, built: false, tick: 0 };
 const devPanel = document.getElementById('devtools'), devStatsEl = document.getElementById('devstats');
 function devFlat(o, pre, out) {
   for (const k of Object.keys(o)) {
@@ -3459,6 +3461,7 @@ window.addEventListener('keydown', e => {
   if (devKey(e)) return;
   if (e.code === 'KeyM' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleMute(); return; }
   if (lookKey(e)) return;
+  if (e.code === 'KeyV' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat) toggleStructure(); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
   if (game.tree.open) return;
@@ -3563,6 +3566,73 @@ seasonEl.addEventListener('click', () => {
 });
 for (const e of [seasonEl, seasonCard]) for (const ev of ['mousedown', 'wheel', 'contextmenu']) e.addEventListener(ev, x => x.stopPropagation());
 window.addEventListener('mousedown', e => { if (!e.target.closest('#season, #seasoncard')) seasonCard.style.display = 'none'; });
+/* ---------- structure: how well each polyp is held up (0..10), cached until the cells change ---------- */
+const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
+const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b));
+const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
+function supportMap() {
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, has('S1') ? 1 : 0, game.lineages.length].join(',');
+  if (SUP.sig === sig) return SUP;
+  SUP.sig = sig;
+  const val = new Map(), pred = new Map(), q = [], anch = new Set();
+  for (const p of game.polyps) if (touchesRock(p.c, p.r)) { const k = key(p.c, p.r); val.set(k, CONFIG.supBase); pred.set(k, null); anch.add(k); q.push([p.c, p.r]); }
+  const step = (dr, o) => (dr < 0 ? CONFIG.supUp : dr > 0 ? CONFIG.supDown : CONFIG.supSide) + (o.kind === 'skel' ? CONFIG.supSkel : 0);   // cost of passing support on to a neighbour above (dr<0), below or beside
+  for (let i = 0; i < q.length; i++) {   // best path from any anchor (costs are positive, so this settles)
+    const [c, r] = q[i], k = key(c, r), v = val.get(k);
+    for (const [dc, dr] of NB_DIRS) {
+      const o = cellAt(c + dc, r + dr); if (!o) continue;
+      const nv = v - step(dr, o), ok = key(c + dc, r + dr);
+      if (nv > 0 && !(val.get(ok) >= nv)) { val.set(ok, nv); pred.set(ok, k); q.push([c + dc, r + dr]); }
+    }
+  }
+  const below = (n, k) => { for (let x = n, g = 0; x && g < 400; x = pred.get(x), g++) if (x === k) return true; return false; };   // does n's support run through k?
+  SUP.str = new Map(); SUP.base = new Map(); SUP.anch = anch;
+  for (const p of game.polyps) {
+    const k = key(p.c, p.r), base = val.get(k) || 0;
+    SUP.base.set(k, base);
+    if (anch.has(k)) { SUP.str.set(k, 10); continue; }
+    let second = 0, n = 0, nearAnchor = false;
+    for (const [dc, dr] of NB_DIRS) {
+      const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk); if (!o) continue;
+      n++;
+      if (anch.has(nk)) nearAnchor = true;
+      if (nk !== pred.get(k) && val.has(nk) && !below(nk, k)) second = Math.max(second, val.get(nk) - step(-dr, { kind: 'poly' }));   // a second, independent way down to rock (an arch)
+    }
+    let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3);
+    if (has('S1') && nearAnchor) s += CONFIG.thickBase;
+    SUP.str.set(k, clamp(s, 0, CONFIG.supBase));
+  }
+  return SUP;
+}
+const strength = p => supportMap().str.get(key(p.c, p.r)) || 0;
+const structureShown = () => devs.struct || stormSoon();
+function stormSoon() {
+  if (game.goals.stage < 2) return false;
+  if (game.storm) return true;
+  const s = nextStormStart(game.season.t);
+  return s !== null && s - game.season.t <= CONFIG.forecastSecs;
+}
+function toggleStructure() { devs.struct = !devs.struct; toast(devs.struct ? 'Structure view on: green holds, red may snap' : 'Structure view off', true); }
+const strCol = s => s >= 7 ? '120,235,150' : s >= 4 ? '255,220,90' : '255,100,85';
+function drawStructure(t) {
+  if (!structureShown() || !game.polyps.length) return;
+  const z = 1 / game.cam.zoom, w = screenToWorld(game.mouse.sx, game.mouse.sy), M = supportMap();
+  let hov = null, hd = (0.8 * CELL) ** 2;
+  ctx.save(); ctx.lineWidth = 2 * z;
+  for (const p of game.polyps) {
+    const q = drawPos(p), s = M.str.get(key(p.c, p.r)) || 0, c = strCol(s);
+    ctx.fillStyle = `rgba(${c},0.26)`; ctx.strokeStyle = `rgba(${c},0.85)`;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 15, 0, 6.3); ctx.fill(); ctx.stroke();
+    const d = (q.x - w.x) ** 2 + (q.y - w.y) ** 2; if (d < hd && !game.mouse.ui) { hd = d; hov = [p, q, s]; }
+  }
+  if (hov) {
+    const [, q, s] = hov, txt = (Math.round(s * 10) / 10).toString();
+    ctx.font = `700 ${14 * z}px "Segoe UI", sans-serif`; ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(2,16,32,0.8)'; ctx.beginPath(); ctx.roundRect(q.x - 17 * z, q.y - 38 * z, 34 * z, 20 * z, 8 * z); ctx.fill();
+    ctx.fillStyle = `rgb(${strCol(s)})`; ctx.fillText(txt, q.x, q.y - 23 * z);
+  }
+  ctx.restore();
+}
 function startStorm() {}
 function updateStorm(dt) {}
 function updateFrags(dt) {}
