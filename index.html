@@ -258,7 +258,7 @@ const CONFIG = {
   // threats (content.md 4.3 to 4.6): heat wave and bleaching, seaweed, white band disease, crown-of-thorns starfish
   threat: {
     heat: { chance: 0.6, len: 80, check: 10, base: 0.05, f3: 1.6, c1: 0.5, c1Light: 0.6, c2: 0.6, lightLo: 0.5, lightSpan: 0.4, heatK: 0.2, recover: 90, recoverC3: 45, die: 0.3, dieC3: 0.08, caught: 3, caughtDie: 1 / 3, sportC3: 0.1, c1Floor: 0.4, whiten: 3 },
-    weed: { chance: 0.7, every: 5, bg: 0.02, bloom: 0.2, seeds: 3, grazerGap: 15, seedMin: 5, seedMax: 14, light: 0.75, lightMax: 2, weakHp: 0.4, smother: 0.6, d2: 15, cap: 700, p5: 15, p5Cells: 10 },
+    weed: { chance: 0.7, every: 5, bg: 0.02, bloom: 0.2, seeds: 3, grazerGap: 15, seedMin: 5, seedMax: 14, seedRoom: 12, light: 0.75, lightMax: 2, weakHp: 0.4, smother: 0.6, d2: 15, cap: 700, p5: 15, p5Cells: 10 },
     dis: { chance: 0.5, delay: 30, every: 5, spread: 0.1, die: 40, cure: 10, p12Min: 1 },
     star: { chance: 0.5, base: 3, per: 50, max: 10, speed: 14, day: 1 / 3, eat: 6, eatD3: 9, hp: 3, sting: 1, d2Every: 4, d2Hp: 1, startMax: 1000, repath: 1.5, leaveSecs: 3 },
     d2: { every: 4, radius: 20 }, d3: { nibbler: 2, upkeep: 1.05 }, d5: { max: 20, hit: 14 },
@@ -5474,6 +5474,7 @@ function updateHeat(dt) {
   updateBleach(dt);
 }
 /* seaweed: cells of water that hold a frond. It grows on bare rock, skeleton, rubble and weak polyps, shades the coral beside it and blocks budding */
+const NB8 = [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]];   // seaweed creeps to any of the 8 cells around it, so it follows a slope
 const weedFree = (c, r) => inBounds(c, r) && r >= 4 && !isRock(c, r) && !cellAt(c, r) && !game.seaweed.has(key(c, r));
 const weakPolyp = p => p.hp < CONFIG.polypHp * CONFIG.threat.weed.weakHp;
 function weedHost(c, r, rockOnly) {   // does this water cell touch something seaweed can grow from
@@ -5485,8 +5486,13 @@ function weedHost(c, r, rockOnly) {   // does this water cell touch something se
   }
   return false;
 }
+function weedRoom(c, r, need) {   // can the weed spread over at least `need` cells from here (not a one-cell nook)
+  const seen = new Set([key(c, r)]), q = [[c, r]];
+  for (let i = 0; i < q.length && seen.size < need; i++) for (const [dc, dr] of NB8) { const x = q[i][0] + dc, y = q[i][1] + dr, k = key(x, y); if (!seen.has(k) && weedFree(x, y) && weedHost(x, y)) { seen.add(k); q.push([x, y]); } }
+  return seen.size >= need;
+}
 function weedSpread(c, r) {   // one neighbouring cell it can take, or null
-  const opts = NB_DIRS.map(([dc, dr]) => [c + dc, r + dr]).filter(([x, y]) => weedFree(x, y) && weedHost(x, y));
+  const opts = NB8.map(([dc, dr]) => [c + dc, r + dr]).filter(([x, y]) => weedFree(x, y) && weedHost(x, y));
   return opts.length ? opts[Math.floor(Math.random() * opts.length)] : null;
 }
 function weedTouch(p) {   // seaweed cells beside a polyp, at most lightMax
@@ -5499,7 +5505,7 @@ function startWeed(a, force) {   // the bloom: 3 cells on bare rock far from any
   const grazers = game.res.list.filter(r => resLive(r) && (r.kind === 'urchin' || r.kind === 'parrot' || r.kind === 'turtle'));
   const pc = game.polyps, cand = [], loose = [];
   for (let r = 4; r < game.rows - 1; r++) for (let c = 1; c < game.cols - 1; c++) {
-    if (!weedFree(c, r) || !weedHost(c, r, true) || NB_DIRS.filter(([dc, dr]) => weedFree(c + dc, r + dr) && weedHost(c + dc, r + dr)).length < 2) continue;   // open ground, so it has room to spread
+    if (!weedFree(c, r) || !weedHost(c, r, true) || !weedRoom(c, r, C.seedRoom)) continue;   // open ground, so it has room to spread
     if (grazers.some(g => Math.hypot(g.x / CELL - c, g.y / CELL - r) < C.grazerGap)) continue;
     let d = 1e9; for (const p of pc) d = Math.min(d, Math.hypot(p.c - c, p.r - r));
     (d >= C.seedMin && d <= C.seedMax ? cand : loose).push([c, r]);
