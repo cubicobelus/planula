@@ -148,6 +148,9 @@
   #report { position: fixed; right: 12px; top: 252px; z-index: 34; display: none; width: 300px; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.94); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
   #report h4 { margin: 0 0 6px; font-size: 14px; color: #ffe3d3; } #report h4 i { float: right; font-style: normal; font-size: 11px; color: #8aa0b2; font-weight: 400; }
   #report .pr { margin-top: 6px; padding: 6px 8px; border-radius: 7px; background: rgba(120, 190, 220, 0.09); cursor: pointer; border-left: 3px solid #ffb36b; } #report .pr:hover { background: rgba(120, 190, 220, 0.2); }
+  #report .rt { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(150, 220, 240, 0.18); } #report .rt h5 { margin: 0 0 5px; font-size: 12px; color: #cfe6f0; font-weight: 600; }
+  #report .rb { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 12px; color: #9cc5d6; } #report .rb span { width: 62px; } #report .rb i { flex: 1; height: 7px; border-radius: 4px; background: rgba(120, 190, 220, 0.14); overflow: hidden; } #report .rb u { display: block; height: 100%; border-radius: 4px; } #report .rb em { width: 24px; text-align: right; font-style: normal; color: #fff; } #report .rb.wk span { color: #ffd9a0; }
+  #report .ra { margin-top: 4px; font-size: 11.5px; color: #9cc5d6; } #report .ra b { color: #ffd9a0; font-weight: 600; }
   #report .pr b { display: block; color: #fff; font-weight: 600; } #report .pr span { color: #9cc5d6; } #report .ok { margin-top: 6px; color: #9cc5d6; }
   #seasoncard h4, #lincard h4 { margin: 0 0 6px; font-size: 14px; color: #ffe3d3; } #seasoncard .sn { margin-top: 7px; } #seasoncard .sn b { color: #fff; } #seasoncard .sn i { color: #8aa0b2; } #seasoncard .sn p { margin: 1px 0 0; color: #bcdbe8; }
   #seasoncard .sn.cur b { color: #ffe2b0; } #seasoncard .k, #lincard .k { margin-top: 7px; color: #8aa0b2; }
@@ -228,6 +231,8 @@ const CONFIG = {
   shadeRows: 8, shade: { branch: 0.12, anemone: 0.05, plate: 0.45, brain: 0.20, fan: 0.05, skel: 0.10 }, plateSideShade: 0.5, shadeLowLight: 0.25,
   // reef report
   reportAutoSecs: 7, reportHiSecs: 5, reportTop: [[0, 3], [100, 4], [200, 5]], reportFlowLow: 0.3, reportFlowN: 8, reportWeakN: 10, reportArmN: 8, reportShadeN: 10, reportHotN: 15, reportFullSecs: 30, reportTreeSecs: 60,
+  // reef ratings (content 7): 0 to 100 each, every 5 s. Strength is 0..10 in the game, so x10 gives the spec's 0..100
+  ratings: { secs: 5, strK: 1.25, strScale: 10, strShare: 40, lightA: 60, lightB: 40, lightRef: 0.75, healthShare: 150, healthThreat: 5, diversityK: 2.2 },
   // seasons and storms (a year = 4 seasons; the clock runs from the Colony stage on; stormAt = storm starts, s into the storm season)
   yearSecs: 480, seasonSecs: 120, firstCalmSecs: 360, forecastSecs: 60, stormSecs: 25, stormSeason: 2, stormAt: [35, 85], stormTick: 2, stormSafe: 4, breakK: 0.5, firstStormPower: 0.6, flexMult: 0.5, revealStormLost: 8,
   stormCurrent: 150, stormShake: 7, stormDark: 0.5,
@@ -5058,24 +5063,61 @@ function findProblems() {
   const top = C.reportTop.reduce((a, [from, k]) => n >= from ? k : a, 3);
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
 }
+/* ---------- reef ratings: five bars, recomputed every 5 s; the two weakest give advice ---------- */
+const RATINGS = [
+  ['structure', 'Structure', '#d6a8ff', 'Thicken bases and brace long arms. Brain coral anchors a reef.'],
+  ['light', 'Light', '#ffe08a', 'Too much of your reef shades itself. Spread out, and put plates on top.'],
+  ['flow', 'Flow', '#6fd0ff', "The current can't get in. Leave gaps and channels, and put sea fans upstream."],
+  ['diversity', 'Diversity', '#7be3b0', 'Build more homes: caves, thickets, tunnels, ledges and sandy patches.'],
+  ['health', 'Health', '#ff9c7a', 'Your coral is struggling. Clear the seaweed, heal with shrimp, and get through the threat.'],
+];
+function computeRatings() {
+  const C = CONFIG.ratings, P = game.polyps, n = P.length, v = {};
+  if (!n) { for (const [k] of RATINGS) v[k] = 0; return v; }
+  const sup = supportMap();
+  let sSum = 0, weak = 0, eff = 0, open = 0, lSum = 0, fSum = 0, bad = 0;
+  for (const p of P) {
+    const s = sup.str.get(key(p.c, p.r)) || 0; sSum += s; if (s < CONFIG.stormSafe) weak++;
+    const lg = light(p.r * CELL + CELL / 2); eff += lightOf(p) * TY(typeOf(p)).light; open += lg; lSum += lg;
+    fSum += flowOf(p);
+    if (p.bl || p.inf || p.hp < CONFIG.polypHp * 0.5 || weedTouch(p) > 0) bad++;
+  }
+  v.structure = clamp(C.strK * C.strScale * sSum / n - C.strShare * weak / n, 0, 100);
+  v.light = clamp(C.lightA * eff / Math.max(open, 1e-6) + C.lightB * (lSum / n) / C.lightRef, 0, 100);
+  v.flow = clamp(100 * fSum / n, 0, 100);
+  v.diversity = clamp(C.diversityK * game.bio.B, 0, 100);
+  const T = game.thr, threats = (starN() ? 1 : 0) + (game.nibblers.length ? 1 : 0) + (T.weed.on ? 1 : 0);
+  v.health = clamp(100 - C.healthShare * bad / n - C.healthThreat * threats, 0, 100);
+  return v;
+}
+function calcRatings() { const v = computeRatings(); game.rat = { v, t: game.time }; return v; }
+function ratingsHtml() {
+  const v = game.rat && game.rat.v; if (!v || !game.polyps.length) return '';
+  const order = RATINGS.slice().sort((a, b) => v[a[0]] - v[b[0]]), weak = order.slice(0, 2).map(x => x[0]);
+  let h = '<div class="rt"><h5>Reef ratings</h5>';
+  for (const [k, nm, col] of RATINGS) h += `<div class="rb${weak.includes(k) ? ' wk' : ''}" data-r="${k}"><span>${nm}</span><i><u style="width:${Math.round(v[k])}%;background:${col}"></u></i><em>${Math.round(v[k])}</em></div>`;
+  for (const k of weak) { const r = RATINGS.find(x => x[0] === k); h += `<div class="ra"><b>${r[1]}:</b> ${r[3]}</div>`; }
+  return h + '</div>';
+}
 function updateReport(dt) {
   const R = game.rep;
   R.capT = game.energy >= energyCap() * 0.99 ? (R.capT || 0) + dt : 0;
   R.affT = treeAffordable() ? (R.affT || 0) + dt : 0;
   R.zeroT = game.goals.stage >= CONFIG.upkeepStage && game.energy <= 0 ? (R.zeroT || 0) + dt : 0;
+  if (game.goals.stage >= 2 && (R.ratT = (R.ratT || 0) - dt) <= 0) { R.ratT = CONFIG.ratings.secs; calcRatings(); }
   if (R.open && R.auto && (R.auto -= dt) <= 0) closeReport();
   if (R.open && (R.refresh = (R.refresh || 0) - dt) <= 0) { R.refresh = 1; R.list = findProblems(); renderReport(); }
 }
 let repSig = '';
 function renderReport() {
-  const R = game.rep, sig = R.list.map(x => x.id + x.msg).join('|') + (R.auto ? 'a' : 'm');
+  const R = game.rep, rat = ratingsHtml(), sig = R.list.map(x => x.id + x.msg).join('|') + (R.auto ? 'a' : 'm') + rat;
   if (sig === repSig) return; repSig = sig;
   repEl.innerHTML = `<h4>Reef report<i>${R.auto ? 'any key closes' : 'Tab closes'}</i></h4>` + (R.list.length ?
-    R.list.map((x, i) => `<div class="pr" data-i="${i}"><b>${x.msg}</b><span>${x.fix}</span></div>`).join('') : '<div class="ok">No problems right now. The reef is doing fine.</div>');
+    R.list.map((x, i) => `<div class="pr" data-i="${i}"><b>${x.msg}</b><span>${x.fix}</span></div>`).join('') : '<div class="ok">No problems right now. The reef is doing fine.</div>') + rat;
 }
 function openReport(auto) {
   if (game.goals.stage < 2) return;
-  const R = game.rep; R.open = true; R.auto = auto ? CONFIG.reportAutoSecs : 0; R.list = findProblems(); R.refresh = 1; repSig = ''; renderReport();
+  const R = game.rep; R.open = true; R.auto = auto ? CONFIG.reportAutoSecs : 0; R.list = findProblems(); R.refresh = 1; R.ratT = CONFIG.ratings.secs; calcRatings(); repSig = ''; renderReport();
   repEl.style.display = 'block';
 }
 function closeReport() { game.rep.open = false; game.rep.auto = 0; repEl.style.display = 'none'; }
