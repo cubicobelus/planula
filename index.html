@@ -24,6 +24,7 @@
   #abar button:active { background: rgba(255, 255, 255, 0.24); }
   #abar button.dis { opacity: 0.4; cursor: not-allowed; } #abar button.dis:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(150, 220, 240, 0.22); }
   #abar button.on { border-color: rgba(255, 226, 176, 0.7); color: #fff3d6; }
+  #abar .ic { order: -1; display: inline-flex; } #abar .ic:empty { display: none; }
   #abar button.pop { animation: apop 0.28s ease-out; }
   #abar button.sw { margin-left: 6px; border-radius: 9px; color: #9cc5d6; } #abar button.sw b { color: #ffe3d3; font-weight: 600; }
   #abar kbd { font: inherit; font-size: 11px; min-width: 11px; padding: 0 4px; text-align: center; border-radius: 3px; background: rgba(255, 255, 255, 0.16); color: #fff; }
@@ -69,7 +70,7 @@
   .tres { display: flex; gap: 8px; }
   .tchip { padding: 5px 11px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); font-size: 12px; color: #9cc5d6; white-space: nowrap; }
   .tchip b { color: #fff; font-weight: 600; margin-left: 6px; }
-  .tcols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .tcols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
   .tcol h3 { margin: 0; padding-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: 0.17em; text-transform: uppercase; color: var(--ac); border-bottom: 2px solid var(--ac); }
   .tnode { position: relative; margin-top: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(160, 200, 220, 0.18); background: rgba(255, 255, 255, 0.04); transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
   .tnode + .tnode::before { content: ''; position: absolute; left: 22px; top: -17px; width: 2px; height: 17px; background: linear-gradient(var(--ac), rgba(255, 255, 255, 0.1)); opacity: 0.6; }
@@ -81,6 +82,7 @@
   .tnode .cost span.no { color: #ff9f8c; }
   .tnode .need { margin-top: 6px; font-size: 11.5px; color: #ffb59a; }
   .tnode.hidden { border-style: dashed; background: rgba(255, 255, 255, 0.025); }
+  .tnode.tierlock { opacity: 0.45; filter: grayscale(1); } .tnode.tierlock .fxl { color: #8aa0b2; }
   .tnode.hidden .nm { color: #6f8ea2; letter-spacing: 0.2em; }
   .tnode.hidden .st { background: rgba(255, 255, 255, 0.07); color: #6f8ea2; }
   .tnode.hidden .fxl { color: #7d98aa; font-style: italic; }
@@ -215,8 +217,8 @@ const CONFIG = {
   dayCycle: 120, dayLen: 80, dayFade: 8, planktonDay: 0.9, planktonNight: 3, nightRise: 55, nightRiseDecay: 0.045, nightSpawnRate: 40, planktonLeave: 0.8, nightToasts: 3,
   nightDark: 0.62, nightGlow: 1.0, nightAutoRadius: 1.3, nightAutoEnergy: 2.4, nightHand: 1, revealNightPlankton: 40,
   // flow (current along each row from the upstream edge) and shading
-  flowDir: 1, flowRegain: 0.08, flowFloor: 0.25, flowBlock: { branch: 0.15, anemone: 0.10, skel: 0.30, rock: 1.0 }, flowStreaks: 220,
-  shadeRows: 8, shade: { branch: 0.12, anemone: 0.05, skel: 0.10 }, shadeLowLight: 0.25,
+  flowDir: 1, flowRegain: 0.08, flowFloor: 0.25, flowBlock: { branch: 0.15, anemone: 0.10, plate: 0.25, brain: 0.60, fan: 0.30, skel: 0.30, rock: 1.0 }, flowStreaks: 220,
+  shadeRows: 8, shade: { branch: 0.12, anemone: 0.05, plate: 0.45, brain: 0.20, fan: 0.05, skel: 0.10 }, plateSideShade: 0.5, shadeLowLight: 0.25,
   // reef report
   reportAutoSecs: 7, reportHiSecs: 5, reportTop: [[0, 3], [100, 4], [200, 5]], reportFlowLow: 0.3, reportFlowN: 8, reportWeakN: 10, reportArmN: 8, reportShadeN: 10, reportFullSecs: 30, reportTreeSecs: 60,
   // seasons and storms (a year = 4 seasons; the clock runs from the Colony stage on; stormAt = storm starts, s into the storm season)
@@ -229,9 +231,19 @@ const CONFIG = {
   sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 } },
+  cost: { F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, ca: 15 } },
   longReach: 170, longAutoRadius: 110, longTentacleScale: 1.35,
   algaeSunMult: 3,
+  // coral types (content.md section 2): cost x bud energy, ca per bud, time x bud time, light x sun income, plank x catch energy, str added to the 0..10 strength, caRate x calcium income, caCap per polyp, up x upkeep (anemone cost/upkeep stay in anemoneCostMult/anemoneExtra/anemoneUpkeep)
+  types: {
+    branch: { cost: 1, ca: 1, time: 1, light: 1, plank: 1, str: 0, caRate: 1, caCap: 0, up: 1 },
+    plate: { cost: 1.3, ca: 2, time: 1.3, light: 1.6, plank: 0.7, str: -1, caRate: 1, caCap: 0, up: 1 },
+    brain: { cost: 1.5, ca: 3, time: 2, light: 0.8, plank: 0.6, str: 3, caRate: 1.5, caCap: 3, up: 0.8 },
+    fan: { cost: 1.1, ca: 0, time: 1, light: 0.4, plank: 2, str: 1.5, caRate: 0, caCap: 0, up: 1.2 },
+    anemone: { ca: 2, time: 1.5, light: 0.8, plank: 1.2, str: 1, caRate: 0, caCap: 0 },
+  },
+  typeOrder: ['branch', 'plate', 'brain', 'fan', 'anemone'], fanBreak: 0.3, brainSolid: 2, stageReefTypes: 2, typeMinPolyps: 5,
+  revealShadeLight: 0.7, revealShadePolyps: 8, revealStormLostBrain: 5, revealEdgeCatch: 300, edgeFlow: 0.8,
   calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
   // moments: short beats that never block input (the slow-down ends at once on any input)
   moments: { slowSecs: 0.5, slowScale: 0.3, kickSecs: 1.1, kickZoom: 0.1, pulseSecs: 0.95, budSlow: 0.25, revealSlow: 0.18, nudgeSecs: 1.6, nudgeMax: 320, nudgeFrac: 0.5 },
@@ -276,7 +288,7 @@ const game = {
   fish: [],
   nibblers: [], nib: { timer: null },
   sting: { cd: 0 },
-  nextAnemone: false, clown: { t: null, fish: [] },
+  nextType: 'branch', clown: { t: null, fish: [] },
   guide: null,               // { path, target, t, wait } while the colony grows by itself
   fx: [], parts: [],
   slow: null, kick: null, nudge: null,   // moment state: time scale, camera kick, camera nudge
@@ -290,7 +302,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0 },
+  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1 },   // reef report
   season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
@@ -327,48 +339,63 @@ function playerPos() {
   if (game.stage === 'polyp' && game.active) return cellCenter(game.active.c, game.active.r);
   return { x: game.larva.x, y: game.larva.y };
 }
-function budCost(anem = game.nextAnemone) {
+// coral types: p.type is branch | plate | brain | fan | anemone (p.anemone mirrors the last, kept for the older checks)
+const typeOf = p => p.anemone ? 'anemone' : p.type || 'branch';
+const tyN = t => t === true ? 'anemone' : t === false || !t ? 'branch' : t;   // older callers pass a boolean
+const TY = t => CONFIG.types[tyN(t)] || CONFIG.types.branch;
+const TYPE_NAME = { branch: 'Branching', plate: 'Plate', brain: 'Brain', fan: 'Sea fan', anemone: 'Anemone' };
+Object.defineProperty(game, 'nextAnemone', { get() { return this.nextType === 'anemone'; }, set(v) { this.nextType = v ? 'anemone' : 'branch'; } });
+function budCost(tp = game.nextType) {
+  tp = tyN(tp);
   const n = game.polyps.length;   // crowding: a big colony spends more keeping old tissue alive (type and biodiversity factors come later)
   let c = (CONFIG.budCostBase + CONFIG.budCostPerPolyp * Math.max(0, n - 1)) * (1 + n / CONFIG.crowdDiv);
   if (has('G1')) c *= CONFIG.budEnergyFactor;
   if (game.active) c *= 1 - CONFIG.traitGrowth * (linOf(game.active).traits.growth - 3);   // the source polyp's lineage
-  return anem ? c * CONFIG.anemoneCostMult + CONFIG.anemoneExtra : c;
+  return tp === 'anemone' ? c * CONFIG.anemoneCostMult + CONFIG.anemoneExtra : c * TY(tp).cost;
 }
 // energy cap: the larger of the flat floor and a few branching buds' worth, so a big colony can always afford its next bud
 const energyCap = () => Math.max(CONFIG.maxEnergy, CONFIG.capBudMult * budCost(false));
-function budCalcium(anem = game.nextAnemone) { return has('G1') ? CONFIG.budCalcium * (anem ? 2 : 1) : 0; }
+const calciumCap = () => CONFIG.calciumMax + game.polyps.reduce((a, p) => a + TY(typeOf(p)).caCap, 0);
+function budCalcium(tp = game.nextType) { tp = tyN(tp); return has('G1') ? CONFIG.budCalcium * TY(tp).ca : 0; }
 // null when the bud can be paid for, otherwise what is missing
-function budShort(anem = game.nextAnemone) {
-  if (game.energy < budCost(anem)) return `Need ${Math.ceil(budCost(anem))} energy to bud`;
-  if (game.calcium < budCalcium(anem)) return `Need ${budCalcium(anem)} calcium to bud`;
+function budShort(tp = game.nextType) {
+  if (game.energy < budCost(tp)) return `Need ${Math.ceil(budCost(tp))} energy to bud`;
+  if (game.calcium < budCalcium(tp)) return `Need ${budCalcium(tp)} calcium to bud`;
   return null;
 }
 
 /* ---------- tech tree: doing a job by hand reveals its upgrade, then it can be bought ---------- */
 const TREE = [
-  { id: 'F1', branch: 'Feeding', name: 'Self-feeding', hint: 'It stirs once the colony is five strong',
+  { id: 'F1', tier: 1, branch: 'Feeding', name: 'Self-feeding', hint: 'It stirs once the colony is five strong',
     fx: () => 'Idle polyps catch nearby plankton on their own', done: 'Polyps now feed themselves', ok: () => game.polyps.length >= CONFIG.automationAt, on: () => { game.unlocked = true; } },
-  { id: 'F2', branch: 'Feeding', name: 'Long tentacles', hint: 'Keep catching plankton by hand',
+  { id: 'F2', tier: 1, branch: 'Feeding', name: 'Long tentacles', hint: 'Keep catching plankton by hand',
     fx: () => `Hand reach ${CONFIG.tentacleReach} to ${CONFIG.longReach}, and polyps feed from further away`, done: 'Tentacles grow longer', ok: () => game.stats.handPlankton >= CONFIG.revealHandPlankton },
-  { id: 'F3', branch: 'Feeding', name: 'Algae partnership', hint: 'Spend a long while basking in good light',
+  { id: 'F3', tier: 1, branch: 'Feeding', name: 'Algae partnership', hint: 'Spend a long while basking in good light',
     fx: () => `Sunlight income x${CONFIG.algaeSunMult}. Polyps turn golden-brown`, done: 'Algae now live in your polyps', ok: () => game.polyps.some(p => p.fairT >= CONFIG.revealFairSeconds) },
-  { id: 'F4', branch: 'Feeding', name: 'Night feeding', hint: 'Feed through the dark',
+  { id: 'F4', tier: 1, branch: 'Feeding', name: 'Night feeding', hint: 'Feed through the dark',
     fx: () => `At night: self-feeding reach x${CONFIG.nightAutoRadius}, catches ${CONFIG.autoEnergy} to ${CONFIG.nightAutoEnergy} energy, and hand catches give +${CONFIG.nightHand}`, done: 'The reef feeds best by night', ok: () => game.stats.nightPlankton >= CONFIG.revealNightPlankton },
-  { id: 'G1', branch: 'Growth', name: 'Calcium pull', hint: 'Keep budding new polyps',
+  { id: 'G1', tier: 1, branch: 'Growth', name: 'Calcium pull', hint: 'Keep budding new polyps',
     fx: () => `Polyps slowly make calcium. Buds cost ${Math.round((1 - CONFIG.budEnergyFactor) * 100)}% less energy plus ${CONFIG.budCalcium} calcium`, done: 'Polyps now draw calcium from the water',
     ok: () => game.stats.buds >= CONFIG.revealBuds, on: () => { game.calciumOn = true; game.calcium = Math.max(game.calcium, CONFIG.calciumStart); } },
-  { id: 'G2', branch: 'Growth', name: 'Guided growth', hint: 'Practise growing by hand, a lot', needs: 'G1',
+  { id: 'G2', tier: 1, branch: 'Growth', name: 'Guided growth', hint: 'Practise growing by hand, a lot', needs: 'G1',
     fx: () => 'Hold G and click a spot nearby: the colony grows a path to it by itself, slowly', done: 'Hold G and click to guide growth', ok: () => game.stats.handBuds >= CONFIG.revealHandBuds },
-  { id: 'R1', branch: 'Residents', name: 'Anemone', hint: 'A bigger colony might shelter someone',
+  { id: 'R1', tier: 1, branch: 'Residents', name: 'Anemone', hint: 'A bigger colony might shelter someone',
     fx: () => 'Q picks an anemone as the next bud. A pair of clownfish moves in soon after', done: 'Press Q to bud an anemone', ok: () => game.polyps.length >= CONFIG.revealAnemonePolyps },
-  { id: 'D1', branch: 'Defense', name: 'Sting', hint: 'Something may come to nibble',
+  { id: 'D1', tier: 1, branch: 'Defense', name: 'Sting', hint: 'Something may come to nibble',
     fx: () => 'Right mouse or E stings toward the cursor. Stung nibblers flee', done: 'Right mouse or E stings', ok: () => game.stats.nibbles >= 1 },
-  { id: 'S1', branch: 'Structure', name: 'Thick base', hint: 'A storm will show where the reef is weak',
+  { id: 'S1', tier: 1, branch: 'Structure', name: 'Thick base', hint: 'A storm will show where the reef is weak',
     fx: () => `Polyps touching rock, and their neighbours, hold +${CONFIG.thickBase} firmer`, done: 'The reef thickens at its base', ok: () => game.stats.stormsSurvived >= 1 },
-  { id: 'S2', branch: 'Structure', name: 'Flexible tissue', hint: 'Lose branches to the sea, and the reef may learn to bend',
+  { id: 'S2', tier: 1, branch: 'Structure', name: 'Flexible tissue', hint: 'Lose branches to the sea, and the reef may learn to bend',
     fx: () => `Branches flex instead of snapping: break chance x${CONFIG.flexMult}`, done: 'Branches now flex in the surge', ok: () => game.stats.stormLost >= CONFIG.revealStormLost },
+  { id: 'T1', tier: 1, branch: 'Coral types', name: 'Plate coral', hint: 'Notice your own shade',
+    fx: () => `Q adds plates: flat tables that farm light (x${CONFIG.types.plate.light}) and shade what is below. Buds sideways or up only`, done: 'Press Q to bud plate coral',
+    ok: () => game.polyps.filter(p => shadeOf(p) < CONFIG.revealShadeLight).length >= CONFIG.revealShadePolyps },
+  { id: 'T2', tier: 1, branch: 'Coral types', name: 'Brain coral', hint: 'Lose coral to a storm',
+    fx: () => `Q adds brain coral: slow, strong and stores calcium. Buds only into a nook touching ${CONFIG.brainSolid} or more solid cells`, done: 'Press Q to bud brain coral', ok: () => game.stats.stormLost >= CONFIG.revealStormLostBrain },
+  { id: 'T3', tier: 2, branch: 'Coral types', name: 'Sea fan', hint: 'Feed out in the open current',
+    fx: () => `Q adds sea fans: they catch x${CONFIG.types.fan.plank} plankton but make no calcium and hold nothing up. They bend in storms`, done: 'Press Q to bud a sea fan', ok: () => game.stats.edgeCatch >= CONFIG.revealEdgeCatch },
 ];
-const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff']];
+const BRANCHES = [['Feeding', '#7be3b0'], ['Growth', '#ffcf8a'], ['Residents', '#ff9c7a'], ['Defense', '#a9b8ff'], ['Structure', '#d6a8ff'], ['Coral types', '#ff79c6']];
 const has = id => game.tree.state[id] === 'owned';
 const feedMult = p => p ? 1 + CONFIG.traitFeed * (linOf(p).traits.feed - 3) : 1;   // lineage trait: tentacle and self-feed reach
 const reach = () => (has('F2') ? CONFIG.longReach : CONFIG.tentacleReach) * feedMult(game.active);
@@ -395,6 +422,8 @@ function patchCount() {
   }
   return n;
 }
+// coral types with at least typeMinPolyps live polyps each (the anemone does not count)
+function typeCount() { const n = {}; for (const p of game.polyps) if (!p.dead) { const t = typeOf(p); if (t !== 'anemone') n[t] = (n[t] || 0) + 1; } return Object.values(n).filter(v => v >= CONFIG.typeMinPolyps).length; }
 const STAGES = [
   { name: 'Polyp', desc: 'You have settled on the rock and can feed and bud.', opens: 'Feeding and budding',
     goals: [{ label: 'Settle', cur: () => game.progress.settled ? 1 : 0, need: 1 }] },
@@ -403,6 +432,7 @@ const STAGES = [
   { name: 'Reef', desc: 'Many polyps on several rocks, with a resident or two.', opens: 'A bigger income',
     goals: [{ label: 'Polyps', cur: () => game.polyps.length, need: CONFIG.stageReefPolyps },
             { label: 'Rock patches', cur: patchCount, need: CONFIG.stageReefPatches },
+            { label: 'Coral types', cur: typeCount, need: CONFIG.stageReefTypes },
             { label: 'Species', cur: () => game.species.length, need: CONFIG.stageReefSpecies }] },
   { name: 'Reef crest', soon: true, desc: 'A reef tough enough to take a storm.', opens: 'Spawning',
     goals: [{ label: 'Polyps', cur: () => 0, need: 250 }, { label: 'Storm year, under 10% lost', cur: () => 0, need: 1 }, { label: 'Species', cur: () => 0, need: 8 }] },
@@ -476,9 +506,11 @@ function revealBeat() {
   spawnParts('spark', p.x, p.y - 10, 12); beat(CONFIG.moments.revealSlow, 0.5);
   const h = document.getElementById('hud'); h.classList.remove('flash'); void h.offsetWidth; h.classList.add('flash');
 }
+const TIER_STAGE = ['Colony', 'Reef', 'Reef crest'];   // tier n opens when this stage is reached
+const tierOpen = n => game.goals.stage >= n + 1;
 function checkReveals() {
   for (const d of TREE) {
-    if (game.tree.state[d.id] || !d.ok()) continue;
+    if (game.tree.state[d.id] || !tierOpen(d.tier) || !d.ok()) continue;
     game.tree.state[d.id] = 'revealed'; game.tree.fresh[d.id] = true;
     toast(`The reef is learning: ${d.name}`); sfx('reveal'); revealBeat();
     if (game.tree.open) renderTree();
@@ -492,11 +524,11 @@ function costShort(id) {
 }
 function canBuy(id) {
   const d = TREE.find(x => x.id === id);
-  return !!d && game.tree.state[id] === 'revealed' && (!d.needs || has(d.needs)) && !costShort(id);
+  return !!d && tierOpen(d.tier) && game.tree.state[id] === 'revealed' && (!d.needs || has(d.needs)) && !costShort(id);
 }
 function buy(id) {
   const d = TREE.find(x => x.id === id);
-  if (!d || game.tree.state[id] !== 'revealed') return false;
+  if (!d || game.tree.state[id] !== 'revealed' || !tierOpen(d.tier)) return false;
   const why = d.needs && !has(d.needs) ? `Needs ${TREE.find(x => x.id === d.needs).name} first` : costShort(id);
   if (why) { toast(why, true); return false; }
   const c = CONFIG.cost[id];
@@ -518,7 +550,8 @@ function renderTree() {
     h += `<div class="tcol" style="--ac:${ac}"><h3>${br}</h3>`;
     for (const d of TREE.filter(x => x.branch === br)) {
       const s = st[d.id] || 'hidden', c = CONFIG.cost[d.id], locked = s === 'revealed' && d.needs && !has(d.needs);
-      if (s === 'hidden') h += `<div class="tnode hidden" data-id="${d.id}"><div class="nm"><span>???</span><span class="st">Hidden</span></div><div class="fxl">${d.hint}</div></div>`;
+      if (!tierOpen(d.tier) && s !== 'owned') h += `<div class="tnode hidden tierlock" data-id="${d.id}"><div class="nm"><span>???</span><span class="st">Tier ${d.tier}</span></div><div class="fxl">Reach ${TIER_STAGE[d.tier - 1]} to unlock tier ${d.tier}</div></div>`;
+      else if (s === 'hidden') h += `<div class="tnode hidden" data-id="${d.id}"><div class="nm"><span>???</span><span class="st">Hidden</span></div><div class="fxl">${d.hint}</div></div>`;
       else {
         h += `<div class="tnode ${s}${locked ? ' locked' : ''}${s === 'revealed' && game.tree.fresh[d.id] ? ' fresh' : ''}" data-id="${d.id}"><div class="nm"><span>${d.name}</span><span class="st">${s === 'owned' ? 'Owned' : 'Revealed'}</span></div><div class="fxl">${d.fx()}</div>`;
         if (s === 'revealed') {
@@ -643,7 +676,7 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; gain(nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy, c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
+        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank, c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
         continue;
       }
     }
@@ -671,8 +704,8 @@ function gain(a, x, y) {
 }
 
 /* ---------- cells / polyps ---------- */
-function addPolyp(c, r, anemone, from) {   // from: the polyp it buds from (it inherits that lineage)
-  const p = { c, r, lin: from && from.lin || 0, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: !!anemone, born: game.time };   // born: only for the grow-in drawing
+function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inherits that lineage)
+  const p = { c, r, lin: from && from.lin || 0, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: tyN(type) === 'anemone', type: tyN(type), born: game.time };   // born: only for the grow-in drawing
   game.polyps.push(p);
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
   return p;
@@ -803,13 +836,21 @@ function bail() {
 }
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-function validBudCell(c, r) {
+function validBudCell(c, r, tp, from) {   // tp/from: also check that coral type's placement rule from that parent
   if (!inBounds(c, r) || game.grid[r * game.cols + c] === 1 || cellAt(c, r)) return false;
+  let ok = false;
   for (const [dc, dr] of Object.values(DIRS)) {
     const o = cellAt(c + dc, r + dr);
-    if (o && o.kind === 'polyp') return true;
+    if (o && o.kind === 'polyp') ok = true;
   }
-  return false;
+  return ok && (!tp || typeFits(tyN(tp), c, r, from));
+}
+// plate: never down from its parent; brain: only where 2+ solid cells touch; nothing buds from a fan
+function typeFits(tp, c, r, from) {
+  if (from && typeOf(from) === 'fan') return false;
+  if (tp === 'plate' && from && r > from.r) return false;
+  if (tp === 'brain' && NB_DIRS.filter(([a, b]) => isRock(c + a, r + b) || cellAt(c + a, r + b)).length < CONFIG.brainSolid) return false;
+  return true;
 }
 function tryHop(dir) {
   const a = game.active; if (!a) return;
@@ -822,7 +863,7 @@ function tryHop(dir) {
     setActive(o.ref);
     game.hop = { fx: from.x, fy: from.y, t: 0 };
     game.progress.hopped = true;
-  } else if (validBudCell(c, r)) {
+  } else if (validBudCell(c, r, game.nextType, a)) {
     game.facing = { c, r }; game.bud.src = 'key';
   } else {
     game.facing = null;
@@ -844,7 +885,7 @@ const BUD_MODES = ['both', 'click', 'keys'];
 // open cells the active polyp can bud into (click mode shows these as spots)
 function budSpots() {
   const a = game.active; if (game.stage !== 'polyp' || !a) return [];
-  return Object.values(DIRS).map(([dc, dr]) => ({ c: a.c + dc, r: a.r + dr })).filter(s => validBudCell(s.c, s.r));
+  return Object.values(DIRS).map(([dc, dr]) => ({ c: a.c + dc, r: a.r + dr })).filter(s => validBudCell(s.c, s.r, game.nextType, a));
 }
 function spotAtMouse() {
   if (!spotMode() || game.tree.open || game.mouse.ui) return null;
@@ -872,17 +913,17 @@ function updateBud(dt) {
   const b = game.bud;
   b.fail = Math.max(0, b.fail - dt);
   if (game.stage !== 'polyp') return;
-  if (game.facing && !validBudCell(game.facing.c, game.facing.r)) { game.facing = null; b.t = 0; b.armed = false; }
+  if (game.facing && !validBudCell(game.facing.c, game.facing.r, game.nextType, game.active)) { game.facing = null; b.t = 0; b.armed = false; }
   if ((clickMode() || b.src === 'mouse') && !b.armed && b.fail <= 0) game.facing = null;   // mouse-picked facing only lasts while held
   if (!b.armed || !(b.src === 'mouse' ? game.mouse.bud : game.keys.has('Space')) || !game.facing) { b.t = 0; b.armed = false; return; }
   b.t += dt;
-  if (b.t < CONFIG.budTime) return;
+  if (b.t < CONFIG.budTime * TY(game.nextType).time) return;
   const cost = budCost(), f = game.facing, short = budShort(), fp = spotPos(f.c, f.r);
   b.t = 0; b.armed = false;
   if (short) { b.fail = 0.9; toast(short); return; }
   game.energy -= cost; game.calcium -= budCalcium();
-  const anem = game.nextAnemone; game.nextAnemone = false;
-  const p = addPolyp(f.c, f.r, anem, game.active);
+  const tp = game.nextType, anem = tp === 'anemone'; if (anem) game.nextType = 'branch';
+  const p = addPolyp(f.c, f.r, tp, game.active);
   if (game.active) { p.parent = { c: game.active.c, r: game.active.r }; rollSport(p, game.active); }   // parent: drawing only, which polyp it grew from
   setActive(p);
   const first = !game.progress.budded;
@@ -890,7 +931,7 @@ function updateBud(dt) {
   game.fx.push({ kind: 'ring', x: fp.x, y: fp.y, t: 0, life: 0.6 });
   sfx('budDone');
   if (first) { beat(CONFIG.moments.budSlow, 0.5); game.fx.push({ kind: 'pulse', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.8, small: true }); spawnParts('spark', (f.c + 0.5) * CELL, (f.r + 0.5) * CELL, 10); }
-  toast(`${anem ? 'New anemone' : 'New polyp'} (${game.polyps.length})`);
+  toast(`${tp === 'branch' ? 'New polyp' : 'New ' + TYPE_NAME[tp].toLowerCase()} (${game.polyps.length})`);
 }
 
 /* ---------- guided growth: the colony queues a path of attachable cells and grows along it by itself ---------- */
@@ -979,11 +1020,17 @@ function doSting() {
 
 /* ---------- anemones and clownfish: a resident pair moves in once an anemone exists ---------- */
 const anemones = () => game.polyps.filter(p => p.anemone);
-function toggleAnemone() {
-  if (!has('R1') || game.stage !== 'polyp') return;
-  game.nextAnemone = !game.nextAnemone;
-  toast(game.nextAnemone ? 'Next bud: anemone' : 'Next bud: polyp');
+const TYPE_UNLOCK = { plate: 'T1', brain: 'T2', fan: 'T3', anemone: 'R1' };
+const ownedTypes = () => CONFIG.typeOrder.filter(t => !TYPE_UNLOCK[t] || has(TYPE_UNLOCK[t]));
+// Q / the bar button: the next bud type steps through the owned ones (dir -1 goes back)
+function cycleType(dir = 1) {
+  if (game.stage !== 'polyp') return;
+  const o = ownedTypes(); if (o.length < 2) return;
+  game.nextType = o[(o.indexOf(game.nextType) + dir + o.length) % o.length];
+  game.facing = null; game.bud.t = 0; game.bud.armed = false;
+  toast(`Next bud: ${game.nextType === 'branch' ? 'branching polyp' : TYPE_NAME[game.nextType].toLowerCase()}`);
 }
+const toggleAnemone = () => cycleType();
 function clownAnchor(f) {
   let best = null, bd = 1e9;
   for (const p of anemones()) { const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - f.x, c.y - f.y); if (d < bd) { bd = d; best = c; } }
@@ -1241,11 +1288,11 @@ function updatePolyps(dt) {
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const l = lightOf(p);
-    game.energy = Math.min(cap, game.energy + CONFIG.sunRate * l * sunK * boost() * dl * dt);   // more factors (type, heat, biodiversity) multiply in here later
+    game.energy = Math.min(cap, game.energy + CONFIG.sunRate * l * TY(typeOf(p)).light * sunK * boost() * dl * dt);   // more factors (type, heat, biodiversity) multiply in here later
     if (l >= CONFIG.dimBelow && dl > 0.5) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
     if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * dt);
-    if (game.calciumOn) game.calcium = Math.min(CONFIG.calciumMax, game.calcium + CONFIG.calciumRate * dt);
+    if (game.calciumOn) game.calcium = Math.min(calciumCap(), game.calcium + CONFIG.calciumRate * TY(typeOf(p)).caRate * dt);
   }
   upkeep(dt);
   if (game.hop) { game.hop.t += dt; if (game.hop.t > 0.35) game.hop = null; }
@@ -1294,7 +1341,7 @@ function updatePolyps(dt) {
 function upkeep(dt) {
   const C = CONFIG;
   if (game.goals.stage < C.upkeepStage || !game.polyps.length) return;
-  let u = 0; for (const p of game.polyps) u += C.upkeep * (p.anemone ? C.anemoneUpkeep : 1);   // type and trait factors multiply in here later
+  let u = 0; for (const p of game.polyps) u += C.upkeep * (typeOf(p) === 'anemone' ? C.anemoneUpkeep : TY(typeOf(p)).up ?? 1);   // type and trait factors multiply in here later
   game.energy = Math.max(0, game.energy - u * dt);
   if (game.energy > 0) { game.starveT = 0; return; }
   if ((game.starveT = (game.starveT || 0) + dt) < C.starveEvery) return;
@@ -2837,7 +2884,7 @@ function drawGhost(t) {
   const short = budShort(), ca = budCalcium();
   if (game.nextAnemone) { ctx.save(); drawAnemoneAt(cc.x, cc.y, t, 1.7, 0.55); ctx.restore(); }
   if (clickMode() || game.bud.src === 'mouse') return;   // click mode labels the spot under the cursor instead
-  const txt = !short ? `Space: ${game.nextAnemone ? 'anemone' : 'bud'} (${Math.ceil(cost)}${ca ? ` + ${ca} Ca` : ''})` : game.energy < cost ? `Need ${Math.ceil(cost)} energy` : `Need ${ca} calcium`, ly = cc.y + (up ? -37 - (game.nextAnemone ? 16 : 0) : 41) * z * 0.9;
+  const txt = !short ? `Space: ${game.nextType === 'branch' ? 'bud' : TYPE_NAME[game.nextType].toLowerCase()} (${Math.ceil(cost)}${ca ? ` + ${ca} Ca` : ''})` : game.energy < cost ? `Need ${Math.ceil(cost)} energy` : `Need ${ca} calcium`, ly = cc.y + (up ? -37 - (game.nextAnemone ? 16 : 0) : 41) * z * 0.9;
   const tw = ctx.measureText(txt).width + 14 * z;
   ctx.fillStyle = 'rgba(2,16,32,0.55)'; roundRectPath(cc.x - tw / 2, ly - 12 * z, tw, 17 * z, 8 * z); ctx.fill();
   ctx.fillStyle = can ? '#e8fbff' : '#ffb59a';
@@ -2852,7 +2899,10 @@ function drawSpots(t) {
     const g = ctx.createRadialGradient(cc.x, cc.y, 1, cc.x, cc.y, 15);
     g.addColorStop(0, `rgba(255,248,200,${a})`); g.addColorStop(1, 'rgba(255,248,200,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cc.x, cc.y, 15, 0, 6.3); ctx.fill();
-    if (h) { ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.lineDashOffset = -t * 12; roundRectPath(cc.x - 11, cc.y - 11, 22, 22, 7); ctx.stroke(); ctx.setLineDash([]); }
+    if (h) { ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.lineDashOffset = -t * 12; roundRectPath(cc.x - 11, cc.y - 11, 22, 22, 7); ctx.stroke(); ctx.setLineDash([]);
+      const ca = budCalcium(), tx = `${TYPE_NAME[game.nextType]}: ${Math.ceil(budCost())}${ca ? ' + ' + ca + ' Ca' : ''}`;
+      ctx.font = '600 11px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(2,16,32,0.78)'; roundRectPath(cc.x - ctx.measureText(tx).width / 2 - 6, cc.y - 36, ctx.measureText(tx).width + 12, 17, 6); ctx.fill();
+      ctx.fillStyle = game.energy >= budCost() ? '#fff3d6' : '#ff9c8a'; ctx.fillText(tx, cc.x, cc.y - 24); }
   }
 }
 function drawGuide(t) {
@@ -3077,7 +3127,7 @@ function drawOverlay(t) {
   }
   const hs = spotAtMouse();
   if (hs && !game.bud.armed) {   // what the hovered spot costs, or why it cannot be paid for
-    const short = budShort(), ca = budCalcium(), txt = short || `${game.nextAnemone ? 'Anemone' : 'Bud'}: ${Math.ceil(budCost())} energy${ca ? ` + ${ca} Ca` : ''}`;
+    const short = budShort(), ca = budCalcium(), txt = short || `${game.nextType === 'branch' ? 'Bud' : TYPE_NAME[game.nextType]}: ${Math.ceil(budCost())} energy${ca ? ` + ${ca} Ca` : ''}`;
     ctx.font = '600 13px "Segoe UI", sans-serif';
     const w = ctx.measureText(txt).width + 18, x = clamp(game.mouse.sx, w / 2 + 6, v.w - w / 2 - 6), y = Math.max(24, game.mouse.sy - 26);
     ctx.fillStyle = 'rgba(2,16,32,0.75)'; roundRectPath(x - w / 2, y - 13, w, 24, 12); ctx.fill();
@@ -3180,6 +3230,14 @@ function updateHud() {
 /* ---------- action bar: a button for each key, shown by stage and by what is owned ---------- */
 const abar = el('abar');
 const polypNow = () => game.stage === 'polyp' && !!game.active;
+const svgI = d => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-linecap="round">${d}</svg>`;
+const TYPE_ICON = {
+  branch: svgI('<path d="M8 14V8M8 8L4 3M8 8l4-5M8 11l-3-2" stroke="#ffb3a0" stroke-width="1.8"/>'),
+  plate: svgI('<path d="M1.5 6.5c4-3 9-3 13 0" stroke="#ffd98a" stroke-width="2.2"/><path d="M8 7v6" stroke="#e8b46a" stroke-width="1.6"/>'),
+  brain: svgI('<path d="M2 13c0-6 3-9 6-9s6 3 6 9z" fill="#e69a8a" stroke="none"/><path d="M5 11c1-2 2 0 3-2s2 0 3-2" stroke="#8a4a4a" stroke-width="1"/>'),
+  fan: svgI('<path d="M8 14L2 5c4-3 8-3 12 0z" stroke="#c9a0ff" stroke-width="1.2"/><path d="M8 14V5M8 14L5 5M8 14l3-9" stroke="#c9a0ff" stroke-width="0.8"/>'),
+  anemone: svgI('<circle cx="8" cy="11" r="2.4" fill="#ff9ac0" stroke="none"/><path d="M8 9V3M6 9L4 4M10 9l2-5" stroke="#ff9ac0" stroke-width="1.4"/>'),
+};
 const BAR = [
   { id: 'settle', label: () => 'Settle', key: () => 'Space', show: () => game.stage === 'larva', dis: () => game.settleTarget ? '' : 'Swim against rock to settle', tip: 'Settle here', go: () => pressSpace() },
   { id: 'bud', label: () => 'Bud', key: () => clickMode() ? 'Click' : spotMode() ? 'Space / Click' : 'Space', show: polypNow, hold: true,
@@ -3188,7 +3246,7 @@ const BAR = [
   { id: 'bail', label: () => 'Bail', key: () => 'R', show: polypNow, dis: () => '', tip: 'Swim free as a larva', go: () => bail() },
   { id: 'guide', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide, dis: () => polypNow() ? '' : 'Settle first', tip: 'Hold G and click a cell to grow towards it',
     go: () => game.guide ? cancelGuide('Guided growth cancelled') : toast('Hold G and click a cell to grow towards it') },
-  { id: 'anemone', label: () => `Anemone ${game.nextAnemone ? 'on' : 'off'}`, key: () => 'Q', show: () => has('R1'), on: () => game.nextAnemone, dis: () => polypNow() ? '' : 'Settle first', tip: 'Make the next bud an anemone', go: () => toggleAnemone() },
+  { id: 'type', label: () => TYPE_NAME[game.nextType], icon: () => TYPE_ICON[game.nextType], key: () => 'Q', show: () => ownedTypes().length > 1, on: () => game.nextType !== 'branch', dis: () => polypNow() ? '' : 'Settle first', tip: () => `Next bud: ${TYPE_NAME[game.nextType]}, ${Math.ceil(budCost())} energy${budCalcium() ? ' + ' + budCalcium() + ' Ca' : ''}. Click or Q for the next type, right-click or Shift+Q for the last`, go: () => cycleType() },
   { id: 'sting', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
   { id: 'struct', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
   { id: 'report', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
@@ -3200,8 +3258,8 @@ const BAR = [
 for (const d of BAR) {
   const b = d.btn = document.createElement('button');
   b.dataset.bar = d.id; b.tabIndex = -1; b.style.display = 'none';
-  b.innerHTML = '<span class="cd"></span><span class="lb"></span><kbd></kbd><i class="dot"></i>';
-  d.cdEl = b.children[0]; d.lb = b.children[1]; d.kb = b.children[2]; d.dotEl = b.children[3];
+  b.innerHTML = '<span class="cd"></span><span class="lb"></span><kbd></kbd><i class="dot"></i><span class="ic"></span>';
+  d.cdEl = b.children[0]; d.lb = b.children[1]; d.kb = b.children[2]; d.dotEl = b.children[3]; d.icEl = b.children[4];
   b.addEventListener('animationend', () => b.classList.remove('pop'));
   abar.appendChild(b);
 }
@@ -3225,6 +3283,7 @@ abar.addEventListener('click', e => {
   d.go();
 });
 for (const ev of ['contextmenu', 'wheel']) abar.addEventListener(ev, e => e.stopPropagation());
+abar.addEventListener('contextmenu', e => { const b = e.target.closest('button'), d = b && BAR.find(x => x.btn === b); if (d && d.id === 'type' && !d.reason) cycleType(-1); });
 function updateBar() {
   for (const d of BAR) {
     const vis = !!d.show(), b = d.btn;
@@ -3238,6 +3297,7 @@ function updateBar() {
     const lb = d.label(), kb = d.key(), tip = d.reason || (typeof d.tip === 'function' ? d.tip() : d.tip);
     if (d.lb.textContent !== lb) d.lb.textContent = lb;
     if (d.kb.textContent !== kb) d.kb.textContent = kb;
+    if (d.icon) { const ic = d.icon(); if (d.icEl.innerHTML !== ic) d.icEl.innerHTML = ic; }
     if (b.title !== tip) b.title = tip;
     b.classList.toggle('dis', !!d.reason); b.classList.toggle('on', !!(d.on && d.on()));
     if (d.cd) d.cdEl.style.width = Math.round(clamp(d.cd(), 0, 1) * 100) + '%';
@@ -3264,6 +3324,22 @@ function devStepFor(total) {   // substeps of 0.05 s or less keep the sim stable
   const n = Math.max(1, Math.ceil(total / 0.05 - 1e-9)), h = total / n;
   for (let i = 0; i < n; i++) { if (devs.inf) game.energy = energyCap(); step(h); }
   if (devs.inf) game.energy = energyCap();
+}
+// give the existing polyps a mix of types: brain in nooks at the base, plates up high, fans on exposed tips
+function devMix(skip) {
+  const nb = p => NB_DIRS.filter(([a, b]) => cellAt(p.c + a, p.r + b)).length, free = game.polyps.filter(p => p !== skip && !p.anemone && typeOf(p) === 'branch');
+  const take = (list, n, tp) => { for (const p of list.slice(0, n)) { p.type = tp; p.anemone = false; } };
+  const brain = free.filter(p => touchesRock(p.c, p.r) && NB_DIRS.filter(([a, b]) => isRock(p.c + a, p.r + b) || cellAt(p.c + a, p.r + b)).length >= 3);
+  take(brain, 9, 'brain');
+  const plates = free.filter(p => typeOf(p) === 'branch' && !touchesRock(p.c, p.r) && nb(p) >= 2).sort((a, b) => a.r - b.r);
+  take(plates, 8, 'plate');
+  const fans = free.filter(p => typeOf(p) === 'branch' && !touchesRock(p.c, p.r) && nb(p) === 1);
+  take(fans, 7, 'fan');
+  for (const t of ['brain', 'plate', 'fan']) {   // top up from whatever branching is left
+    let have = game.polyps.filter(p => typeOf(p) === t).length;
+    for (const p of free) { if (have >= CONFIG.typeMinPolyps + 1) break; if (typeOf(p) === 'branch' && !touchesRock(p.c, p.r) !== (t === 'brain')) { p.type = t; have++; } }
+  }
+  SUP.sig = null; FLD.sig = null;
 }
 function devOwn(id) {
   const d = TREE.find(x => x.id === id); if (!d) return;
@@ -3297,6 +3373,7 @@ function devStage(n) {
   if (n >= 3) {
     devGrow(Math.max(0, CONFIG.stageReefPolyps - game.polyps.length));
     if (!game.species.length) game.species.push('Clownfish');
+    if (typeCount() < CONFIG.stageReefTypes) devMix(game.active);
     for (let k = 0; k < 6 && patchCount() < CONFIG.stageReefPatches; k++) devPatch();
   }
   if (n > game.goals.stage) checkStage();
@@ -3359,7 +3436,8 @@ function devThrive() {
   TREE.forEach(d => devOwn(d.id));
   game.energy = energyCap(); game.calcium = CONFIG.calciumMax * 0.9;
   const act = game.active, cand = game.polyps.filter(p => p !== act);
-  for (let i = 0; i < 6 && cand.length; i++) cand.splice(Math.floor(Math.random() * cand.length), 1)[0].anemone = true;
+  for (let i = 0; i < 6 && cand.length; i++) { const q = cand.splice(Math.floor(Math.random() * cand.length), 1)[0]; q.anemone = true; q.type = 'anemone'; }
+  devMix(act);
   if (anemones().length && !game.clown.fish.length) { game.clown.t = -1; spawnClowns(); }
   const tips = game.polyps.filter(p => p !== act && !p.anemone && NB_DIRS.filter(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp'; }).length === 1);
   for (let i = 0; i < 5 && tips.length; i++) toSkeleton(tips.splice(Math.floor(Math.random() * tips.length), 1)[0]);
@@ -3400,6 +3478,7 @@ const devGroups = [
     '<div id="devtree"></div>',
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
   ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>','<button data-a="thrive">thriving reef</button>']],
+  ['Coral', ['<button data-a="ty" data-v="branch">branch</button><button data-a="ty" data-v="plate">plate</button><button data-a="ty" data-v="brain">brain</button><button data-a="ty" data-v="fan">fan</button><button data-a="ty" data-v="anemone">anemone</button>', '<button data-a="ownty">own all types</button><button data-a="mixed">grow mixed reef</button>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
     '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
@@ -3426,7 +3505,7 @@ function devBuild() {
   cfg.innerHTML = Object.keys(devs.cfg0).map(k => `<label class="cr" data-k="${k}"><span title="${k}">${k}</span><input type="number" step="any" data-c="${k}"></label>`).join('');
   devPanel.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    const a = b.dataset.a, v = +b.dataset.v;
+    const a = b.dataset.a, v = +b.dataset.v, vs = b.dataset.v;
     if (a === 'pause') devs.paused = !devs.paused;
     else if (a === 'speed') devs.speed = v;
     else if (a === 'step1') devStepFor(1);
@@ -3443,7 +3522,9 @@ function devBuild() {
     else if (a === 'rsnext') devStage(game.goals.stage + 1);
     else if (a === 'g5') devGrow(5);
     else if (a === 'g20') devGrow(20);
-    else if (a === 'thrive') devThrive();
+    else if (a === 'thrive' || a === 'mixed') devThrive();
+    else if (a === 'ty') { game.nextType = vs; toast('Next bud: ' + TYPE_NAME[vs].toLowerCase(), true); }
+    else if (a === 'ownty') { for (const id of ['R1', 'T1', 'T2', 'T3']) devOwn(id); toast('All coral types owned', true); }
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
@@ -3569,7 +3650,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') pressSpace();
   else if (e.code === 'KeyR') bail();
   else if (e.code === 'KeyE') doSting();
-  else if (e.code === 'KeyQ') toggleAnemone();
+  else if (e.code === 'KeyQ') cycleType(e.shiftKey ? -1 : 1);
   else if (game.stage === 'polyp') {
     const d = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' }[e.code];
     if (d) tryHop(d);
@@ -3691,9 +3772,10 @@ function updateDayNight(dt) {
   else if (u < C.dayLen - C.dayFade) D.dusk = false;
 }
 // flow and shade maps, cached until polyps or skeletons change
+const TYPE_IDX = { branch: 0, plate: 1, brain: 2, fan: 3, anemone: 4 };
 const FLD = { sig: null, flow: null, shade: new Map() };
 function fields() {
-  let an = 0; for (const p of game.polyps) if (p.anemone) an++;
+  let an = 0; for (const p of game.polyps) if (typeOf(p) !== 'branch') an += 1 + TYPE_IDX[typeOf(p)];
   const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, an, CONFIG.flowDir].join(',');
   if (FLD.sig === sig) return FLD;
   FLD.sig = sig;
@@ -3704,7 +3786,7 @@ function fields() {
       const c = d > 0 ? i : cols - 1 - i;
       fl[r * cols + c] = s;   // the stream arriving at this cell
       if (isRock(c, r)) s *= 1 - C.flowBlock.rock;
-      else { const o = game.cells.get(key(c, r)); if (!o) s = Math.min(1, s + C.flowRegain); else s *= 1 - (o.kind === 'skel' ? C.flowBlock.skel : o.ref.anemone ? C.flowBlock.anemone : C.flowBlock.branch); }
+      else { const o = game.cells.get(key(c, r)); if (!o) s = Math.min(1, s + C.flowRegain); else s *= 1 - (o.kind === 'skel' ? C.flowBlock.skel : C.flowBlock[typeOf(o.ref)]); }
     }
   }
   FLD.flow = fl; FLD.shade = new Map();
@@ -3712,7 +3794,10 @@ function fields() {
     let m = 1;
     for (let r = p.r - 1; r >= Math.max(0, p.r - C.shadeRows); r--) {
       const o = game.cells.get(key(p.c, r)); if (!o) continue;
-      m *= 1 - (o.kind === 'skel' ? C.shade.skel : o.ref.anemone ? C.shade.anemone : C.shade.branch);
+      m *= 1 - (o.kind === 'skel' ? C.shade.skel : C.shade[typeOf(o.ref)]);
+    }
+    for (const dc of [-1, 1]) for (let r = p.r - 1; r >= Math.max(0, p.r - C.shadeRows); r--) {   // a plate also shades the columns beside it
+      const o = game.cells.get(key(p.c + dc, r)); if (o && o.kind === 'polyp' && typeOf(o.ref) === 'plate') m *= 1 - C.shade.plate * C.plateSideShade;
     }
     FLD.shade.set(key(p.c, p.r), m);
   }
@@ -3735,6 +3820,7 @@ function supportMap() {
   const step = (dr, o) => (dr < 0 ? CONFIG.supUp : dr > 0 ? CONFIG.supDown : CONFIG.supSide) + (o.kind === 'skel' ? CONFIG.supSkel : 0);   // cost of passing support on to a neighbour above (dr<0), below or beside
   for (let i = 0; i < q.length; i++) {   // best path from any anchor (costs are positive, so this settles)
     const [c, r] = q[i], k = key(c, r), v = val.get(k);
+    if (typeOf(cellAt(c, r).ref) === 'fan') continue;   // a fan holds nothing up
     for (const [dc, dr] of NB_DIRS) {
       const o = cellAt(c + dc, r + dr); if (!o) continue;
       const nv = v - step(dr, o), ok = key(c + dc, r + dr);
@@ -3754,7 +3840,7 @@ function supportMap() {
       if (anch.has(nk)) nearAnchor = true;
       if (nk !== pred.get(k) && val.has(nk) && !below(nk, k)) second = Math.max(second, val.get(nk) - step(-dr, { kind: 'poly' }));   // a second, independent way down to rock (an arch)
     }
-    let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3);
+    let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3) + TY(typeOf(p)).str;
     if (has('S1') && nearAnchor) s += CONFIG.thickBase;
     SUP.str.set(k, clamp(s, 0, CONFIG.supBase));
   }
@@ -4031,7 +4117,7 @@ function stormBreak(power) {
     if (p.frag || !game.cells.has(key(p.c, p.r))) continue;   // already carried off
     const s = strength(p);
     if (s >= CONFIG.stormSafe || touchesRock(p.c, p.r)) continue;
-    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1);
+    const ch = CONFIG.breakK * (CONFIG.stormSafe - s) / CONFIG.stormSafe * power * (has('S2') ? CONFIG.flexMult : 1) * (typeOf(p) === 'fan' ? CONFIG.fanBreak : 1);
     if (Math.random() < ch && breakOff(p)) broke++;
   }
   return broke;
@@ -4049,6 +4135,7 @@ function breakOff(p) {
     const k = key(cells[i].c + dc, cells[i].r + dr), o = game.cells.get(k);
     if (o && !seen.has(k) && !held.has(k)) { seen.add(k); cells.push(o.ref); (o.kind === 'polyp' ? polys : skels).push(o.ref); }
   }
+  if (typeOf(p) === 'fan') return game.polyps.length - 1 < CONFIG.minPolyps ? null : makeFrag([p], []);   // a fan breaks alone
   if (game.polyps.length - polys.length < CONFIG.minPolyps) return null;
   return makeFrag(polys, skels);
 }
