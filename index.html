@@ -6676,7 +6676,7 @@ const ACH = [
   { id: 'A9', name: 'Starfish stopper', desc: 'End a crown-of-thorns outbreak having lost under 10 polyps' },
   { id: 'A10', name: 'Firebreak', desc: 'End a disease outbreak having lost 8 or fewer polyps' },
   { id: 'A11', name: 'Sport of kings', desc: 'Grow a lineage that began as a sport to 20 polyps', chk: () => { const n = {}; for (const p of game.polyps) n[p.lin || 0] = (n[p.lin || 0] || 0) + 1; return game.lineages.some(L => L.parent >= 0 && (n[L.id] || 0) >= 20); } },
-  { id: 'A12', name: 'Big spawn', desc: 'Have 25 colonies at once', later: true },
+  { id: 'A12', name: 'Big spawn', desc: 'Have 25 colonies at once', chk: () => game.goals.stage >= 4 && colonyCount() >= 25, slow: true },
   { id: 'A13', name: 'Sand castle', desc: 'Make 300 sand', chk: () => game.stats.sandMade >= 300 },
   { id: 'A14', name: 'Cyclone proof', desc: 'Lose under 10% of your polyps in the final cyclone', later: true },
   { id: 'A15', name: 'Landlord', desc: '8 residents happy at once', chk: () => game.res.list.filter(r => resLive(r) && hapLevel(r) === 2).length >= 8 },
