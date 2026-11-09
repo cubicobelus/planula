@@ -1268,7 +1268,7 @@ function findHabs(old) {
   for (let c = 0; c < gr.length; c++) {
     if (gr[c] < 0) continue;
     let e = c; while (e + 1 < gr.length && gr[e + 1] >= 0) e++;
-    if (e - c + 1 >= C.goby.cols) { const m = Math.floor((c + e) / 2); out.push({ kind: 'goby', id: 'goby:' + c, c: m, r: gr[m], c0: c, c1: e, cap: 1 }); }
+    if (e - c + 1 >= C.goby.cols) { const m = Math.floor((c + e) / 2); out.push({ kind: 'goby', id: 'goby:' + c, c: m, r: gr[m], c0: c, c1: e, tops: gr.slice(c, e + 1), cap: 1 }); }
     c = e;
   }
   return out;
@@ -1318,7 +1318,7 @@ function devPoint(kind) {   // a home for a resident placed by the dev tools (or
   if (kind === 'shrimp' || kind === 'urchin') for (const p of sorted) { const q = freeNear(p); if (q) return { x: q.x, y: q.y + 4 }; }
   if (kind === 'goby') {
     let best = null, bd = 1e9;
-    for (let c = 1; c < game.cols - 1; c++) { const r = game.floorRow[c]; if (cellAt(c, r - 1) || isRock(c, r - 1)) continue; const d = Math.abs(c - cx); if (d < bd) { bd = d; best = { x: (c + 0.5) * CELL, y: r * CELL - 3 }; } }
+    for (let c = 1; c < game.cols - 1; c++) { const r = game.floorRow[c]; if (cellAt(c, r - 1) || isRock(c, r - 1) || ps.some(p => Math.abs(p.c - c) <= 2 && p.r >= r - 3)) continue; const d = Math.abs(c - cx); if (d < bd) { bd = d; best = { x: (c + 0.5) * CELL, y: r * CELL - 3 }; } }
     if (best) return best;
   }
   const y = Math.max(100, (cy - 3) * CELL);
@@ -1343,7 +1343,7 @@ function arrived(r) {   // the new species moment, at the new home
   r.mode = 'home';
   spawnParts('spark', p.x, p.y - 8, 12); game.fx.push({ kind: 'ring', x: p.x, y: p.y, t: 0, life: 0.9 });
   if (r.first) {
-    const b = document.getElementById('banner'); b.innerHTML = `<h1 style="font-size:46px">${K.plural} moved in</h1><p>${K.blurb}. Species: ${game.species.length}</p>`;
+    const b = document.getElementById('banner'); b.innerHTML = `<h1 style="font-size:34px;letter-spacing:0.03em">${K.plural} moved in</h1><p>${K.blurb}. Species: ${game.species.length}</p>`;
     b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
     beat(0.6, 0.35); sfx('species');
     const q = worldToScreen(p.x, p.y), v = game.view;
@@ -1353,7 +1353,7 @@ function arrived(r) {   // the new species moment, at the new home
 function leaveRes(r, why) {
   if (r.mode === 'leave') return;
   r.mode = 'leave'; r.leaveT = 0;
-  if (r.hab) r.hab.res = r.hab.res.filter(q => q !== r);
+  if (r.hab) { r.hab.res = r.hab.res.filter(q => q !== r); r.hab.since = game.time; }   // the habitat waits its arrival delay again
   syncSpecies();
   const K = RES[r.kind];
   if (why) toast(`The ${K.name.toLowerCase()} left: ${why}`);
@@ -1470,7 +1470,7 @@ function resTick() {
     }
   }
   if (!R.list.some(resLive) && game.polyps.length >= C.noneMinPolyps) R.noneT += C.tick; else R.noneT = 0;
-  syncSpecies();
+  if (R.turtleYear >= 0) syncSpecies();   // a turtle's year may have turned
 }
 function leaveClown(why) {
   const rec = game.res.list.find(q => q.kind === 'clown'); if (!rec || rec.mode === 'leave') return;
@@ -1554,22 +1554,23 @@ function jobParrot(r, dt, m) {
   r.asleep = false; if (r.mode === 'sleep') r.mode = 'home';
   r.biteT = (r.biteT === undefined ? C.bite * 0.5 : r.biteT) - dt * m; r.scrapeT = (r.scrapeT === undefined ? C.scrape : r.scrapeT) - dt * m;
   if (!r.act && r.biteT <= 0) {
-    let best = null, bd = 1e9;
-    for (const s of game.skeletons) { const d = Math.hypot((s.c + 0.5) * CELL - r.x, (s.r + 0.5) * CELL - r.y); if (d < bd && d <= C.reach * CELL) { bd = d; best = s; } }
+    let best = null, bd = 1e9;   // the nearest dead cell with open water beside it
+    for (const s of game.skeletons) { const d = Math.hypot((s.c + 0.5) * CELL - r.x, (s.r + 0.5) * CELL - r.y); if (d < bd && d <= C.reach * CELL && freeNeighbours(s).length) { bd = d; best = s; } }
     if (best) r.act = { kind: 'skel', s: best, t: 0 }; else r.biteT = 2;
   } else if (!r.act && r.scrapeT <= 0) {
     let best = null, bd = 1e9;
-    for (const p of game.polyps) { const ty = typeOf(p); if (ty !== 'brain' && ty !== 'plate') continue; const d = Math.hypot((p.c + 0.5) * CELL - r.x, (p.r + 0.5) * CELL - r.y); if (d < bd && d <= C.reach * CELL) { bd = d; best = p; } }
+    for (const p of game.polyps) { const ty = typeOf(p); if (ty !== 'brain' && ty !== 'plate') continue; const d = Math.hypot((p.c + 0.5) * CELL - r.x, (p.r + 0.5) * CELL - r.y); if (d < bd && d <= C.reach * CELL && freeNeighbours(p).length) { bd = d; best = p; } }
     if (best) r.act = { kind: 'scrape', p: best, t: 0 }; else r.scrapeT = 5;
   }
   if (r.act) {
-    const a = r.act, tx = (a.kind === 'skel' ? a.s.c : a.p.c) + 0.5, ty = (a.kind === 'skel' ? a.s.r : a.p.r) + 0.5, T = { x: tx * CELL, y: ty * CELL };
+    const a = r.act, tc = a.kind === 'skel' ? a.s : a.p, T = cellCenter(tc.c, tc.r);
     if (a.kind === 'skel' && !game.skeletons.includes(a.s) || a.kind === 'scrape' && a.p.dead) { r.act = null; return; }
-    // stand off from the cell on the side the fish comes from, in open water
-    const side = r.x < T.x ? -1 : 1, ax = T.x + side * CELL * 0.95, ay = T.y - CELL * 0.3;
-    const d = steer(r, ax, ay, C.speed, dt, 9);
+    // swim to the open cell beside it, nearest first, and face the coral
+    const free = freeNeighbours(tc); if (!free.length) { r.act = null; return; }
+    let ap = free[0], fd = 1e9; for (const f of free) { const d = Math.hypot(f.x - r.x, f.y - r.y); if (d < fd) { fd = d; ap = f; } }
+    const d = steer(r, ap.x, ap.y, C.speed, dt, 9);
     r.head = Math.atan2(T.y - r.y, T.x - r.x); r.face = T.x >= r.x ? 1 : -1;
-    if (d < 14) {
+    if (d < 16) {
       a.t += dt; r.chomp = a.t;
       if (a.t >= 0.7) {
         r.job = 0.6;
@@ -1672,7 +1673,11 @@ function jobGoby(r, dt, m) {
   if (r.tm <= 0) {
     r.tm = C.sandEvery;
     let best = null, bd = 1e9;
-    for (const s of game.skeletons) { if (h && s.c >= h.c0 && s.c <= h.c1) continue; const d = Math.hypot((s.c + 0.5) * CELL - hp.x, (s.r + 0.5) * CELL - hp.y); if (d < bd && d <= C.sandRange * CELL) { bd = d; best = s; } }
+    for (const s of game.skeletons) {   // rubble within reach of the patch, but not the patch's own top cells
+      if (h && s.c >= h.c0 && s.c <= h.c1 && s.r >= h.tops[s.c - h.c0]) continue;
+      const x = (s.c + 0.5) * CELL, dx = h ? Math.max(0, h.c0 * CELL - x, x - (h.c1 + 1) * CELL) : x - hp.x, d = Math.hypot(dx, (s.r + 0.5) * CELL - hp.y);
+      if (d < bd && d <= C.sandRange * CELL) { bd = d; best = s; }
+    }
     if (best) {
       game.skeletons = game.skeletons.filter(q => q !== best); game.cells.delete(key(best.c, best.r));
       game.sand += 1; game.stats.sandMade += 1; r.job = 1; spawnParts('sand', (best.c + 0.5) * CELL, (best.r + 0.5) * CELL, 8); sfx('crunch', hp.x, hp.y);
@@ -3917,6 +3922,7 @@ function drawShrimp(r, t) {   // a cleaner shrimp: red with a white back stripe,
   ctx.beginPath(); ctx.moveTo(-7, -2); ctx.lineTo(-11, -4.5); ctx.lineTo(-10, -1); ctx.lineTo(-11, 0.5); ctx.closePath(); ctx.fill(); ctx.stroke();   // tail fan
   ctx.lineWidth = 6.2; ctx.strokeStyle = '#8a2a22'; ctx.beginPath(); ctx.moveTo(-7.5, -2.2); ctx.quadraticCurveTo(-2, -8, 5, -4.4); ctx.stroke();
   ctx.lineWidth = 4.6; ctx.strokeStyle = '#ff5a4a'; ctx.stroke();
+  ctx.lineWidth = 0.7; ctx.strokeStyle = '#8a2a22'; for (let k = 0; k < 5; k++) { const u = (k + 0.7) / 5.4, x = lerp(-7, 4, u), y = -2.2 - Math.sin(u * 3.14) * 4.2 + u * -0.6; ctx.beginPath(); ctx.moveTo(x, y - 2.4); ctx.lineTo(x + 0.4, y + 2.4); ctx.stroke(); }   // body segments
   ctx.lineWidth = 1.5; ctx.strokeStyle = '#fff6ea'; ctx.beginPath(); ctx.moveTo(-7, -4.4); ctx.quadraticCurveTo(-2, -9.2, 4.6, -6.4); ctx.stroke();   // white stripe
   ctx.fillStyle = '#ff7060'; circ(6, -4.6, 3); ctx.fill(); ctx.strokeStyle = '#8a2a22'; ctx.lineWidth = 0.8; ctx.stroke();
   ctx.fillStyle = '#111'; circ(7.6, -5.8, 0.9); ctx.fill();
@@ -3985,10 +3991,13 @@ function drawMoray(r, t) {   // a long olive eel with yellow mottling, a gaping 
   const n = pts.length;
   ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const order = h && r.mode !== 'arrive' ? pts : pts.slice().reverse();   // order[0] is the tail, the last is the head
-  for (let k = 0; k < n; k++) {
-    const u = k / (n - 1 || 1), rad = 3.2 + u * 4.2, q = order[k];
-    ctx.fillStyle = k % 3 === 0 ? '#c9b24a' : '#6a7a2e'; ctx.strokeStyle = '#2c3416'; ctx.lineWidth = 1; circ(q.x, q.y, rad); ctx.fill();
-    if (k % 2) { ctx.fillStyle = 'rgba(240,220,90,0.7)'; circ(q.x + Math.sin(k * 3) * 1.5, q.y - 1.5, rad * 0.38); ctx.fill(); }
+  for (const [col, extra] of [['#2c3416', 2.2], ['#7a8a34', 0]]) {   // an outline pass, then the olive body, as one tapering tube
+    for (let k = 1; k < n; k++) { const u = k / (n - 1 || 1); ctx.strokeStyle = col; ctx.lineWidth = 2 * (2.6 + u * 4.4) + extra; ctx.beginPath(); ctx.moveTo(order[k - 1].x, order[k - 1].y); ctx.lineTo(order[k].x, order[k].y); ctx.stroke(); }
+  }
+  for (let k = 0; k < n; k++) {   // yellow mottling and a pale belly line
+    const u = k / (n - 1 || 1), rad = 2.6 + u * 4.4, q = order[k];
+    ctx.fillStyle = 'rgba(240,215,80,0.85)'; if (k % 2) { circ(q.x + Math.sin(k * 2.7) * rad * 0.35, q.y - rad * 0.3, rad * 0.42); ctx.fill(); }
+    ctx.fillStyle = 'rgba(190,170,70,0.5)'; if (k % 3 === 0) { circ(q.x - rad * 0.2, q.y + rad * 0.35, rad * 0.3); ctx.fill(); }
   }
   const hd = order[n - 1], pv = order[Math.max(0, n - 2)], ang = r.mode === 'arrive' || !h ? Math.atan2(hd.y - pv.y, hd.x - pv.x) : r.head, open = r.job > 0 ? 0.55 : 0.2 + 0.18 * Math.sin(t * 2.2 + r.seed);
   ctx.translate(hd.x, hd.y); ctx.rotate(ang); if (Math.cos(ang) < 0) ctx.scale(1, -1);
@@ -4003,11 +4012,11 @@ function drawMoray(r, t) {   // a long olive eel with yellow mottling, a gaping 
 function drawGoby(r, t) {   // a sand burrow with a tiny speckled goby on guard and an orange pistol shrimp with one fat claw
   const al = r.alarm > 0, hp = { x: r.x, y: r.y };
   ctx.save(); ctx.translate(hp.x, hp.y); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.fillStyle = 'rgba(70,45,25,0.85)'; ctx.beginPath(); ctx.ellipse(0, 1, 15, 5.5, 0, 0, 6.3); ctx.fill(); ctx.strokeStyle = '#e8d49a'; ctx.lineWidth = 2; ctx.stroke();   // the burrow mouth and its sand rim
-  ctx.fillStyle = '#e8d49a'; for (const [px, py] of [[-17, 1], [16, 2], [-12, -2], [13, -3]]) { circ(px, py, 1.6); ctx.fill(); }
+  ctx.fillStyle = 'rgba(70,45,25,0.85)'; ctx.beginPath(); ctx.ellipse(0, 1, 21, 7, 0, 0, 6.3); ctx.fill(); ctx.strokeStyle = '#e8d49a'; ctx.lineWidth = 2.5; ctx.stroke();   // the burrow mouth and its sand rim
+  ctx.fillStyle = '#e8d49a'; for (const [px, py] of [[-24, 1], [23, 2], [-16, -3], [18, -4], [-5, 9]]) { circ(px, py, 2); ctx.fill(); }
   const dive = al ? 1 : 0, wob = Math.sin(t * 1.6 + r.seed);
   // goby (left)
-  ctx.save(); ctx.translate(-5, -4 + dive * 7 + wob * 0.4); ctx.scale(1.7, 1.7);
+  ctx.save(); ctx.translate(-9, -5 + dive * 9 + wob * 0.5); ctx.scale(2.4, 2.4);
   ctx.fillStyle = '#d6c08a'; ctx.strokeStyle = '#6a5a30'; ctx.lineWidth = 0.7;
   ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-9, -2.6 + Math.sin(t * (al ? 24 : 6)) * 1.2); ctx.lineTo(-9, 2.4 + Math.sin(t * (al ? 24 : 6)) * 1.2); ctx.closePath(); ctx.fill(); ctx.stroke();
   ctx.beginPath(); ctx.ellipse(0, 0, 6, 3.4, 0, 0, 6.3); ctx.fill(); ctx.stroke();
@@ -4016,7 +4025,7 @@ function drawGoby(r, t) {   // a sand burrow with a tiny speckled goby on guard 
   eyeAt(3.4, -1.2, 1.5, 0.3);
   ctx.restore();
   // pistol shrimp (right)
-  ctx.save(); ctx.translate(8, -1 + dive * 4); ctx.scale(1.7, 1.7);
+  ctx.save(); ctx.translate(12, -2 + dive * 5); ctx.scale(2.3, 2.3);
   ctx.strokeStyle = '#8a3a14'; ctx.lineWidth = 0.7; ctx.fillStyle = '#ff8a3a';
   ctx.beginPath(); ctx.ellipse(0, 0, 5, 2.7, 0, 0, 6.3); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(5, -1); ctx.lineTo(8.5, -1.6); ctx.lineTo(8.5, 1.2); ctx.lineTo(5, 1); ctx.fillStyle = '#ff9a50'; ctx.fill(); ctx.stroke();
   ctx.fillStyle = '#ff8a3a'; ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-8.5, -2); ctx.lineTo(-8.5, 2); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -4024,7 +4033,7 @@ function drawGoby(r, t) {   // a sand burrow with a tiny speckled goby on guard 
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(9, -1); ctx.quadraticCurveTo(13, -4 + Math.sin(t * 3) * 1.4, 16, -2); ctx.stroke();
   ctx.fillStyle = '#111'; circ(7.4, -1.4, 0.7); ctx.fill();
   ctx.restore();
-  if (al) { ctx.fillStyle = '#fff3a0'; ctx.strokeStyle = '#8a6a10'; ctx.font = '800 15px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeText('!', 0, -24 - Math.sin(t * 20) * 1.5); ctx.fillText('!', 0, -24 - Math.sin(t * 20) * 1.5); }
+  if (al) { ctx.fillStyle = '#fff3a0'; ctx.strokeStyle = '#8a6a10'; ctx.font = '800 15px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeText('!', 0, -34 - Math.sin(t * 20) * 1.5); ctx.fillText('!', 0, -34 - Math.sin(t * 20) * 1.5); }
   ctx.restore();
   if (r.job > 0) { ctx.fillStyle = `rgba(236,214,150,${r.job})`; for (let k = 0; k < 4; k++) { circ(r.x + 6 + k * 3, r.y - 5 - ((t * 20 + k * 7) % 14), 1.3); ctx.fill(); } }
   if (r.flash > 0) { ctx.strokeStyle = `rgba(150,255,210,${r.flash})`; ctx.lineWidth = 2; circ(r.x, r.y - 8, 30 + (1 - r.flash) * 120); ctx.stroke(); }
@@ -4330,10 +4339,11 @@ function devGrow(n) {
 // build a thicket, a cave, a tunnel and a dead-coral patch on bare floor away from the colony, so habitats exist (devThrive)
 function devHabitats() {
   const used = new Set(), free = (c, r) => inBounds(c, r) && !isRock(c, r) && !cellAt(c, r), put = (c, r) => { if (free(c, r)) addPolyp(c, r); };
-  const spot = (w, flat) => {   // w columns with one floor row (when flat), nothing built there, clear of earlier pieces
-    const start = Math.floor(Math.random() * game.cols);
-    for (let i = 0; i < game.cols; i++) {
-      const c = 3 + (start + i) % (game.cols - w - 6), f = game.floorRow[c];
+  const start = game.active ? game.active.c : Math.floor(game.cols / 2);
+  const spot = (w, flat) => {   // w columns with one floor row (when flat), nothing built there, clear of earlier pieces; the nearest to the colony wins
+    for (let i = 0; i < game.cols * 2; i++) {
+      const c = start + ((i & 1) ? -((i + 1) >> 1) : (i >> 1)), f = game.floorRow[clamp(c, 0, game.cols - 1)];
+      if (c < 3 || c > game.cols - w - 4) continue;
       let ok = true;
       for (let k = -2; k < w + 2 && ok; k++) {
         if (used.has(c + k)) ok = false;
