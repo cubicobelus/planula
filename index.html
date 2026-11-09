@@ -242,6 +242,7 @@ const CONFIG = {
     fan: { cost: 1.1, ca: 0, time: 1, light: 0.4, plank: 2, str: 1.5, caRate: 0, caCap: 0, up: 1.2 },
     anemone: { ca: 2, time: 1.5, light: 0.8, plank: 1.2, str: 1, caRate: 0, caCap: 0 },
   },
+  draw: { plateStalk: 3.4, plateHalf: 0.8, plateW: 9, fanStalk: 2.8, brainW: 28, fanLen: 40, fanRays: 9, fanSpread: 1.0, fanSway: 0.07, fanStorm: 0.3 },
   typeOrder: ['branch', 'plate', 'brain', 'fan', 'anemone'], fanBreak: 0.3, brainSolid: 2, stageReefTypes: 2, typeMinPolyps: 5,
   revealShadeLight: 0.7, revealShadePolyps: 8, revealStormLostBrain: 5, revealEdgeCatch: 300, edgeFlow: 0.8,
   calciumRate: 0.08, calciumMax: 40, calciumStart: 4, budEnergyFactor: 0.7, budCalcium: 1,
@@ -1862,7 +1863,17 @@ function polypPos(p) {
   return { x: lerp(b[0], a[0], k), y: lerp(b[1], a[1], k) };
 }
 const palFor = kind => kind === 'skel' ? SKEL_PAL : has('F3') ? ALGAE_PAL : CORAL_PAL;
-const nodeCol = (u, pal) => { const c = mix3(pal.mid, pal.alt, tone(u.c, u.r) * 0.8), l = u.kind === 'skel' ? 0 : u.q && u.q.lin; return l ? hueRot(c, game.lineages[l].hue) : c; };   // a lineage tints its polyps
+const TYPE_TINT = { plate: [242, 204, 84], brain: [112, 172, 118], fan: [178, 112, 200] }, TYPE_TINT_K = 0.82;   // each type's base colour, mixed into the polyp colour (the lineage hue still rotates it)
+const typeSig = () => { let s = 0; for (const p of game.polyps) s = (s * 7 + (TYPE_IDX[typeOf(p)] || 0) + 1) % 1000003; return s; };
+const TPAL = new Map();
+function typePal(pal, u) {   // the palette with the polyp's type colour mixed in (branching and the anemone keep the coral palette)
+  const tt = u.kind !== 'skel' && TYPE_TINT[typeOf(u.q || u)]; if (!tt) return pal;
+  let m = TPAL.get(pal); if (!m) TPAL.set(pal, m = new Map());
+  const k = typeOf(u.q || u); let r = m.get(k);
+  if (!r) { const K = TYPE_TINT_K; m.set(k, r = { ...pal, mid: mix3(pal.mid, tt, K), alt: mix3(pal.alt, tt, K), lit: mix3(pal.lit, mix3(tt, [255, 255, 255], 0.3), K), shade: mix3(pal.shade, mix3(tt, [0, 0, 0], 0.5), K), rim: mix3(pal.rim, mix3(tt, [0, 0, 0], 0.55), 0.7) }); }
+  return r;
+}
+const nodeCol = (u, pal) => { pal = typePal(pal, u); let c = mix3(pal.mid, pal.alt, tone(u.c, u.r) * 0.8); const l = u.kind === 'skel' ? 0 : u.q && u.q.lin; return l ? hueRot(c, game.lineages[l].hue) : c; };   // a lineage tints its polyps
 
 // every cell (any kind) with its nudged centre, parent cell and subtree size
 function buildModel(st, polys = game.polyps, skels = game.skeletons, all = false) {   // all: a fragment, every cell is grown in
@@ -2073,7 +2084,7 @@ function wildSync() {
   const sig = game.polyps.length + ',' + game.skeletons.length + ',' + game.cells.size;
   if (WT.t === game.time && WT.sig === sig) return WT.info;
   WT.t = game.time; WT.sig = sig;
-  const full = sig + ',' + cellSig(game.polyps) + ',' + cellSig(game.skeletons);
+  const full = sig + ',' + cellSig(game.polyps) + ',' + cellSig(game.skeletons) + ',' + typeSig();
   if (WT.full === full) return WT.info;
   WT.full = full;
   WT.info = wildBuild(game.polyps, game.skeletons);
@@ -2107,6 +2118,8 @@ function wildBuild(polys, skels) {   // the spanning tree of any group of cells 
   for (const u of list) {
     const p = u.par, xy = wildAt(u.c, u.r, p ? p.c : undefined, p ? p.r : undefined); u.x = xy[0]; u.y = xy[1];
     u.w = Math.min(12, 2.6 + 1.25 * Math.sqrt(u.size));   // limb width: thick at the base, thin at the tips
+    const tp = u.kind === 'skel' ? 'skel' : typeOf(u.q); u.tp = tp;
+    if (tp === 'plate') u.w = CONFIG.draw.plateStalk; else if (tp === 'fan') u.w = CONFIG.draw.fanStalk; else if (tp === 'brain') u.w = CONFIG.draw.brainW;
     u.sz = clamp(0.7 + 0.5 * hash2(u.c, u.r, 23) + (u.kids.length ? 0.04 * Math.min(3, Math.sqrt(u.size)) : -0.12), 0.7, 1.2);
   }
   return nodes;
@@ -2119,11 +2132,12 @@ function spotPos(c, r) {
 }
 const drawPos = p => game.look.coral === 4 ? polypPos(p) : cellCenter(p.c, p.r);
 function paintWild(g, M, layer, pal, kind) {
-  const limbs = [], buds = [], limb = (pts, w0, w1, c0, c1, ws) => limbs.push({ pts, w0, w1, c0, c1, ws });
-  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), tint = (u, c) => u.kind !== 'skel' && u.q.lin ? hueRot(c, game.lineages[u.q.lin].hue) : c, colOf = u => { const k = tipk(u); return mix3(mix3(nodeCol(u, pal), tint(u, pal.shade), 0.24 * (1 - k)), tint(u, pal.lit), 0.34 * k); };   // darker at the base, paler at the tips
+  const pal0 = pal;
+  let curRim = pal.rim; const limbs = [], buds = [], shadows = [], domes = [], limb = (pts, w0, w1, c0, c1, ws) => limbs.push({ pts, w0, w1, c0, c1, ws, rim: curRim });
+  const tipk = u => 1 / (1 + 0.45 * (u.size - 1)), tint = (u, c) => u.kind !== 'skel' && u.q.lin ? hueRot(c, game.lineages[u.q.lin].hue) : c, colOf = u => { const k = tipk(u), tp = typePal(pal, u); return mix3(mix3(nodeCol(u, pal), tint(u, tp.shade), 0.24 * (1 - k)), tint(u, tp.lit), 0.34 * k); };   // darker at the base, paler at the tips
   const quad = (a, b, c, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, p = (1 - t) * (1 - t), q = 2 * t * (1 - t), s = t * t; o.push([p * a[0] + q * b[0] + s * c[0], p * a[1] + q * b[1] + s * c[1]]); } return o; };
   for (const u of layer) {
-    const P = u.par, col = colOf(u), h = k => hash2(u.c, u.r, k), fm = u.kind === 'skel' ? 0 : linOf(u.q).traits.form - 3;   // form: limbs lean up and branch more (or less)
+    curRim = typePal(pal, u).rim; const P = u.par, col = colOf(u), h = k => hash2(u.c, u.r, k), fm = u.kind === 'skel' ? 0 : linOf(u.q).traits.form - 3;   // form: limbs lean up and branch more (or less)
     limb([[u.x, u.y], [u.x + 0.01, u.y]], u.w, u.w, col, col);   // joint
     let ux = 0, uy = -1;
     if (P) {
@@ -2133,7 +2147,7 @@ function paintWild(g, M, layer, pal, kind) {
       const c1 = [P.x + dx / 3 + nx * b1 * (1 + 0.3 * fm), P.y + dy / 3 + ny * b1 * (1 + 0.3 * fm) - (0.12 + 0.07 * fm) * L], c2 = [P.x + dx * 2 / 3 + nx * b2 * (1 + 0.3 * fm), P.y + dy * 2 / 3 + ny * b2 * (1 + 0.3 * fm) - (0.05 + 0.04 * fm) * L];
       for (let i = 0; i <= 10; i++) { const t = i / 10, a = (1 - t) ** 3, b = 3 * t * (1 - t) ** 2, c = 3 * t * t * (1 - t), d = t ** 3; pts.push([a * P.x + b * c1[0] + c * c2[0] + d * u.x, a * P.y + b * c1[1] + c * c2[1] + d * u.y]); }
       limb(pts, Math.max(u.w, P.w * 0.9), u.w, colOf(P), col);
-      const nt = (h(7) < 0.55 + 0.14 * fm ? 1 : 0) + (h(8) > 0.8 - 0.1 * fm ? 1 : 0);
+      const nt = u.tp === 'branch' || u.tp === 'anemone' ? (h(7) < 0.55 + 0.14 * fm ? 1 : 0) + (h(8) > 0.8 - 0.1 * fm ? 1 : 0) : 0;
       for (let k = 0; k < nt && L > 12; k++) {   // side twigs
         const i = 3 + Math.floor(h(9 + k) * 4), a = pts[i], b = pts[i + 1], side = h(11 + k) < 0.5 ? -1 : 1;
         let tx = b[0] - a[0], ty = b[1] - a[1]; const m = Math.hypot(tx, ty) || 1; tx /= m; ty /= m;
@@ -2142,12 +2156,21 @@ function paintWild(g, M, layer, pal, kind) {
         const len = 5 + h(15 + k) * 5;
         limb(quad(a, [a[0] + ex * len * 0.5 - ey * side * 1.2, a[1] + ey * len * 0.5 + ex * side * 1.2], [a[0] + ex * len, a[1] + ey * len - 1], 5), Math.max(1.8, u.w * 0.55), 0.9, col, col);
       }
-      if (h(17) < 0.5) {   // a small nub on one side
+      if (h(17) < 0.5 && (u.tp === 'branch' || u.tp === 'anemone')) {   // a small nub on one side
         const i = 2 + Math.floor(h(18) * 6), a = pts[i], s = h(19) < 0.5 ? -1 : 1, nl = 2.4 + 1.6 * h(20);
         limb([a, [a[0] + nx * s * nl, a[1] + ny * s * nl - 0.6]], Math.max(2.4, u.w * 0.7), 1.8, col, col);
       }
     }
-    if (!u.kids.length) {   // a tip facing open water reaches a little past its cell with a short twig and a growing bud
+    if (u.tp === 'plate') {   // a flat table: edges curl up, joined to a plate beside it, with its shadow below
+      const D = CONFIG.draw, hw = D.plateHalf * CELL, cu = 3 + 2 * h(30), y = u.y - 2;
+      const sh = [[u.x - hw, y - cu], [u.x - hw * 0.55, y - 0.6], [u.x, y + 0.4], [u.x + hw * 0.55, y - 0.6], [u.x + hw, y - cu]], ws = [D.plateW * 0.55, D.plateW * 0.9, D.plateW, D.plateW * 0.9, D.plateW * 0.55];
+      limb(sh, D.plateW, D.plateW * 0.55, col, col, ws); shadows.push(sh.map(q => [q[0], q[1] + 6]));
+      const v = M.nodes.get(key(u.c + 1, u.r)); if (v && v.kind !== 'skel' && typeOf(v.q) === 'plate') limb([[u.x, y], [v.x, v.y - 2]], D.plateW * 0.95, D.plateW * 0.95, col, colOf(v));
+    } else if (u.tp === 'brain') {   // a rounded mound: it fuses with the brain cells beside and below
+      for (const [dc, dr] of [[1, 0], [0, 1]]) { const v = M.nodes.get(key(u.c + dc, u.r + dr)); if (v && v.kind !== 'skel' && typeOf(v.q) === 'brain') limb([[u.x, u.y], [v.x, v.y]], CONFIG.draw.brainW * 0.95, CONFIG.draw.brainW * 0.95, col, colOf(v)); }
+      domes.push(u);
+    } else if (u.tp === 'fan') { /* the lattice is drawn live (swaying) */ }
+    else if (!u.kids.length) {   // a tip facing open water reaches a little past its cell with a short twig and a growing bud
       const ang = Math.atan2(uy, ux) + (h(24) - 0.5) * 0.7, dx = Math.cos(ang), dy = Math.sin(ang) - 0.25, m = Math.hypot(dx, dy), ex = dx / m, ey = dy / m;
       const axx = Math.abs(ex) > Math.abs(ey), tc = u.c + (axx ? Math.sign(ex) : 0), tr = u.r + (axx ? 0 : Math.sign(ey));
       if (!isRock(tc, tr) && !M.nodes.get(key(tc, tr))) {
@@ -2179,11 +2202,25 @@ function paintWild(g, M, layer, pal, kind) {
       }
     }
   };
-  pass(() => rgbs(pal.rim), 0, 0, 1.8, 0);
+  pass(L => rgbs(L.rim), 0, 0, 1.8, 0);
   pass((L, t) => rgbs(mix3(L.c0, L.c1, t)), 0, 0, 0, 0);
   for (const b of buds) { g.fillStyle = rgbs(pal.rim); g.beginPath(); g.arc(b[0], b[1], b[2] + 1, 0, 6.3); g.fill(); g.fillStyle = rgbs(mix3(pal.lit, [255, 240, 225], 0.5)); g.beginPath(); g.arc(b[0], b[1], b[2], 0, 6.3); g.fill(); }
   g.globalCompositeOperation = 'source-atop';
-  pass(() => rgba(pal.lit, 0.5), -0.7, -1, -1, 3);   // lit side of the thicker limbs
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  g.strokeStyle = 'rgba(4,28,48,0.26)'; g.lineWidth = 4;   // a plate's shadow on whatever lies below
+  for (const sh of shadows) { g.beginPath(); sh.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.stroke(); }
+  pass(L => rgba(mix3(L.c1, [255, 238, 220], 0.45), 0.5), -0.7, -1, -1, 3);   // lit side of the thicker limbs
+  for (const u of domes) {   // brain: a lit dome with meandering grooves
+    const pal = typePal(pal0, u), R = CONFIG.draw.brainW / 2, gr = g.createRadialGradient(u.x - R * 0.3, u.y - R * 0.4, 1, u.x, u.y, R);
+    gr.addColorStop(0, rgba(pal.lit, 0.55)); gr.addColorStop(0.7, rgba(pal.lit, 0.08)); gr.addColorStop(1, rgba(pal.shade, 0.3));
+    g.fillStyle = gr; g.beginPath(); g.arc(u.x, u.y, R, 0, 6.3); g.fill();
+    const a0 = hash2(u.c, u.r, 40) * 6.3;
+    for (let k = 0; k < 3; k++) {
+      const a = a0 + k * 2.1, ox = Math.cos(a) * R * 0.28, oy = Math.sin(a) * R * 0.28, dx = -Math.sin(a), dy = Math.cos(a), pts = [];
+      for (let i = -4; i <= 4; i++) { const w = i / 4, m = Math.sin(i * 1.9 + k * 2 + a0) * 2.4; pts.push([u.x + ox + dx * w * R * 0.62 + Math.cos(a) * m, u.y + oy + dy * w * R * 0.62 + Math.sin(a) * m]); }
+      for (const [col, o, lw] of [[rgba(mix3(pal.shade, [30, 40, 20], 0.5), 0.85), 0, 2], [rgba(pal.lit, 0.55), -0.8, 1]]) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); pts.forEach((q, i) => i ? g.lineTo(q[0] + o, q[1] + o) : g.moveTo(q[0] + o, q[1] + o)); g.stroke(); }
+    }
+  }
   if (kind === 'skel') { g.fillStyle = 'rgba(120,110,95,0.55)'; for (const u of layer) { g.beginPath(); g.arc(u.x, u.y, 1, 0, 6.3); g.fill(); } }
 }
 
@@ -2200,7 +2237,7 @@ function styleLayer(M, st, kind) {
 }
 function ensureStyle() {   // rebuild only when cells change (or a newcomer finishes growing in)
   const L = game.look, st = L.coral, live = game.polyps.reduce((n, p) => n + (growOf(p) >= 1 ? 1 : 0), 0);
-  const sig = [st, has('F3') ? 1 : 0, live, cellSig(game.polyps), cellSig(game.skeletons)].join('|');
+  const sig = [st, has('F3') ? 1 : 0, live, cellSig(game.polyps), cellSig(game.skeletons), typeSig()].join('|');
   if (L.csSig === sig) return;
   L.csSig = sig;
   const M = buildModel(st);
@@ -2227,6 +2264,39 @@ function drawGrowing(p, e, pos) {
   }
   ctx.restore();
 }
+// sea fans: a flat lattice of fine forking branches, drawn live so it sways with the current (a little exaggerated, more in a storm)
+function drawFans(t) {
+  const D = CONFIG.draw, amp = D.fanSway + game.stormPw * D.fanStorm, lean = 0.12 * (CONFIG.flowDir >= 0 ? 1 : -1), pal = palFor('poly');
+  for (const p of game.polyps) {
+    if (typeOf(p) !== 'fan') continue;
+    const e = growOf(p); if (e <= 0.02) continue;
+    const q = polypPos(p), base = mix3(TYPE_TINT.fan, [255, 235, 245], 0.15), col = p.lin ? hueRot(base, game.lineages[p.lin].hue) : base, n = D.fanRays, L0 = D.fanLen * e;
+    const sw = (s, k) => amp * s * s * Math.sin(t * 1.15 + p.seed * 3 + k * 0.5 + s * 1.4);   // sideways bend, more towards the tips
+    const rays = [];
+    for (let i = 0; i < n; i++) {
+      const u = i / (n - 1) - 0.5, a = -Math.PI / 2 + lean + u * D.fanSpread * 1.9, L = L0 * (0.78 + 0.22 * Math.cos(u * Math.PI)) * (0.92 + 0.16 * hash2(p.c, p.r, 50 + i));
+      const pts = []; for (let k = 0; k <= 5; k++) { const s = k / 5; pts.push([q.x + Math.cos(a) * L * s + sw(s, i) * L, q.y + 3 + Math.sin(a) * L * s]); }
+      rays.push({ pts, a, L });
+    }
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const draw = (rgb, a, w, f) => { ctx.strokeStyle = rgba(rgb, a); ctx.lineWidth = w; ctx.beginPath(); f(); ctx.stroke(); };
+    const lines = pass => {
+      for (const R of rays) {
+        const P = R.pts; ctx.moveTo(P[0][0], P[0][1]); for (let k = 1; k < P.length; k++) ctx.lineTo(P[k][0], P[k][1]);
+        for (const sd of [-1, 1]) {   // forks off the outer half of each ray
+          const b = P[3], ft = R.a + sd * 0.5, fl = R.L * 0.34; ctx.moveTo(b[0], b[1]);
+          ctx.lineTo(b[0] + Math.cos(ft) * fl + sw(0.9, 2) * fl * 0.5, b[1] + Math.sin(ft) * fl);
+        }
+      }
+      if (pass) for (const k of [2, 4]) { ctx.moveTo(rays[0].pts[k][0], rays[0].pts[k][1]); for (let i = 1; i < n; i++) ctx.lineTo(rays[i].pts[k][0], rays[i].pts[k][1]); }   // the cross lattice
+    };
+    draw(pal.rim, 0.55, 3, () => lines(false));
+    draw(col, 0.95, 1.7, () => lines(false));
+    draw(mix3(col, [255, 255, 255], 0.35), 0.55, 0.9, () => lines(true));
+    ctx.fillStyle = rgba(mix3(col, [255, 255, 255], 0.5), 0.9); for (const R of rays) { const P = R.pts[5]; ctx.beginPath(); ctx.arc(P[0], P[1], 1.3, 0, 6.3); ctx.fill(); }
+    ctx.restore();
+  }
+}
 function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue is in the cached layer
   const st = game.look.coral, pos = polypPos(p), e = growOf(p), br = 1 + 0.08 * Math.sin(t * 1.6 + p.seed), gold = has('F3');
   const wu = st === 4 ? wildSync().get(key(p.c, p.r)) : null, zs = wu ? wu.sz : 1;
@@ -2245,7 +2315,7 @@ function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue 
     g.addColorStop(0, rgba(hc, 0.95)); g.addColorStop(0.5, rgba(hc, 0.45)); g.addColorStop(1, rgba(hc, 0));
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 22, 0, 6.3); ctx.fill();
   }
-  if (!p.anemone) {
+  if (!p.anemone && typeOf(p) !== 'fan' && !(st === 4 && typeOf(p) === 'brain')) {
     if (st === 2 || st === 4) {   // a bright dot on the limb (wild: sized per polyp, paler at the tips)
       const tip = wu && !wu.kids.length;
       ctx.fillStyle = gold ? '#f6dca0' : active ? '#ffe6dc' : tip ? '#ffe3d8' : '#ffcfc2'; ctx.beginPath(); ctx.arc(0, 0, 4 * zs * br, 0, 6.3); ctx.fill();
@@ -2767,6 +2837,11 @@ function drawSurface(t) {
 }
 // a new polyp stretches up, squashes and settles (the scale only wobbles while pop runs down)
 function popScale(p, s) { const w = Math.sin((1 - p.pop) * Math.PI * 3) * p.pop * CONFIG.juice.squash; ctx.scale(s * (1 - w), s * (1 + w)); }
+// styles without their own type shapes: a tinted ring says which type a polyp is
+function drawTypeMark(p) {
+  const tt = TYPE_TINT[typeOf(p)]; if (!tt || typeOf(p) === 'fan') return;
+  ctx.strokeStyle = rgba(tt, 0.85); ctx.lineWidth = 2.4; ctx.beginPath(); typeOf(p) === 'plate' ? ctx.ellipse(0, 0, 13, 5, 0, 0, 6.3) : ctx.arc(0, 0, 11, 0, 6.3); ctx.stroke();
+}
 function drawPolypBodyOrganic(p, t, active) {   // the tissue itself comes from the cached layer
   const cc = cellCenter(p.c, p.r), s = 1 + 0.22 * p.pop, br = 1 + 0.08 * Math.sin(t * 1.6 + p.seed);
   ctx.save(); ctx.translate(cc.x, cc.y); popScale(p, s);
@@ -2786,6 +2861,7 @@ function drawPolypBodyOrganic(p, t, active) {   // the tissue itself comes from 
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 8.5, 0, 6.3); ctx.fill();
   ctx.fillStyle = '#6a1f35'; ctx.beginPath(); ctx.ellipse(0, -0.4, 3.2 * br, 2.5 * br, 0, 0, 6.3); ctx.fill();
   ctx.strokeStyle = 'rgba(255,236,226,0.75)'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.ellipse(0, -0.4, 3.6 * br, 2.9 * br, 0, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke();
+  drawTypeMark(p);
   ctx.restore();
 }
 function drawPolypBody(p, t, active) {
@@ -2807,6 +2883,7 @@ function drawPolypBody(p, t, active) {
   ctx.fillStyle = gold ? '#f3d9a0' : active ? '#ffd6c8' : '#f9b3a4';
   roundRectPath(-6, -9, 12, 7, 3); ctx.fill();
   ctx.fillStyle = '#7a2a3a'; ctx.beginPath(); ctx.arc(0, -1, 2.6, 0, 6.3); ctx.fill();
+  drawTypeMark(p);
   ctx.restore();
 }
 function drawSkeleton(s) {
@@ -3154,7 +3231,7 @@ function worldTransform(g) {
 function render() {
   const t = game.time, L = game.look, on = L.on, shk = game.stormPw * CONFIG.stormShake;
   game.shx = shk * (Math.sin(t * 53) + Math.sin(t * 31.7)) * 0.5; game.shy = shk * (Math.sin(t * 61 + 1) + Math.sin(t * 27.3)) * 0.5;   // a slight camera shake in a storm
-  L.sigP = cellSig(game.polyps) + (has('F3') ? 7 : 0); L.sigS = cellSig(game.skeletons);
+  L.sigP = cellSig(game.polyps) + typeSig() * 3 + (has('F3') ? 7 : 0); L.sigS = cellSig(game.skeletons);
   const sm = L.sigP + L.sigS * 7 + (on.organic ? 1 : 0);
   if (sm !== L.sigM) { L.sigM = sm; refreshMask(); }
   if (L.coral) ensureStyle(); else if (on.organic) ensureCoral();
@@ -3171,6 +3248,7 @@ function render() {
   drawPlankton(t);
   if (L.coral) drawCoralLayer(L.csPoly);
   else if (on.organic) drawCoralLayer(L.polyLayer);
+  drawFans(t);
   for (const p of game.polyps) (L.coral ? drawPolypStyled : drawPolypBody)(p, t, p === game.active && game.stage === 'polyp');
   drawFrags(t);
   drawPolypTentacles(t);
