@@ -270,7 +270,7 @@ const CONFIG = {
   stormCurrent: 150, stormShake: 7, stormDark: 0.5,
   fragmentRoot: 0.5, fragmentRootMax: 3, fragmentSink: 18, fragmentLife: 50, fragmentAir: 2.5, fragmentPush: 45, minPolyps: 3,
   // structure strength (0..10): rock-touching polyps are 10, the rest is the best path from one
-  supBase: 10, supUp: 1, supSide: 2.5, supDown: 3, supSkel: 1, supThick: 0.5, supThickMax: 1.5, supBoth: 0.5, thickBase: 2,
+  supBase: 10, supUp: 1, supSide: 2.5, supDown: 3, supSkel: 1, supThick: 0.5, supThickMax: 1.5, supBoth: 0.5, supDiag: 0.5, thickBase: 2,
   // genetics: a bud may be a sport (a new lineage with one trait up and one down)
   sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
   // the genome (content.md 10): 4 power traits of 1 to 5 with a budget of 12, plus Form (free). Sports start at sportFrom s of play: the first bud after it is always one
@@ -280,9 +280,9 @@ const CONFIG = {
   gen: { budget: 12, sportFrom: 1080, sportX1: 0.04, growthTime: 0.10, growthStr: 0.4, toughCost: 0.05, heatSun: 0.05, feedCatch: 0.12, feedUpkeep: 0.10, hues: { growth: 18, tough: 275, heat: 48, feed: 175 }, hueShift: 12, satBase: 0.45, satPer: 0.10, lightBase: 0.45, lightPer: 0.04, glow: 10, pickWait: 25 },
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { X1: { e: 40 }, X2: { e: 300, bp: 25 }, X3: { bp: 60 }, X4: { e: 2000, bp: 40 }, X5: { bp: 120 }, F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
+  cost: { X1: { e: 40 }, X2: { e: 300, bp: 25 }, X3: { bp: 60 }, X4: { e: 2000, bp: 40 }, X5: { bp: 120 }, F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S7: { e: 60, ca: 10 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
   // slice 6b unlocks (content 1): reveal counts and effect numbers. Strength is 0..10 in the game, so the spec's +25 is 2.5 and +5 is 0.5
-  unl: { f5: { rev: 80, near: 3, upkeep: 0.7, heal: 2, dis: 1.5 }, f6: { rev: 20, revFlow: 0.8, bonus: 1.25, run: 6 }, g3: { cd: 60, max: 4, range: 12, speed: 420 }, g5: { revSecs: 60, cap: 40, ca: 1.5, str: 0.5 }, g4: { rev: 30, every: 10, frac: 0.5 }, s4: { rev: 25, secs: 60 }, s5: { rev: 10, rows: 6, str: 2.5, storm: 0.8 }, c4: { rev: 30, light: 0.65, sun: 1.25, bleach: 0.7 } },
+  unl: { f5: { rev: 80, near: 3, upkeep: 0.7, heal: 2, dis: 1.5 }, f6: { rev: 20, revFlow: 0.8, bonus: 1.25, run: 6 }, g3: { cd: 60, max: 4, range: 12, speed: 420 }, g5: { revSecs: 60, cap: 40, ca: 1.5, str: 0.5 }, g4: { rev: 30, every: 10, frac: 0.5 }, s4: { rev: 25, secs: 60 }, s7: { rev: 6, str: 3 }, s5: { rev: 10, rows: 6, str: 2.5, storm: 0.8 }, c4: { rev: 30, light: 0.65, sun: 1.25, bleach: 0.7 } },
   // biodiversity (content.md 0.1): B = resident species values x happiness factor + coral types + lineages; income x (1 + mult x B); BP per second = B / bpDiv from Colony on
   bio: { calcSecs: 0.5, typeValue: 2, lineageMin: 10, lineageValue: 1, lineageCap: 8, mult: 0.01, bpDiv: 120, happy: 1, content: 0.8, unhappy: 0.5, t4Sun: 1.1, t4Str: 0.6, revMixTypes: 3, revMixPolyps: 10 },
   // residents (content.md 3). Per kind: stage = goals.stage needed, arrive = s after the habitat exists, max = most at once, value = species value, leave = s the habitat may stay broken
@@ -382,7 +382,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0 },
+  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
@@ -486,6 +486,8 @@ const TREE = [
     fx: () => `Polyps touching rock, and their neighbours, hold +${CONFIG.thickBase} firmer`, done: 'The reef thickens at its base', ok: () => game.stats.stormsSurvived >= 1 },
   { id: 'S2', tier: 1, branch: 'Structure', name: 'Flexible tissue', hint: 'Lose branches to the sea, and the reef may learn to bend',
     fx: () => `Branches flex instead of snapping: break chance x${CONFIG.flexMult}`, done: 'Branches now flex in the surge', ok: () => game.stats.stormLost >= CONFIG.revealStormLost },
+  { id: 'S7', tier: 1, branch: 'Structure', name: 'Bracing', hint: 'Join branches together',
+    fx: () => `Polyps on a fused loop hold +${CONFIG.unl.s7.str} firmer, so arches with pillars become strong`, done: 'Loops now brace the reef', ok: () => game.stats.loopBuds >= CONFIG.unl.s7.rev },
   { id: 'T1', tier: 1, branch: 'Coral types', name: 'Plate coral', hint: 'Notice your own shade',
     fx: () => `Q adds plates: flat tables that farm light (x${CONFIG.types.plate.light}) and shade what is below. Buds sideways or up only`, done: 'Press Q to bud plate coral',
     ok: () => game.polyps.filter(p => shadeOf(p) < CONFIG.revealShadeLight).length >= CONFIG.revealShadePolyps },
@@ -1068,6 +1070,16 @@ function setBudMode(m) {
   CONFIG.budMode = m; game.facing = null; game.bud.t = 0; game.bud.armed = false;
   toast(m === 'click' ? 'Controls: click a glowing cell to bud' : m === 'both' ? 'Controls: click a glowing cell, or direction keys then hold Space' : 'Controls: direction keys, then hold Space to bud');
 }
+function afterBud(p) {   // a bud that fuses with a far-off part of the reef closes a loop
+  if (!p || p.dead) return;
+  const info = wildSync(), u = info.get(key(p.c, p.r)); if (!u) return;
+  const hit = info.loopLinks.some(([a, b]) => a === u || b === u); if (!hit) return;
+  game.stats.loopBuds++;
+  const cc = cellCenter(p.c, p.r);
+  game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.9 }, { kind: 'pulse', x: cc.x, y: cc.y, t: 0, life: 0.8, small: true });
+  spawnParts('spark', cc.x, cc.y, 8); sfx('budDone');
+  toast(game.stats.loopBuds === 1 ? 'Fused: a loop braces the reef, because the branches now hold each other up' : 'Fused');
+}
 function updateBud(dt) {
   const b = game.bud;
   b.fail = Math.max(0, b.fail - dt);
@@ -1086,7 +1098,7 @@ function updateBud(dt) {
   if (game.active) { p.parent = { c: game.active.c, r: game.active.r }; rollSport(p, game.active); }   // parent: drawing only, which polyp it grew from
   setActive(p);
   const first = !game.progress.budded;
-  game.progress.budded = true; game.stats.buds++; game.stats.handBuds++;
+  game.progress.budded = true; game.stats.buds++; game.stats.handBuds++; afterBud(p);
   game.fx.push({ kind: 'ring', x: fp.x, y: fp.y, t: 0, life: 0.6 });
   sfx('budDone');
   if (first) { beat(CONFIG.moments.budSlow, 0.5); game.fx.push({ kind: 'pulse', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.8, small: true }); spawnParts('spark', (f.c + 0.5) * CELL, (f.r + 0.5) * CELL, 10); }
@@ -1149,7 +1161,7 @@ function updateGuide(dt) {
   const q = g.path.shift();
   game.energy -= budCost(false); game.calcium -= budCalcium(false);
   const from = NB_DIRS.map(([dc, dr]) => cellAt(q.c + dc, q.r + dr)).find(o => o && o.kind === 'polyp');
-  const gp = addPolyp(q.c, q.r, false, from && from.ref); game.stats.buds++;
+  const gp = addPolyp(q.c, q.r, false, from && from.ref); game.stats.buds++; afterBud(gp);
   if (from) rollSport(gp, from.ref);
   game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
   g.t = 0; g.wait = 0;
@@ -2934,6 +2946,29 @@ function wildBuild(polys, skels) {   // the spanning tree of any group of cells 
     if (tp === 'plate') u.w = CONFIG.draw.plateStalk; else if (tp === 'fan') u.w = CONFIG.draw.fanStalk; else if (tp === 'brain') u.w = CONFIG.draw.brainW;
     u.sz = clamp(0.7 + 0.5 * hash2(u.c, u.r, 23) + (u.kids.length ? 0.04 * Math.min(3, Math.sqrt(u.size)) : -0.12), 0.7, 1.2);
   }
+  // fusion: touching cells that are not parent and child get a limb between them, so loops close into a lattice
+  const dn = u => { if (u.dn === undefined) { let n = 0; for (const [a, b] of NB8) if (nodes.has(key(u.c + a, u.r + b))) n++; u.dn = n >= 3; } return u.dn; };
+  const mass = u => (u.tp === 'brain' || u.tp === 'plate') && dn(u);   // a dense brain or plate mass stays one solid shape
+  const anc = u => { const m = new Map(); for (let x = u, d = 0; x && d < 600; x = x.par, d++) m.set(x, d); return m; };
+  const treeDist = (u, v) => { const a = anc(u); for (let x = v, d = 0; x && d < 600; x = x.par, d++) if (a.has(x)) return a.get(x) + d; return Infinity; };
+  let fuseN = 0, diagN = 0; const loopCells = new Set(), loopLinks = [];
+  for (const u of list) {
+    u.fuse = [];
+    if (u.tp === 'fan' || u.tp === 'anemone' || mass(u)) continue;
+    for (const [dc, dr] of NB8) {
+      const v = nodes.get(key(u.c + dc, u.r + dr));
+      if (!v || v.i < u.i || v.par === u || u.par === v || v.tp === 'fan' || v.tp === 'anemone' || mass(v)) continue;
+      const diag = !!(dc && dr);
+      if (diag && (nodes.has(key(u.c + dc, u.r)) || nodes.has(key(u.c, u.r + dr)))) continue;   // already joined round the corner
+      const d = treeDist(u, v), loop = d >= 4;
+      u.fuse.push({ v, diag, loop }); fuseN++; if (diag) diagN++;
+      if (loop) {
+        loopLinks.push([u, v]); loopCells.add(key(u.c, u.r)); loopCells.add(key(v.c, v.r));
+        if (d < Infinity) { const a = anc(u); for (let x = v; x && !a.has(x); x = x.par) loopCells.add(key(x.c, x.r)); for (let x = u, m = anc(v); x && !m.has(x); x = x.par) loopCells.add(key(x.c, x.r)); }
+      }
+    }
+  }
+  nodes.fuseN = fuseN; nodes.diagN = diagN; nodes.loopCells = loopCells; nodes.loopLinks = loopLinks;
   return nodes;
 }
 // drawn position of a bud spot: where that polyp will be drawn (it will bud from the active polyp)
@@ -2951,6 +2986,11 @@ function paintWild(g, M, layer, pal, kind) {
   for (const u of layer) {
     curRim = typePal(pal, u).rim; const P = u.par, col = colOf(u), h = k => hash2(u.c, u.r, k), fm = u.kind === 'skel' ? 0 : linOf(u.q).traits.form - 3;   // form: limbs lean up and branch more (or less)
     limb([[u.x, u.y], [u.x + 0.01, u.y]], u.w, u.w, col, col);   // joint
+    for (const f of u.fuse || []) {   // a fusion limb to a touching cell that is not its parent or child
+      const v = f.v; if (!v.live) continue;
+      const dx = v.x - u.x, dy = v.y - u.y, L = Math.hypot(dx, dy) || 1, bow = (hash2(u.c, u.r, 31 + (f.diag ? 1 : 0)) - 0.5) * 0.35 * L, fw = Math.max(2.4, Math.min(u.w, v.w) * 0.8);
+      limb(quad([u.x, u.y], [u.x + dx / 2 - dy / L * bow, u.y + dy / 2 + dx / L * bow - 1], [v.x, v.y], 6), fw, fw, col, colOf(v));
+    }
     let ux = 0, uy = -1;
     if (P) {
       const dx = u.x - P.x, dy = u.y - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
@@ -5043,10 +5083,10 @@ const skelEdible = q => !(has('S4') && skelRooted(q.c, q.r));
 const denseP = p => { let n = 0; for (const [dc, dr] of NB_DIRS) if (livePolypAt(p.c + dc, p.r + dr)) n++; return n >= CONFIG.unl.f5.near; };
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S4') ? 1 : 0, has('S5') ? 1 : 0, has('G5') ? 1 : 0, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S4') ? 1 : 0, has('S7') ? 1 : 0, has('S5') ? 1 : 0, has('G5') ? 1 : 0, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
   if (SUP.sig === sig) return SUP;
   SUP.sig = sig;
-  const val = new Map(), pred = new Map(), q = [], anch = new Set();
+  const val = new Map(), pred = new Map(), q = [], anch = new Set(), loopSet = has('S7') ? wildSync().loopCells : null;
   for (const p of game.polyps) if (touchesRock(p.c, p.r)) { const k = key(p.c, p.r); val.set(k, CONFIG.supBase); pred.set(k, null); anch.add(k); q.push([p.c, p.r]); }
   const step = (dr, o) => (dr < 0 ? CONFIG.supUp : dr > 0 ? CONFIG.supDown : CONFIG.supSide) + (o.kind === 'skel' ? CONFIG.supSkel : 0);   // cost of passing support on to a neighbour above (dr<0), below or beside
   for (let i = 0; i < q.length; i++) {   // best path from any anchor (costs are positive, so this settles)
@@ -5072,10 +5112,16 @@ function supportMap() {
       if (anch.has(nk)) nearAnchor = true;
       if (nk !== pred.get(k) && val.has(nk) && !below(nk, k)) second = Math.max(second, val.get(nk) - step(-dr, { kind: 'poly' }));   // a second, independent way down to rock (an arch)
     }
+    for (const [dc, dr] of NB8.slice(4)) {   // a corner touch fuses too: a second way down at half strength (only where no side cell joins the two already)
+      const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk); if (!o || typeOf(o.ref) === 'fan' || !val.has(nk) || below(nk, k)) continue;
+      if (game.cells.has(key(p.c + dc, p.r)) || game.cells.has(key(p.c, p.r + dr))) continue;
+      second = Math.max(second, CONFIG.supDiag * (val.get(nk) - step(-dr, { kind: 'poly' })));
+    }
     let s = base + CONFIG.supBoth * second + Math.min(CONFIG.supThickMax, CONFIG.supThick * Math.max(0, n - 1)) + CONFIG.traitTough * (linOf(p).traits.tough - 3) - CONFIG.gen.growthStr * (linOf(p).traits.growth - 3) + TY(typeOf(p)).str;
     if (has('S1') && nearAnchor) s += CONFIG.thickBase;
     if (has('S5') && p.r <= CONFIG.unl.s5.rows) s += CONFIG.unl.s5.str;
     if (has('G5')) s += CONFIG.unl.g5.str;
+    if (has('S7') && loopSet.has(k)) s += CONFIG.unl.s7.str;   // Bracing: polyps on a fused loop
     if (has('T4') && mixedSide(p)) s += CONFIG.bio.t4Str;
     SUP.str.set(k, clamp(s, 0, CONFIG.supBase));
   }
@@ -6885,7 +6931,7 @@ function planBud(g, plan) {
   if (!pick) return false;
   game.energy -= budCost('branch'); game.calcium -= budCalcium('branch');
   const p = addPolyp(pick.c, pick.r, 'branch', pick.from); p.parent = { c: pick.from.c, r: pick.from.r }; rollSport(p, pick.from);
-  game.stats.buds++; game.stats.planBuds++;
+  game.stats.buds++; game.stats.planBuds++; afterBud(p);
   game.fx.push({ kind: 'ring', x: (pick.c + 0.5) * CELL, y: (pick.r + 0.5) * CELL, t: 0, life: 0.6 });
   return true;
 }
