@@ -697,6 +697,88 @@ function landInfo() {
   return LAND;
 }
 
+// ---- sand cells: from the Atoll on, every 10 sand drops one cell onto the crest ----
+const sandFree = (c, r) => inBounds(c, r) && r >= 0 && game.grid[r * game.cols + c] === 0 && !cellAt(c, r);
+const sandSolid = (c, r) => isRock(c, r) || !!cellAt(c, r);
+function finTouch() { game.fin.ver++; LAND.sig = ''; }
+// the cell the next grain lands in: in the column nearest the middle of the longest crest run, the first free cell above everything already in that column (rows 0 to 3)
+function sandSpot() {
+  const ci = crestInfo(true); if (!ci.n) return null;
+  const mid = (ci.a + ci.b) / 2, rows = CONFIG.fin.crestRows, run = ci.cols.filter(c => c >= ci.a && c <= ci.b), rest = ci.cols.filter(c => c < ci.a || c > ci.b);
+  for (const grp of [run, rest]) {
+    for (const c of grp.slice().sort((x, y) => Math.abs(x - mid) - Math.abs(y - mid) || x - y)) {
+      let k = 0; while (k <= rows + 1 && !(isRock(c, k) || cellAt(c, k))) k++;   // the topmost solid cell in the column
+      if (k >= 1 && k <= rows + 1 && sandFree(c, k - 1)) return [c, k - 1];
+    }
+  }
+  return null;
+}
+function addSand(c, r, quiet) {
+  if (!sandFree(c, r)) return null;
+  const q = { c, r, born: game.time, grass: false };
+  game.land.push(q); game.grid[r * game.cols + c] = 2; landRebuild(); finTouch();
+  if (!quiet) { const x = (c + 0.5) * CELL, y = (r + 0.5) * CELL; spawnParts('sand', x, y, 6); sfx('thud', x, y); }
+  return q;
+}
+function removeSand(q) {
+  game.land = game.land.filter(a => a !== q); game.grid[q.r * game.cols + q.c] = 0; landRebuild(); finTouch();
+}
+// sand with nothing under it slides down; a grain that falls out of the shallows is lost to the sea
+function settleSand() {
+  let moved = false;
+  for (const q of game.land.slice().sort((a, b) => b.r - a.r)) {
+    if (sandSolid(q.c, q.r + 1)) continue;
+    let r = q.r; while (sandFree(q.c, r + 1) && r <= CONFIG.fin.crestRows) r++;
+    if (r > CONFIG.fin.crestRows || !sandFree(q.c, r)) { removeSand(q); game.fin.lostSand++; moved = true; continue; }
+    game.grid[q.r * game.cols + q.c] = 0; q.r = r; q.born = game.time; game.grid[r * game.cols + q.c] = 2; moved = true;
+  }
+  if (moved) { landRebuild(); finTouch(); }
+}
+function updateSand(dt) {
+  const F = game.fin, C = CONFIG.fin;
+  const want = game.goals.stage >= 6 || (game.goals.stage >= 5 && game.land.some(q => q.r === 0)) ? 1 : 0;   // the sky opens above the first land
+  F.sky = want ? Math.min(1, F.sky + dt / 3) : Math.max(0, F.sky - dt / 2);
+  if (game.goals.stage < 5) return;
+  F.dropT += dt;
+  if ((F.setT = (F.setT || 0) - dt) <= 0) { F.setT = 0.5; settleSand(); }
+  if (F.dropT >= C.dropEvery && game.sand >= C.sandPer) {
+    const sp = sandSpot();
+    if (sp) { F.dropT = 0; game.sand -= C.sandPer; addSand(sp[0], sp[1]); }
+    else F.dropT = C.dropEvery;   // nowhere to land: keep the grains banked
+  }
+}
+// the island, drawn: warm pale grains piling into a soft bank; row 0 is land, with a beach top that rises above the waterline
+function drawLand(t) {
+  if (!game.land.length) return;
+  const sandCol = (c, r) => { const h = hash2(c, r, 41); return `rgb(${Math.round(226 + 14 * h)},${Math.round(200 + 14 * h)},${Math.round(150 + 18 * h)})`; };
+  ctx.save();
+  for (const q of game.land) {
+    const age = game.time - q.born, fall = age < 0.7 ? 1 - sm01(age / 0.7) : 0, x = q.c * CELL, y = q.r * CELL - fall * CELL * 3;
+    const top = !landAt(q.c, q.r - 1), left = !landAt(q.c - 1, q.r) && !sandSolid(q.c - 1, q.r), right = !landAt(q.c + 1, q.r) && !sandSolid(q.c + 1, q.r);
+    const g = ctx.createLinearGradient(0, y, 0, y + CELL); g.addColorStop(0, '#f4e2b4'); g.addColorStop(0.5, sandCol(q.c, q.r)); g.addColorStop(1, '#cfae72');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(x - 0.5, y - 0.5, CELL + 1, CELL + 1, [top && left ? 11 : 2, top && right ? 11 : 2, 3, 3]); ctx.fill();
+    for (let i = 0; i < 5; i++) {   // grains
+      const gx = x + 3 + hash2(q.c, q.r, 50 + i) * (CELL - 6), gy = y + 3 + hash2(q.c, q.r, 60 + i) * (CELL - 6);
+      ctx.fillStyle = i % 2 ? 'rgba(255,248,225,0.8)' : 'rgba(170,130,70,0.45)'; ctx.fillRect(gx, gy, 2, 2);
+    }
+    if (fall > 0) { ctx.fillStyle = 'rgba(244,226,180,0.5)'; ctx.fillRect(x + CELL * 0.3, y - 14 * fall, 2, 12); ctx.fillRect(x + CELL * 0.65, y - 22 * fall, 2, 14); }
+  }
+  // a beach top on the land: a soft hump that rises above the surface across each run of row-0 sand
+  const cols = game.land.filter(q => q.r === 0).map(q => q.c).sort((a, b) => a - b);
+  for (let i = 0; i < cols.length;) {
+    let j = i; while (j + 1 < cols.length && cols[j + 1] === cols[j] + 1) j++;
+    const x0 = cols[i] * CELL, x1 = (cols[j] + 1) * CELL, n = j - i + 1, hh = Math.min(26, 8 + n * 3.2);
+    ctx.beginPath(); ctx.moveTo(x0 - 5, 6);
+    for (let k = 0; k <= 16; k++) { const u = k / 16, y = 4 - hh * Math.pow(Math.sin(Math.PI * u), 0.7) * (0.9 + 0.1 * Math.sin(u * 19 + cols[i])); ctx.lineTo(x0 - 5 + (x1 - x0 + 10) * u, y); }
+    ctx.lineTo(x1 + 5, 6); ctx.closePath();
+    const g = ctx.createLinearGradient(0, -hh, 0, 8); g.addColorStop(0, '#f8ecc6'); g.addColorStop(1, '#e8d09c');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 9, 7 + Math.sin(t * 2) * 1.2); ctx.lineTo(x0 + 2, 6); ctx.moveTo(x1 - 2, 6); ctx.lineTo(x1 + 9, 7 + Math.sin(t * 2 + 1) * 1.2); ctx.stroke();   // a little foam at each end
+    i = j + 1;
+  }
+  ctx.restore();
+}
+
 /* ---------- title card ---------- */
 function openTitle() {
   const t = document.getElementById('title');
@@ -2552,7 +2634,7 @@ function updateCamera(dt, snap) {
   c.x = lerp(c.x, tx, k); c.y = lerp(c.y, ty, k);
   const hw = v.w / c.zoom / 2, hh = v.h / c.zoom / 2;
   c.x = hw * 2 >= W ? W / 2 : clamp(c.x, hw, W - hw);
-  c.y = hh * 2 >= H ? H / 2 : clamp(c.y, hh, H - hh);
+  c.y = hh * 2 >= H ? H / 2 : clamp(c.y, hh - game.fin.sky * CONFIG.fin.skyPx, H - hh);   // once there is land, the view may rise above the surface into the sky
 }
 
 /* ---------- rendering ---------- */
@@ -3867,6 +3949,18 @@ function drawBackground(t) {
   }
   ctx.globalAlpha = 1;
 }
+// the sky above the sea, shown once there is land: pale blue to a warm horizon, a soft sun and a few clouds
+function drawSky(t) {
+  const sk = game.fin.sky; if (sk <= 0.001) return;
+  const c = game.cam, v = game.view, hw = v.w / c.zoom / 2 + 4, top = -CONFIG.fin.skyPx - 60, bot = 6;
+  const g = ctx.createLinearGradient(0, top, 0, bot); g.addColorStop(0, '#6fc3e8'); g.addColorStop(0.7, '#bfe4f2'); g.addColorStop(1, '#f7edcf');
+  ctx.globalAlpha = Math.min(1, sk * 1.5); ctx.fillStyle = g; ctx.fillRect(c.x - hw, top, hw * 2, bot - top);
+  const sx = c.x * 0.97 + 260, sg = ctx.createRadialGradient(sx, -90, 4, sx, -90, 90); sg.addColorStop(0, 'rgba(255,250,215,0.95)'); sg.addColorStop(1, 'rgba(255,240,190,0)');
+  ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, -90, 90, 0, 6.3); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  for (let i = 0; i < 6; i++) { const cx = ((i * 520 + t * (6 + i * 1.5) + c.x * 0.5) % 3200) - 600 + Math.floor(c.x / 3200) * 3200, cy = -130 - (i % 3) * 22; ctx.beginPath(); ctx.ellipse(cx, cy, 70, 11, 0, 0, 6.3); ctx.ellipse(cx + 40, cy - 8, 40, 10, 0, 0, 6.3); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
 function drawSurface(t) {
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
   ctx.beginPath(); ctx.moveTo(0, 0);
@@ -4487,7 +4581,7 @@ function render() {
   if (sm !== L.sigM) { L.sigM = sm; refreshMask(); }
   if (L.coral) ensureStyle(); else if (on.organic) ensureCoral();
   worldTransform(ctx);
-  drawBackground(t);
+  drawBackground(t); drawSky(t);
   if (on.layers) drawReef();
   ctx.drawImage(on.organic ? game.rockOrganic : game.rockCanvas, 0, 0, game.cols * CELL, game.rows * CELL);
   drawSurface(t);
@@ -4502,7 +4596,7 @@ function render() {
   else if (on.organic) drawCoralLayer(L.polyLayer);
   drawFans(t);
   for (const p of game.polyps) (L.coral ? drawPolypStyled : drawPolypBody)(p, t, p === game.active && game.stage === 'polyp');
-  drawFrags(t);
+  drawFrags(t); drawLand(t);
   drawPolypTentacles(t);
   if (!post) { drawGuide(t); drawSpots(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
@@ -7244,6 +7338,9 @@ function saveDecode(text) {
 function saveApply(st) {
   for (const k of Object.keys(st)) if (!SAVE.skip.has(k)) game[k] = st[k];
   for (const q of game.newRock) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 1;   // S4 turned these into rock
+  for (let i = 0; i < game.grid.length; i++) if (game.grid[i] === 2) game.grid[i] = 0;   // the island: clear the old sand, then lay the saved sand
+  for (const q of game.land) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 2;
+  landRebuild(); CREST.sig = '';
   game.fx.length = 0; game.parts.length = 0; game.keys.clear(); game.slow = game.kick = game.nudge = null; game.settleTarget = null;
   game.rep.open = false; game.tree.open = false; game.mouse.down = false;
   FLD.sig = null; SUP.sig = null; WT.t = -1; WT.sig = ''; game.res.sig = ''; seasonSig = ''; achSig = ''; repSig = ''; XO = null;
@@ -7360,7 +7457,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSand(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
