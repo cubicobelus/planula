@@ -123,7 +123,7 @@
   @keyframes nlit { 0% { transform: scale(0.4); box-shadow: 0 0 0 0 rgba(255, 226, 176, 0.9); } 40% { transform: scale(2); } 100% { transform: scale(1); box-shadow: 0 0 10px 2px rgba(255, 226, 176, 0.8); } }
   #track .goals { display: flex; gap: 14px; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(150, 220, 240, 0.12); align-items: center; }
   #track .goals .nx { color: #9cc5d6; white-space: nowrap; } #track .goals .nx b { color: #ffe3d3; }
-  .gl { flex: 1 1 0; min-width: 0; } .gl .t { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; color: #bcdbe8; } .gl .t b { color: #fff; font-weight: 600; }
+  .gl { flex: 1 1 0; min-width: 0; } .gl .t > span { overflow: hidden; text-overflow: ellipsis; } .gl .t { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; color: #bcdbe8; } .gl .t b { color: #fff; font-weight: 600; }
   .gl .b { height: 3px; margin-top: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); overflow: hidden; } .gl .b i { display: block; height: 100%; background: #8fc4dc; width: 0; transition: width 0.3s; }
   .gl.met .t, .gl.met .t b { color: #8ff0c0; } .gl.met .b i { background: #7be3b0; }
   #stcard { position: fixed; z-index: 35; display: none; width: 230px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.94); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); pointer-events: none; }
@@ -587,7 +587,7 @@ const STAGES = [
             { label: 'Species', cur: () => game.species.length, need: CONFIG.stageReefSpecies }] },
   { name: 'Reef crest', desc: 'A reef tough enough to take a storm.', opens: 'Spawning nights, tier 3 ideas, the reef flat and more',
     goals: [{ label: 'Polyps', cur: () => game.polyps.length, need: CONFIG.stageCrestPolyps },
-            { label: 'Storm season, under 10% lost', cur: () => game.goals.crestStorm ? 1 : 0, need: 1 },
+            { label: 'Storm season, under 10% lost', short: 'Clean storm', cur: () => game.goals.crestStorm ? 1 : 0, need: 1 },
             { label: 'Species', cur: () => game.species.length, need: CONFIG.stageCrestSpecies }] },
   { name: 'Atoll', soon: true, desc: 'The reef reaches the surface.', opens: 'The island starts to rise',
     goals: [{ label: 'Surface columns', cur: () => 0, need: 12 }, { label: 'Sand', cur: () => 0, need: 200 }] },
@@ -613,7 +613,7 @@ function stageUp(n) {
 }
 const track = { lit: -1, sel: -1, hover: -1, last: '' };
 const islandSvg = (w = 20) => `<svg width="${w}" height="${w}" viewBox="0 0 24 24"><path d="M2 19c3-6 7-8 10-8s7 2 10 8z" fill="#f3d9a0"/><path d="M0 21c4-2 7 1 12 0s8-2 12 0v3H0z" fill="#5aa9c8"/><path d="M12 11c0-3 0-5 1-7" stroke="#8a6a3a" stroke-width="1.5" fill="none"/><path d="M13 4c-2-2-5-1-6 1 2-1 4 0 6-1zM13 4c2-2 5-1 6 1-2-1-4 0-6-1zM13 4c0-2 2-3 3-3-1 1-1 2-3 3z" fill="#4caf7a"/></svg>`;
-const glHtml = g => { const c = Math.min(g.cur(), g.need), met = g.cur() >= g.need; return `<div class="gl${met ? ' met' : ''}"><div class="t"><span>${g.label}</span><b>${c}/${g.need}</b></div><div class="b"><i style="width:${c / g.need * 100}%"></i></div></div>`; };
+const glHtml = (g, full) => { const c = Math.min(g.cur(), g.need), met = g.cur() >= g.need; return `<div class="gl${met ? ' met' : ''}" title="${g.label}"><div class="t"><span>${full ? g.label : g.short || g.label}</span><b>${c}/${g.need}</b></div><div class="b"><i style="width:${c / g.need * 100}%"></i></div></div>`; };
 function renderTrack() {
   const el = document.getElementById('track'), R = game.goals.stage;
   let h = '<div class="line">';
@@ -629,7 +629,7 @@ function renderTrack() {
   const i = track.sel >= 0 ? track.sel : track.hover, card = document.getElementById('stcard');
   if (i < 0) { card.style.display = 'none'; return; }
   const s = STAGES[i], bo = CONFIG.stageBoost[i] || 1;
-  card.innerHTML = `<h4>${s.end ? 'Island' : s.name}</h4><p>${s.desc}</p>` + (s.goals.length ? s.goals.map(glHtml).join('') : '') +
+  card.innerHTML = `<h4>${s.end ? 'Island' : s.name}</h4><p>${s.desc}</p>` + (s.goals.length ? s.goals.map(g => glHtml(g, true)).join('') : '') +
     (s.soon ? '<div class="k soon">Coming soon: not reachable yet</div>' : '') + `<div class="k">Boost: <b>${bo > 1 ? 'income x' + bo : 'none'}</b></div><div class="k">Opens: <b>${s.opens}</b></div>`;
   card.style.display = 'block';
   const nd = el.querySelector(`.nd[data-i="${i}"]`).getBoundingClientRect();
@@ -5118,11 +5118,11 @@ function drawNight(t) {
   ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
   ctx.fillStyle = `rgba(2,10,42,${C.nightDark * n})`; ctx.fillRect(0, 0, v.w, v.h);
   worldTransform(ctx);
-  const a = screenToWorld(0, 0), b = screenToWorld(v.w, v.h);
+  const a = screenToWorld(0, 0), b = screenToWorld(v.w, v.h), spawnDim = game.sp.eggs.length > 12 ? 0.25 : 1;   // the pink egg cloud must read over the blue plankton glow
   ctx.globalCompositeOperation = 'lighter';
   for (const p of game.plankton) {
     if (p.x < a.x - 30 || p.x > b.x + 30 || p.y < a.y - 30 || p.y > b.y + 30) continue;
-    ctx.globalAlpha = n * C.nightGlow * (0.55 + 0.35 * Math.sin(t * 2.2 + p.ph)) * (p.leave ?? 1);
+    ctx.globalAlpha = n * C.nightGlow * (0.55 + 0.35 * Math.sin(t * 2.2 + p.ph)) * (p.leave ?? 1) * spawnDim;
     ctx.drawImage(GLOWS.pl, p.x - 17, p.y - 17, 34, 34);
   }
   for (const p of game.polyps) {
@@ -6565,18 +6565,18 @@ function rideSpawn() {   // Space as a free larva next to a drifting spawn larva
   lv.ride = true; game.riding = { lv }; game.stats.larvaRides++; toast('You ride a spawn larva. Space lets go'); return true;
 }
 function letGoRide() { const R = game.riding; if (!R || !R.lv) return false; R.lv.ride = false; game.riding = null; game.larva.inv = 1; toast('You let go'); return true; }
-const EGGCOL = [[255, 205, 225], [255, 248, 252], [255, 226, 190]];
+const EGGCOL = [[255, 170, 205], [255, 240, 248], [255, 200, 215]];
 function drawSpawn(t) {
   const S = game.sp; if (!S.eggs.length && !S.larvae.length) return;
   if (!GLOWS) GLOWS = { pl: glowSprite('130,255,215'), po: glowSprite('120,215,255') };
-  if (!GLOWS.egg) GLOWS.egg = [glowSprite('255,190,215'), glowSprite('255,245,250'), glowSprite('255,215,170')];
+  if (!GLOWS.egg) GLOWS.egg = [glowSprite('255,150,195'), glowSprite('255,240,248'), glowSprite('255,185,205')];
   const a = screenToWorld(0, 0), b = screenToWorld(game.view.w, game.view.h);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const e of S.eggs) {
     if (e.x < a.x - 30 || e.x > b.x + 30 || e.y < a.y - 30 || e.y > b.y + 30) continue;
-    const u = e.age / e.life, fade = Math.min(1, e.age / 1.2) * (1 - u * u), tw = 0.75 + 0.25 * Math.sin(t * 3 + e.ph), sz = e.sz * (1 + 0.3 * u);
-    ctx.globalAlpha = 0.32 * fade * tw; ctx.drawImage(GLOWS.egg[e.col], e.x - sz * 3.5, e.y - sz * 3.5, sz * 7, sz * 7);
-    ctx.globalAlpha = 0.85 * fade; ctx.fillStyle = rgbs(EGGCOL[e.col]); ctx.beginPath(); ctx.arc(e.x, e.y, sz * 0.55, 0, 6.3); ctx.fill();
+    const u = e.age / e.life, fade = Math.min(1, e.age / 1.2) * (1 - u * u), tw = 0.75 + 0.25 * Math.sin(t * 3 + e.ph), sz = e.sz * 1.5 * (1 + 0.3 * u);
+    ctx.globalAlpha = 0.55 * fade * tw; ctx.drawImage(GLOWS.egg[e.col], e.x - sz * 3.5, e.y - sz * 3.5, sz * 7, sz * 7);
+    ctx.globalAlpha = 1 * fade; ctx.fillStyle = rgbs(EGGCOL[e.col]); ctx.beginPath(); ctx.arc(e.x, e.y, sz * 0.55, 0, 6.3); ctx.fill();
   }
   for (const lv of S.larvae) {
     if (lv.delay > 0) continue;
