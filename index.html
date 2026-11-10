@@ -409,7 +409,7 @@ const game = {
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
   newRock: [],              // S4: skeleton cells that turned into rock
   land: [],                 // the island: sand cells { c, r, born, grass }; their grid value is 2
-  fin: { atollAt: -1, cycAt: -1, cyc: 0, won: false, redo: false, sandbox: false, sbSeason: -1, sbN: 0, dropT: 0, washed: 0, islandAt: -1, life: {}, palmT: 0, carded: false, cardOpen: false, riseT: -1, sky: 0, lostSand: 0, ver: 0 },   // the ending: when the Atoll came, the cyclone clock, the island's timers
+  fin: { atollAt: -1, cycAt: -1, cyc: 0, won: false, redo: false, sandbox: false, sbSeason: -1, sbN: 0, dropT: 0, washed: 0, islandAt: null, life: {}, palmT: 0, carded: false, cardOpen: false, riseT: -1, sky: 0, lostSand: 0, ver: 0 },   // the ending: when the Atoll came, the cyclone clock, the island's timers
   regs: { slope: { open: false, a: 0 }, flat: { open: false, a: 0 } },
   sp: { nights: [], on: null, larvae: [], eggs: [], pairs: null, bank: [], bankNext: 0, plant: false, seen: -1 },   // spawning (slice 7)
   ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
@@ -920,7 +920,7 @@ function palmSpread() {   // roots hold new sand: one more land cell at the end 
 }
 function updateIsland(dt) {
   const F = game.fin, C = CONFIG.fin;
-  if (game.goals.stage < 6 || F.islandAt < 0) return;
+  if (game.goals.stage < 6 || F.islandAt === null) return;
   if (F.riseT >= 0 && F.riseT < C.riseSecs) F.riseT += dt;
   const t = game.time - F.islandAt, li = landInfo(), L = F.life;
   const step = (name, at, need, fn) => { if (!L[name] && t >= at && li.row0 >= need) { L[name] = game.time; fn(); finTouch(); } };
@@ -5139,6 +5139,26 @@ function devCrest(cols, top, from, weak) {   // a wall of coral up to the surfac
   }
   crestInfo(true);
 }
+function devCycloneNow(P) {   // the final cyclone starts at once (a running storm is cleared first)
+  if (game.goals.stage < 5) devAtoll();
+  if (game.storm) { game.storm = null; game.stormPw = 0; }
+  const F = game.fin; if (F.cyc === 0) F.cycAt = game.season.t;
+  startCyclone(P || (F.redo ? CONFIG.fin.cyc2P : CONFIG.fin.cycP));
+}
+function devWinCyclone() {   // the cyclone ends in a win: a crest of 10 or more columns, 4 or more land cells, then the last wave and the verdict
+  if (game.goals.stage < 5) devAtoll();
+  if (!game.storm || !game.storm.cyc) devCycloneNow();
+  if (crestInfo(true).n < CONFIG.fin.winCols) devCrest(14, 1);
+  for (let i = 0; i < 200 && landInfo().run < CONFIG.fin.winLand; i++) { const sp = sandSpot(); if (!sp) break; addSand(sp[0], sp[1], true); }
+  const S = game.storm; S.cyc.n = CONFIG.fin.cycWaves; S.cyc.next = S.t + CONFIG.fin.cycGap;
+  if (!S.cyc.verdict) cycVerdict(S);
+  S.t = S.len - 0.05;
+}
+function devIslandLife() {   // every island life step is due now (with 10 land cells, so all of them can start)
+  if (game.goals.stage < 6) devRise();
+  for (let i = 0; i < 200 && landInfo().row0 < 10; i++) { const sp = sandSpot(); if (!sp) break; addSand(sp[0], sp[1], true); }
+  const F = game.fin; F.riseT = CONFIG.fin.riseSecs; F.islandAt = Math.min(F.islandAt, game.time - CONFIG.fin.turtles - 1);
+}
 function devRise() {   // the island, now: a ready crest, 8 or more land cells, the cyclone counted as won, and the rise begins
   if (game.goals.stage < 5) devAtoll();
   if (game.storm) { game.storm = null; game.stormPw = 0; }
@@ -5291,6 +5311,7 @@ const devGroups = [
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
   ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>','<button data-a="thrive">thriving reef</button>']],
   ['Coral', ['<button data-a="ty" data-v="branch">branch</button><button data-a="ty" data-v="plate">plate</button><button data-a="ty" data-v="brain">brain</button><button data-a="ty" data-v="fan">fan</button><button data-a="ty" data-v="anemone">anemone</button>', '<button data-a="ownty">own all types</button><button data-a="mixed">grow mixed reef</button>']],
+  ['Ending', ['<button data-a="endatoll">Atoll, crest ready</button><button data-a="endcyc">start cyclone now</button><button data-a="endwin">win the cyclone</button><button data-a="endrise">rise the island</button><button data-a="endlife">skip island life</button><button data-a="endcard">ending card</button> <span id="endread" style="color:#8aa0b2"></span>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
     '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
@@ -5339,6 +5360,12 @@ function devBuild() {
     else if (a === 'settle') devSettle();
     else if (a === 'rs') devStage(v);
     else if (a === 'rsnext') devStage(game.goals.stage + 1);
+    else if (a === 'endatoll') devAtoll();
+    else if (a === 'endcyc') devCycloneNow();
+    else if (a === 'endwin') devWinCyclone();
+    else if (a === 'endrise') devRise();
+    else if (a === 'endlife') devIslandLife();
+    else if (a === 'endcard') openEnding();
     else if (a === 'g5') devGrow(5);
     else if (a === 'g20') devGrow(20);
     else if (a === 'thrive' || a === 'mixed') devThrive();
