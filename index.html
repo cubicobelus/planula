@@ -292,7 +292,7 @@ const CONFIG = {
     r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4,
     clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5, leaveSpeed: 120 },
     crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
-    shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.6, radius: 4, r3Radius: 7, fishCells: 10 },
+    shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.35, healDelay: 4, radius: 4, r3Radius: 7, fishCells: 10 },
     parrot: { stage: 3, arrive: 45, max: 4, value: 4, leave: 60, dead: 15, keep: 5, box: 20, per: 15, openW: 6, openH: 4, openLight: 0.35, openRange: 10, bite: 12, bites: 4, sand: 1, sandS6: 1.5, reach: 10, scrape: 30, scrapeHp: 1, food: 10, speed: 70, loafSpeed: 28, sleepSpeed: 40 },
     urchin: { stage: 3, arrive: 30, max: 6, value: 2, leave: 90, weed: 4, range: 6, per: 4, graze: 8, grazeRange: 4, chew: 20, chewHp: 1, hungry: 30, speed: 16 },
     moray: { stage: 3, arrive: 60, max: 2, value: 5, leave: 20, minLen: 2, scare: 8, eat: 20, seen: 60, idleSpeed: 70, strikeSpeed: 230, peek: 0.7 },
@@ -1651,9 +1651,11 @@ function jobShrimp(r, dt, m) {
   let healing = null;
   for (const p of game.polyps) {
     if (p.hp >= CONFIG.polypHp || mantaOn()) continue;   // CE8: the shrimp heal nothing while the manta stays
+    if (game.time - p.lastHit < C.healDelay) continue;   // shrimp clean up after an attack, they do not hold one off
+    if (p.shrimpBy && p.shrimpBy !== r && game.time - p.shrimpT < 0.25) continue;   // one shrimp per polyp, no stacking
     const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL;
     if ((px - hp.x) ** 2 + (py - hp.y) ** 2 > rad * rad) continue;
-    const add = Math.min(CONFIG.polypHp - p.hp, C.heal * m * dt); p.hp += add; game.stats.shrimpHeal += add; healing = p;
+    const add = Math.min(CONFIG.polypHp - p.hp, C.heal * m * dt); p.hp += add; p.shrimpBy = r; p.shrimpT = game.time; game.stats.shrimpHeal += add; healing = p;
   }
   r.job = healing ? Math.min(1, r.job + dt * 4) : Math.max(0, r.job - dt * 2);
   if (healing) { r.target = { x: (healing.c + 0.5) * CELL, y: (healing.r + 0.5) * CELL }; if ((r.tm -= dt) <= 0) { r.tm = 0.3; spawnParts('heal', r.target.x, r.target.y - 4, 2); } }
