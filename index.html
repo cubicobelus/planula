@@ -131,6 +131,8 @@
   #banner { position: fixed; left: 0; right: 0; top: 27%; z-index: 25; text-align: center; pointer-events: none; opacity: 0; color: #fff3d6; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 210, 150, 0.6); }
   #banner h1 { margin: 0; font-size: 64px; font-weight: 700; letter-spacing: 0.06em; } #banner p { margin: 6px 0 0; font-size: 18px; color: #ffe3d3; }
   #banner.show { animation: bshow 3.4s ease-out; }
+  #cyc { position: fixed; left: 12px; top: 352px; z-index: 24; display: none; text-align: center; pointer-events: none; padding: 7px 22px 8px; border-radius: 12px; background: rgba(40, 6, 14, 0.62); border: 1px solid rgba(255, 150, 130, 0.5); color: #ffd9cf; text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
+  #cyc b { display: block; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: #ff9c86; } #cyc span { font-size: 22px; font-weight: 700; } #cyc i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin: 0 4px; border: 2px solid #ff9c86; vertical-align: middle; } #cyc i.on { background: #ff9c86; } #cyc em { display: block; font-style: normal; font-size: 12px; color: #f2c4b8; }
   @keyframes bshow { 0% { opacity: 0; transform: scale(0.8); } 12% { opacity: 1; transform: scale(1.04); } 20% { transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: scale(1.04); } }
   #title { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(2, 10, 22, 0.62); backdrop-filter: blur(3px); color: #d6f2ff; cursor: pointer; }
   #title.open { display: flex; }
@@ -210,7 +212,7 @@
   <div id="muteNote"></div>
   <div id="treeNote"><kbd>T</kbd>opens the tree</div>
 </div>
-<div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="title"></div><div id="welcome"></div><div id="ask"></div>
+<div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="cyc"></div><div id="title"></div><div id="welcome"></div><div id="ask"></div>
 <div id="hint"></div>
 <div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="sportcard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div>
 <div id="abar"></div>
@@ -620,7 +622,7 @@ function checkStage() {
 function stageUp(n) {
   game.goals.stage = n;
   const s = STAGES[n - 1], a = game.active || game.polyps[0], cc = a ? cellCenter(a.c, a.r) : playerPos();
-  track.lit = n - 1; saveSoon();
+  track.lit = n - 1; saveSoon(); if (n === 5) atollStart();
   const b = document.getElementById('banner'); b.innerHTML = `<h1>${s.name}</h1><p>${s.desc}</p>`;
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
   beat(1.1, 0.35); sfx('stage');
@@ -642,7 +644,7 @@ function renderTrack() {
   });
   h += '</div>';
   const nx = STAGES[R];
-  if (nx && !nx.end) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.goals.map(g => glHtml(g)).join('')}</div>`;
+  if (nx && (!nx.end || R === 5)) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.goals.map(g => glHtml(g)).join('')}</div>`;
   else h += '<div class="goals"><span class="nx">The goal: <b>an island</b></span></div>';
   if (h !== track.last) { el.innerHTML = h; track.last = h; }
   const i = track.sel >= 0 ? track.sel : track.hover, card = document.getElementById('stcard');
@@ -778,6 +780,102 @@ function drawLand(t) {
   }
   ctx.restore();
 }
+
+// ---- the final cyclone: 5 waves, then a verdict. Power is on the content.md scale (95, then 90); the game's storm base is power / pBase ----
+const cycEnv = S => S.t < 15 ? sm01(S.t / 15) : S.t < S.len - 25 ? 1 : sm01((S.len - S.t) / 25);
+function cycloneWaiting() { const F = game.fin; return game.goals.stage === 5 && F.cyc === 0 && F.cycAt >= 0 && !F.won; }   // the first cyclone is forecast and has not come yet
+// the cyclone that replaces the normal storm starting at clock time s (0 = none). commit = count it
+function cyclonePlan(s, commit) {
+  const F = game.fin, C = CONFIG.fin, a = seasonAbs(s);
+  if (game.goals.stage === 5 && F.redo && !F.won) { if (commit) F.redo = false; return C.cyc2P; }
+  if (F.sandbox && game.goals.stage >= 6) {
+    const n = F.sbSeason !== a ? F.sbN + 1 : F.sbN;
+    if (commit) { F.sbSeason = a; F.sbN = n; }
+    return n % C.sbEvery === 0 ? C.cyc2P : 0;
+  }
+  return 0;
+}
+function finForecast() {   // the season card's line while a cyclone is on the way, else null
+  const S = game.season, F = game.fin;
+  if (cycloneWaiting()) return `Final cyclone in ${mmss(F.cycAt - S.t)}`;
+  const s = nextStormStart(S.t);
+  if (s !== null && s - S.t <= CONFIG.forecastSecs && cyclonePlan(s, false)) return `Cyclone in ${mmss(s - S.t)}`;
+  return null;
+}
+function atollStart() {
+  const F = game.fin, C = CONFIG.fin;
+  if (F.atollAt >= 0) return;
+  F.atollAt = game.time; F.cycAt = game.season.t + C.cycDelay;
+  setTimeout(() => { toast(`Storm warning: the final cyclone arrives in ${mmss(C.cycDelay)}. Hold the crest`); sfx('forecast'); }, 1800);
+}
+function startCyclone(P) {
+  if (game.storm) return;
+  const F = game.fin, C = CONFIG.fin;
+  startStorm(P / C.pBase);
+  const S = game.storm; S.len = C.cycLen;
+  S.cyc = { P, n: 0, next: C.cycFirst, verdict: false, polys0: game.polyps.length, land0: game.land.length, washed: 0, broke: 0, final: !F.won && game.goals.stage === 5 };
+  if (game.goals.stage === 5 && F.cyc === 0) F.cyc = 1; else if (!F.won) F.cyc++;
+  banner(S.cyc.final ? 'The final cyclone' : 'Cyclone', S.cyc.final ? 'Five waves are coming. Hold the crest' : 'Five waves are coming', '#ffb0a0');
+  sfx('forecast'); beat(1, 0.4); toast('The cyclone hits. Brace');
+}
+// does this sand cell hold against a wave? Grass, S5 polyps and coral on the upstream side always hold; with S6, coral on any side holds
+function sandHolds(q, dir) {
+  if (q.grass) return true;
+  const coral = (c, r) => { const o = cellAt(c, r); return !!o && !o.ref.rival; };
+  if (has('S5')) for (const [dc, dr] of NB_DIRS) { const o = cellAt(q.c + dc, q.r + dr); if (o && o.kind === 'polyp' && !o.ref.dead && o.ref.r <= CONFIG.unl.s5.rows) return true; }
+  if (coral(q.c - dir, q.r)) return true;
+  if (has('S6') && NB_DIRS.some(([a, b]) => coral(q.c + a, q.r + b))) return true;
+  return false;
+}
+function washSand(dir) {
+  const F = game.fin, k = CONFIG.fin.wash * (has('S6') ? 0.5 : 1); let n = 0;
+  for (const q of game.land.slice()) {
+    if (sandHolds(q, dir) || Math.random() >= k) continue;
+    spawnParts('sand', (q.c + 0.5) * CELL, (q.r + 0.5) * CELL, 8); removeSand(q); n++;
+  }
+  F.washed += n; if (n) settleSand();
+  return n;
+}
+function cycWave(S) {
+  const Y = S.cyc, F = game.fin, C = CONFIG.fin; Y.n++;
+  const broke = stormBreak(S.base), washed = washSand(S.dir); Y.broke += broke; Y.washed += washed;
+  F.wave = 1; sfx('rumble'); beat(0.35, 0.5);
+  toast(`Wave ${Y.n} of ${C.cycWaves}: ${washed} sand washed away, ${broke ? broke + ' branches snapped' : 'the crest holds'}`);
+  game.fx.push({ kind: 'cwave', t: 0, life: 2.4, dir: S.dir });
+}
+function cycVerdict(S) {
+  const F = game.fin, C = CONFIG.fin, Y = S.cyc, ci = crestInfo(true), li = landInfo(); Y.verdict = true;
+  if (F.won) { toast('The cyclone has passed'); return; }
+  if (ci.n >= C.winCols && li.run >= C.winLand) {
+    F.won = true; F.wonAt = game.time;
+    banner('The cyclone has passed', `The crest held: ${ci.n} columns, ${li.run} land cells`, '#ffe9c0'); sfx('stage');
+    if (Y.polys0 && S.lost / Y.polys0 < 0.1) award('A14');
+  } else {
+    F.redo = true;
+    banner('The island did not rise', ci.n < C.winCols ? `Only ${ci.n} of ${C.winCols} crest columns held` : `Only ${li.run} of ${C.winLand} land cells side by side`, '#ffc9b8');
+    toast('The sand keeps coming. A second cyclone will hit in the next Storm season');
+  }
+}
+function updateFin(dt) {
+  const F = game.fin;
+  if (game.goals.stage >= 5 && F.atollAt < 0) atollStart();
+  if (cycloneWaiting() && !game.storm && game.season.t >= F.cycAt) startCyclone(CONFIG.fin.cycP);
+  if (F.wave > 0) F.wave = Math.max(0, F.wave - dt / 2.4);
+  if (F.won && game.goals.stage === 5 && !game.storm && !F.rising) riseIsland();
+  updateFinUi();
+}
+const cycEl = document.getElementById('cyc');
+let cycSig = '';
+function updateFinUi() {
+  const S = game.storm, Y = S && S.cyc, on = !!Y && !game.titleOn;
+  if (!on) { if (cycSig) { cycEl.style.display = 'none'; cycSig = ''; } return; }
+  const C = CONFIG.fin, left = mmss(S.len - S.t), sig = Y.n + '|' + left + '|' + Y.final;
+  if (sig === cycSig) return; cycSig = sig;
+  let dots = ''; for (let i = 0; i < C.cycWaves; i++) dots += `<i class="${i < Y.n ? 'on' : ''}"></i>`;
+  cycEl.innerHTML = `<b>${Y.final ? 'Final cyclone' : 'Cyclone'}</b><span>Wave ${Math.max(1, Math.min(Y.n + (Y.n < C.cycWaves && S.t >= Y.next - 4 ? 1 : 0), C.cycWaves))} of ${C.cycWaves}</span><div>${dots}</div><em>${left} left</em>`;
+  cycEl.style.display = 'block';
+}
+function riseIsland() { game.fin.rising = true; stageUp(6); }
 
 /* ---------- title card ---------- */
 function openTitle() {
@@ -3962,14 +4060,21 @@ function drawSky(t) {
   ctx.globalAlpha = 1;
 }
 function drawSurface(t) {
+  const cy = game.storm && game.storm.cyc ? game.stormPw : 0, A = 1 + cy * 3.4, dir = game.storm ? game.storm.dir : 1;   // a cyclone heaves the surface up into big swells
+  const c = game.cam, hw = game.view.w / c.zoom / 2 + 60, xa = cy ? Math.max(0, Math.floor((c.x - hw) / 20) * 20) : 0, xb = cy ? Math.min(W, c.x + hw) : W, st = cy ? 20 : 40;
+  const wy = x => 7 + (Math.sin(x * 0.02 + t * 1.3) * 3 + Math.sin(x * 0.05 - t) * 1.5) * A + (cy ? Math.sin(x * 0.011 - dir * t * 2.6) * 7 * cy : 0);
   ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.beginPath(); ctx.moveTo(0, 0);
-  for (let x = 0; x <= W; x += 40) ctx.lineTo(x, 7 + Math.sin(x * 0.02 + t * 1.3) * 3 + Math.sin(x * 0.05 - t) * 1.5);
-  ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(xa, 0);
+  for (let x = xa; x <= xb; x += st) ctx.lineTo(x, wy(x));
+  ctx.lineTo(xb, 0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 1.5 + cy * 2;
   ctx.beginPath();
-  for (let x = 0; x <= W; x += 40) { const y = 7 + Math.sin(x * 0.02 + t * 1.3) * 3 + Math.sin(x * 0.05 - t) * 1.5; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  for (let x = xa; x <= xb; x += st) { const y = wy(x); x > xa ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
   ctx.stroke();
+  if (cy > 0.1) {   // spray and foam on the crests
+    ctx.fillStyle = `rgba(240,250,255,${0.55 * Math.min(1, cy)})`;
+    for (let x = xa; x <= xb; x += 40) { const y = wy(x), h = hash2(Math.floor(x / 40), 5, 71); if (h < 0.5) continue; ctx.beginPath(); ctx.arc(x + Math.sin(t * 3 + x) * 6, y - 3 - h * 9 + Math.sin(t * 7 + x) * 2, 2 + h * 3, 0, 6.3); ctx.fill(); }
+  }
 }
 // a new polyp stretches up, squashes and settles (the scale only wobbles while pop runs down)
 function popScale(p, s) { const w = Math.sin((1 - p.pop) * Math.PI * 3) * p.pop * CONFIG.juice.squash; ctx.scale(s * (1 - w), s * (1 + w)); }
@@ -4280,6 +4385,15 @@ function drawFx() {
     if (f.kind === 'text') {
       ctx.font = `700 ${13 * z}px "Segoe UI", sans-serif`; ctx.textAlign = 'center';
       ctx.fillStyle = `rgba(210,255,225,${1 - u})`; ctx.fillText(f.text, f.x, f.y - u * 22);
+    } else if (f.kind === 'cwave') {   // a wave of the cyclone: a tall swell races along the surface
+      const c = game.cam, hw = game.view.w / c.zoom / 2, span = hw * 2 + 700, front = f.dir > 0 ? c.x - hw - 350 + span * u : c.x + hw + 350 - span * u, h = 70 * Math.sin(Math.PI * Math.min(1, u * 1.1)) + 14;
+      ctx.beginPath(); ctx.moveTo(front - f.dir * 380, 0);
+      for (let k = 0; k <= 24; k++) { const w = k / 24, x = front - f.dir * 380 * (1 - w), y = 6 - h * Math.pow(Math.sin(Math.PI * Math.min(1, w * 1.05)), 2.2) * (w > 0.85 ? 1.15 : 1); ctx.lineTo(x, y); }
+      ctx.lineTo(front + f.dir * 40, 0); ctx.closePath();
+      ctx.fillStyle = `rgba(235,248,255,${0.5 * (1 - u * 0.6)})`; ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${0.85 * (1 - u)})`; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - u)})`;
+      for (let k = 0; k < 14; k++) { const hh = hash2(k, 3, 77); ctx.beginPath(); ctx.arc(front - f.dir * (hh * 120) + Math.sin(f.t * 9 + k) * 5, 2 - h * (0.3 + hh * 0.8) + hh * 20 * u, 2 + hh * 3, 0, 6.3); ctx.fill(); }
     } else if (f.kind === 'sting') {   // a flickering bolt from the polyp to the point stung
       const fl = Math.floor(f.t * 36), N = 9, dx = f.x1 - f.x, dy = f.y1 - f.y, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
       const jag = i => (Math.sin((fl * 7.3 + i) * 12.9898) * 43758.5453 % 1) * 9 * Math.sin(i / N * Math.PI);
@@ -4841,10 +4955,13 @@ function devGrow(n) {
     addPolyp(c, r, false, from).parent = { c: from.c, r: from.r }; game.stats.buds++;
   }
 }
-function devCrest(cols, top, from) {   // a wall of coral up to the surface: `cols` columns, topmost row `top`, starting at column `from` (default: on the reef flat)
+function devCrest(cols, top, from, weak) {   // a wall of coral up to the surface: `cols` columns, topmost row `top`, starting at column `from` (default: on the reef flat). Sturdy by default (cemented rock pillars under the top rows); weak = coral all the way down, which a cyclone tears apart
   cols = cols || 14; top = top || 1; from = from === undefined ? CONFIG.flatCol + 4 : from;
   for (let c = from; c < from + cols && c < game.cols - 1; c++) {
-    for (let r = game.floorRow[c] - 1; r >= top; r--) if (!isRock(c, r) && !cellAt(c, r)) addPolyp(c, r);
+    const base = weak ? game.floorRow[c] : Math.min(game.floorRow[c], top + 3);
+    for (let r = game.floorRow[c] - 1; r >= base; r--) if (!weak && !isRock(c, r) && !cellAt(c, r)) { game.grid[r * game.cols + c] = 1; game.newRock.push({ c, r }); }
+    for (let r = base - 1; r >= top; r--) if (!isRock(c, r) && !cellAt(c, r)) addPolyp(c, r);
+    if (weak) for (let r = game.floorRow[c] - 1; r >= base; r--) if (!isRock(c, r) && !cellAt(c, r)) addPolyp(c, r);
   }
   crestInfo(true);
 }
@@ -5255,11 +5372,13 @@ function updateSeason(dt) {
   const S = game.season; S.t += dt;
   const ab = seasonAbs(S.t);
   if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { const prev = S.abs; S.abs = ab; achSeason(prev, ab); reportAuto(); }
+  if (cycloneWaiting()) return;   // the final cyclone takes the place of the storms until it has come
   const s = nextStormStart(S.t); if (s === null) return;
   if (S.t < s && s - S.t <= CONFIG.forecastSecs && S.fc !== s) {
-    S.fc = s; toast(`Storm warning: a storm will hit in ${mmss(s - S.t)}`); sfx('forecast');
+    const cy = cyclonePlan(s, false) > 0;
+    S.fc = s; toast(`${cy ? 'Cyclone' : 'Storm'} warning: a ${cy ? 'cyclone' : 'storm'} will hit in ${mmss(s - S.t)}`); sfx('forecast');
   }
-  if (S.t >= s && S.fired !== s) { S.fired = s; startStorm(); }
+  if (S.t >= s && S.fired !== s) { S.fired = s; const P = game.storm ? 0 : cyclonePlan(s, true); P ? startCyclone(P) : startStorm(); }
 }
 function threatLine() {   // [text, class] for a threat that is running or 60 s away, else null
   const T = game.thr, C = CONFIG.threat;
@@ -5275,7 +5394,8 @@ function threatLine() {   // [text, class] for a threat that is running or 60 s 
 const yearPhase = () => { const t = game.season.t, a = seasonAbs(t); return (seasonIdx(t) + (t - seasonStart(a)) / (a ? CONFIG.seasonSecs : CONFIG.firstCalmSecs)) / SEASONS.length; };
 function seasonText() {   // [name, forecast line, class]
   const S = game.season, nm = SEASONS[seasonIdx(S.t)].name;
-  if (game.storm) return [nm, `Storm! ${mmss(game.storm.len - game.storm.t)} left`, 'storm'];
+  if (game.storm) return [nm, `${game.storm.cyc ? 'Cyclone' : 'Storm'}! ${mmss(game.storm.len - game.storm.t)} left`, 'storm'];
+  const fcl = finForecast(); if (fcl) return [nm, fcl, 'storm'];
   const s = nextStormStart(S.t);
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
   const th = threatLine(); if (th) return [nm, th[0], th[1]];
@@ -5442,7 +5562,7 @@ const strength = p => supportMap().str.get(key(p.c, p.r)) || 0;
 const structureShown = () => devs.struct || (stormSoon() && !devs.ov2);
 function stormSoon() {
   if (game.goals.stage < 2) return false;
-  if (game.storm) return true;
+  if (game.storm || cycloneWaiting()) return true;
   const s = nextStormStart(game.season.t);
   return s !== null && s - game.season.t <= CONFIG.forecastSecs;
 }
@@ -5893,10 +6013,13 @@ function updateStorm(dt) {
   const S = game.storm;
   if (!S) { game.stormPw = 0; return; }
   S.t += dt;
-  const env = stormEnv(S);
+  const Y = S.cyc, env = Y ? cycEnv(S) : stormEnv(S);
   game.stormPw = env * (0.5 + 0.5 * S.base);
-  if ((S.rum -= dt) <= 0 && env > 0.12) { S.rum = 1.5; sfx('rumble'); }
-  if (env >= 0.999) { S.tick += dt; while (S.tick >= CONFIG.stormTick) { S.tick -= CONFIG.stormTick; stormBreak(S.base); } }
+  if ((S.rum -= dt) <= 0 && env > 0.12) { S.rum = Y ? 1 : 1.5; sfx('rumble'); }
+  if (Y) {   // a cyclone breaks things in waves, not in ticks
+    if (Y.n < CONFIG.fin.cycWaves && S.t >= Y.next) { Y.next += CONFIG.fin.cycGap; cycWave(S); }
+    if (!Y.verdict && Y.n >= CONFIG.fin.cycWaves && S.t >= Y.next - CONFIG.fin.cycGap + CONFIG.fin.verdictAfter) cycVerdict(S);
+  } else if (env >= 0.999) { S.tick += dt; while (S.tick >= CONFIG.stormTick) { S.tick -= CONFIG.stormTick; stormBreak(S.base); } }
   if (S.t >= S.len) {
     S.ended = true; game.storm = null; game.stormPw = 0; game.stats.stormsSurvived++;
     stormReport(S);
@@ -6075,9 +6198,11 @@ function drawFrags(t) {
 function drawStormSky(t) {
   const v = game.view, pw = game.stormPw, dir = game.storm ? game.storm.dir : 1;
   ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0);
-  ctx.fillStyle = `rgba(3,12,28,${CONFIG.stormDark * pw})`; ctx.fillRect(0, 0, v.w, v.h);
+  const cyc = game.storm && game.storm.cyc ? 1 : 0, wv = game.fin.wave || 0;
+  ctx.fillStyle = `rgba(3,12,28,${Math.min(0.85, CONFIG.stormDark * pw * (1 + 0.5 * cyc))})`; ctx.fillRect(0, 0, v.w, v.h);
+  if (cyc) { ctx.fillStyle = `rgba(70,10,26,${0.16 * pw})`; ctx.fillRect(0, 0, v.w, v.h); if (wv > 0) { ctx.fillStyle = `rgba(225,240,255,${0.2 * wv * wv})`; ctx.fillRect(0, 0, v.w, v.h); } }
   ctx.lineCap = 'round';
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 70 + 70 * cyc; i++) {
     const h1 = hash2(i, 1, 91), h2 = hash2(i, 2, 92), h3 = hash2(i, 3, 93), sp = 500 + 900 * h3, len = 30 + 110 * h1;
     const x = ((h1 * v.w * 1.7 + dir * t * sp) % (v.w + 300) + (v.w + 300)) % (v.w + 300) - 150, y = h2 * v.h + Math.sin(t * 2 + i) * 8;
     ctx.strokeStyle = `rgba(200,225,235,${0.2 * pw * (0.4 + h3)})`; ctx.lineWidth = 1 + 1.6 * h3;
@@ -7457,7 +7582,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSand(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSand(dt); updateFin(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
