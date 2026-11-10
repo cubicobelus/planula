@@ -134,6 +134,14 @@
   @keyframes bshow { 0% { opacity: 0; transform: scale(0.8); } 12% { opacity: 1; transform: scale(1.04); } 20% { transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: scale(1.04); } }
   #title { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(2, 10, 22, 0.62); backdrop-filter: blur(3px); color: #d6f2ff; cursor: pointer; }
   #title.open { display: flex; }
+  #ask { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: rgba(2, 10, 22, 0.6); backdrop-filter: blur(2px); color: #d6f2ff; }
+  #ask.open { display: flex; }
+  #ask .tp { width: min(400px, 90vw); box-sizing: border-box; padding: 22px 28px 20px; text-align: center; border-radius: 16px; background: linear-gradient(180deg, rgba(10, 46, 68, 0.94), rgba(3, 18, 34, 0.96)); border: 1px solid rgba(150, 220, 240, 0.25); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55); }
+  #ask h2 { margin: 0 0 8px; font-size: 20px; color: #ffe3d3; } #ask p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: #cfeaf6; }
+  #ask button, #title .newgame { font: inherit; font-size: 14px; cursor: pointer; padding: 7px 16px; margin: 0 5px; border-radius: 9px; border: 1px solid rgba(150, 220, 240, 0.35); background: rgba(20, 70, 100, 0.7); color: #e2f6ff; }
+  #ask button:hover, #title .newgame:hover { background: rgba(40, 100, 140, 0.85); } #ask button.yes { border-color: rgba(255, 150, 130, 0.6); background: rgba(120, 40, 40, 0.65); } #ask button.yes:hover { background: rgba(160, 56, 56, 0.8); }
+  #title .newgame { margin-top: 14px; font-size: 12px; padding: 4px 12px; opacity: 0.8; }
+  #abar button kbd:empty { display: none; }
   #welcome { position: fixed; left: 50%; top: 13%; transform: translateX(-50%); z-index: 35; padding: 12px 26px; text-align: center; border-radius: 14px; background: rgba(6, 28, 46, 0.86); border: 1px solid rgba(150, 220, 240, 0.28); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4); color: #d6f2ff; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.7s; }
   #welcome.show { opacity: 1; } #welcome b { display: block; font-size: 20px; letter-spacing: 0.06em; color: #ffe3d3; margin-bottom: 3px; } #welcome span { color: #a9d6e6; }
   #title .tp { width: min(560px, 90vw); box-sizing: border-box; padding: 28px 34px 22px; text-align: center; border-radius: 18px; background: linear-gradient(180deg, rgba(10, 46, 68, 0.88), rgba(3, 18, 34, 0.92)); border: 1px solid rgba(150, 220, 240, 0.25); box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55); }
@@ -653,7 +661,7 @@ function renderTrack() {
 function openTitle() {
   const t = document.getElementById('title');
   t.innerHTML = `<div class="tp"><h1>${CONFIG.title}</h1><p>You are a coral larva, smaller than a grain of rice. Find rock, settle, and grow. Grow your colony into a reef, and one day your reef will rise out of the sea as an island.</p>` +
-    `<div class="ladder">${STAGES.map(s => s.end ? islandSvg(24) : `<b>${s.name}</b><span class="a">&rarr;</span>`).join('')}</div><div class="go">Press any key or click to begin</div></div>`;
+    `<div class="ladder">${STAGES.map(s => s.end ? islandSvg(24) : `<b>${s.name}</b><span class="a">&rarr;</span>`).join('')}</div><div class="go">Press any key or click to begin</div>${SAVE.on ? '<button class="newgame">New game</button>' : ''}</div>`;
   t.classList.add('open'); game.titleOn = true;
 }
 function closeTitle() { game.titleOn = false; document.getElementById('title').classList.remove('open'); last = performance.now(); }
@@ -4546,6 +4554,7 @@ const BAR = [
   { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
   { id: 'zoom', label: () => 'Reef view', key: () => 'Z', show: () => game.polyps.length >= 2, on: () => game.reefView, dis: () => '', tip: 'Zoom out to see the whole reef. Mouse wheel zooms in and out', go: () => toggleReefView() },
   { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
+  { id: 'new', label: () => 'New game', key: () => '', show: () => !game.titleOn, dis: () => '', tip: 'Erase the saved reef and start again', go: () => askNewGame() },
   { id: 'mute', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
   { id: 'dev', label: () => 'Dev', key: () => '\\', show: () => true, on: () => devs.open, dis: () => '', tip: 'Developer tools', go: () => devToggle() },
 ];
@@ -5008,7 +5017,7 @@ function drawDevGrid() {
 /* ---------- input ---------- */
 const GAME_KEYS = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'KeyR', 'KeyG', 'KeyE', 'KeyQ', 'KeyF']);
 for (const ev of ['keydown', 'mousedown', 'pointerdown', 'touchstart']) window.addEventListener(ev, () => audio.init(), { capture: true });   // browsers only allow sound after an input
-for (const ev of ['keydown', 'mousedown']) window.addEventListener(ev, e => { if (!game.titleOn) return; e.stopPropagation(); e.preventDefault(); closeTitle(); }, { capture: true });   // the first key or click only closes the title card
+for (const ev of ['keydown', 'mousedown']) window.addEventListener(ev, e => { if (!game.titleOn || askOn || (e.target.closest && e.target.closest('.newgame'))) return; e.stopPropagation(); e.preventDefault(); closeTitle(); }, { capture: true });   // the first key or click only closes the title card
 function toggleMute() { audio.setMuted(!audio.muted); updateMuteLabel(); }
 window.addEventListener('keydown', e => {
   if (game.rep.open && (game.rep.auto || e.code === 'Escape') && e.code !== 'Tab' && !['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight'].includes(e.code)) closeReport();   // any key puts the report away
@@ -7240,9 +7249,27 @@ function saveHooks() {
 }
 function saveSoon() { setTimeout(() => saveNow(), 60); }   // a stage change: let the moment finish setting its state first
 
+// ---- New game: asks first, then wipes the save and reloads the page ----
+let askOn = false;
+function askNewGame() {
+  if (askOn) return; askOn = true;
+  const a = document.getElementById('ask');
+  a.innerHTML = '<div class="tp"><h2>Start a new game?</h2><p>This erases your reef and starts again from a single larva. It cannot be undone.</p><div><button class="yes">Yes, start over</button><button class="no">Keep playing</button></div></div>';
+  a.classList.add('open');
+}
+function askClose() { askOn = false; document.getElementById('ask').classList.remove('open'); last = performance.now(); }
+function newGame() { SAVE.wiping = true; saveDel(SAVE.key); location.reload(); }
+{
+  const a = document.getElementById('ask');
+  a.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) { if (e.target === a) askClose(); return; } if (b.classList.contains('yes')) newGame(); else askClose(); });
+  for (const ev of ['mousedown', 'wheel', 'contextmenu']) a.addEventListener(ev, e => e.stopPropagation());
+  window.addEventListener('keydown', e => { if (!askOn) return; e.stopPropagation(); e.preventDefault(); if (e.code === 'Escape') askClose(); }, { capture: true });
+  document.getElementById('title').addEventListener('click', e => { if (e.target.closest('.newgame')) askNewGame(); });
+}
+
 /* ---------- main loop ---------- */
 function step(dt) {
-  if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
+  if (game.tree.open || game.titleOn || askOn) return;   // the tree screen, the title card and the New game question pause the game
   game.time += dt;
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
   if (game.stage === 'larva' && !game.riding) updateLarva(dt); else game.settleTarget = null;
