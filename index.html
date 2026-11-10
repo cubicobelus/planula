@@ -219,7 +219,7 @@ const CONFIG = {
   // reef stages (see STAGES): income boost per stage, and the goal sizes
   stageBoost: [1, 1.2, 1.5, 1.8, 2.2, 2.5], stageColonyPolyps: 5, stageReefPolyps: 60, stageReefPatches: 3, stageReefSpecies: 3, stageCrestPolyps: 250, stageCrestSpecies: 6, crestLossMax: 0.1,
   // camera
-  zoomStart: 1.55, zoomEnd: 0.72, zoomPolypsFull: 16, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
+  zoomStart: 1.5, zoomEnd: 1.15, zoomPolypsFull: 16, zoomMax: 2.2, wheelStep: 0.0012, reefMargin: 140, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
   // water and light
   lightPower: 0.75, dimBelow: 0.35, brightAbove: 0.65,
   currentAmp: 22, currentLarvaFactor: 0.8,
@@ -374,6 +374,7 @@ const game = {
   keys: new Set(),
   mouse: { sx: 0, sy: 0, down: false, bud: false, ui: false },
   cam: { x: 1300, y: 330, zoom: 1 },
+  zoomUser: null, reefView: false,   // zoomUser: the wheel's choice (times the screen scale), remembered; reefView: Z frames every polyp
   view: { w: 800, h: 600, dpr: 1 },
   facing: null,
   bud: { t: 0, armed: false, fail: 0, src: 'key' },
@@ -623,7 +624,7 @@ function renderTrack() {
   });
   h += '</div>';
   const nx = STAGES[R];
-  if (nx && !nx.end) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.soon ? '<span style="color:#8aa0b2">coming soon</span>' : nx.goals.map(glHtml).join('')}</div>`;
+  if (nx && !nx.end) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.soon ? '<span style="color:#8aa0b2">coming soon</span>' : nx.goals.map(g => glHtml(g)).join('')}</div>`;
   else h += '<div class="goals"><span class="nx">The goal: <b>an island</b></span></div>';
   if (h !== track.last) { el.innerHTML = h; track.last = h; }
   const i = track.sel >= 0 ? track.sel : track.hover, card = document.getElementById('stcard');
@@ -2295,11 +2296,40 @@ function worldToScreen(x, y) {
   const c = game.cam, v = game.view;
   return { x: (x - c.x) * c.zoom + v.w / 2, y: (y - c.y) * c.zoom + v.h / 2 };
 }
-function zoomTarget() {
+function reefBox() {   // the box round every polyp, with a margin
+  const P = game.polyps; if (!P.length) return null;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const p of P) { x0 = Math.min(x0, p.c); x1 = Math.max(x1, p.c); y0 = Math.min(y0, p.r); y1 = Math.max(y1, p.r); }
+  const m = CONFIG.reefMargin;
+  return { x0: x0 * CELL - m, y0: y0 * CELL - m, x1: (x1 + 1) * CELL + m, y1: (y1 + 1) * CELL + m };
+}
+function fitZoom() {   // the zoom that shows the whole reef
+  const v = game.view, b = reefBox(); if (!b) return Math.max(v.w / W, v.h / H);
+  return Math.max(Math.min(v.w / (b.x1 - b.x0), v.h / (b.y1 - b.y0)), v.w / W, v.h / H);
+}
+function defaultZoom() {
   const v = game.view, s = v.h / CONFIG.baseViewHeight;
   const f = clamp((game.polyps.length - 1) / (CONFIG.zoomPolypsFull - 1), 0, 1);
   const e = 1 - Math.pow(1 - f, 2);
   return Math.max(s * lerp(CONFIG.zoomStart, CONFIG.zoomEnd, e), v.w / W, v.h / H);
+}
+function zoomTarget() {
+  const v = game.view, s = v.h / CONFIG.baseViewHeight;
+  if (game.reefView) return Math.min(fitZoom(), defaultZoom());
+  if (game.zoomUser != null) return clamp(game.zoomUser * s, fitZoom(), Math.max(s * CONFIG.zoomMax, fitZoom()));
+  return defaultZoom();
+}
+function wheelZoom(dy) {
+  const v = game.view, s = v.h / CONFIG.baseViewHeight, from = game.reefView ? game.cam.zoom : zoomTarget();
+  game.reefView = false;
+  game.zoomUser = clamp(from * Math.exp(-dy * CONFIG.wheelStep), fitZoom(), Math.max(s * CONFIG.zoomMax, fitZoom())) / s;
+}
+function toggleReefView(force) {
+  const on = force === undefined ? !game.reefView : force;
+  if (on && !game.polyps.length) return;
+  if (on === game.reefView) return;
+  game.reefView = on;
+  toast(on ? 'Reef view. Z, Esc or moving to return' : 'Back to you');
 }
 function updateCamera(dt, snap) {
   const c = game.cam, v = game.view, p = playerPos();
@@ -2309,6 +2339,10 @@ function updateCamera(dt, snap) {
   c.zoom = Math.max(c.zoom, v.w / W, v.h / H);
   const k = snap ? 1 : 1 - Math.exp(-CONFIG.camSmooth * (1 - 0.45 * kk) * dt);
   let tx = p.x, ty = p.y;
+  if (game.reefView) {
+    const b = reefBox(); if (!b || (!snap && ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].some(k => game.keys.has(k)))) game.reefView = false;
+    else { tx = (b.x0 + b.x1) / 2; ty = (b.y0 + b.y1) / 2; }
+  }
   if (game.nudge && !snap) {   // a gentle lean toward the new arrivals that comes back by itself; the player is never moved
     const n = game.nudge, b = Math.sin(Math.PI * clamp(n.t / n.life, 0, 1)), dx = n.x - p.x, dy = n.y - p.y, d = Math.hypot(dx, dy) || 1, m = Math.min(d * M.nudgeFrac, M.nudgeMax) * b;
     tx += dx / d * m; ty += dy / d * m;
@@ -4321,6 +4355,7 @@ const BAR = [
   { id: 'plan', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
   { id: 'ach', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
   { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
+  { id: 'zoom', label: () => 'Reef view', key: () => 'Z', show: () => game.polyps.length >= 2, on: () => game.reefView, dis: () => '', tip: 'Zoom out to see the whole reef. Mouse wheel zooms in and out', go: () => toggleReefView() },
   { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
   { id: 'mute', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
   { id: 'dev', label: () => 'Dev', key: () => '\\', show: () => true, on: () => devs.open, dis: () => '', tip: 'Developer tools', go: () => devToggle() },
@@ -4798,6 +4833,8 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyX' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleX(); return; }
   if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) toggleLinView(); return; }
   if (e.code === 'KeyJ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleAch(); return; }
+  if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) toggleReefView(); return; }
+  if (e.code === 'Escape' && game.reefView) { toggleReefView(false); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
@@ -4819,6 +4856,7 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { game.keys.delete(e.code); });
 window.addEventListener('blur', () => { game.keys.clear(); game.mouse.down = false; game.mouse.bud = false; });
+window.addEventListener('wheel', e => { if (game.tree.open || !game.polyps.length) return; e.preventDefault(); wheelZoom(e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY); }, { passive: false });   // panels stop the wheel before it gets here
 canvas.addEventListener('mousedown', e => {
   game.mouse.sx = e.clientX; game.mouse.sy = e.clientY;
   if (game.tree.open) return;
