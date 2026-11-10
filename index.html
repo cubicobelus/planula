@@ -7107,6 +7107,100 @@ function drawPlans(t) {
   }
 }
 
+/* ---------- saving: one slot in localStorage ---------- */
+// The save is a flat table of every object reachable from `game` (so links between polyps, residents and so on survive), minus the keys in SAVE.skip.
+// New state added to `game` is saved without any extra code. Derived maps and caches are rebuilt on load.
+const SAVE = {
+  ver: 1, key: 'reef.save', on: true, last: 0, size: 0, dropped: 0, fail: 0,
+  skip: new Set(['cols', 'rows', 'grid', 'floorRow', 'fx', 'parts', 'keys', 'mouse', 'slow', 'kick', 'nudge', 'view', 'look', 'plankton', 'streaks', 'settleTarget', 'titleOn',
+    'rockCanvas', 'rockOrganic', 'maskRock', 'maskCv', 'reef', 'shx', 'shy', 'tstT']),
+};
+function saveStorage() { try { return window.localStorage; } catch (e) { return null; } }
+function saveGet(k) { try { const s = saveStorage(); return s ? s.getItem(k) : null; } catch (e) { return null; } }
+function saveSet(k, v) { try { const s = saveStorage(); if (!s) return false; s.setItem(k, v); return true; } catch (e) { return false; } }
+function saveDel(k) { try { const s = saveStorage(); if (s) s.removeItem(k); return true; } catch (e) { return false; } }
+function saveOk(v) { const n = v && v.constructor && v.constructor.name; return v && typeof v === 'object' && (n === 'Object' || n === 'Array' || n === 'Map' || n === 'Set'); }
+// game -> plain JSON text. Objects get an id; a link is {r:id}; a number that is not finite is {n:'NaN'}
+function saveEncode() {
+  const ids = new Map(), list = [], objs = []; SAVE.dropped = 0;
+  const reg = o => { let i = ids.get(o); if (i === undefined) { i = list.length; ids.set(o, i); list.push(o); } return i; };
+  const val = v => {
+    const t = typeof v;
+    if (v === null || t === 'string' || t === 'boolean') return v;
+    if (t === 'number') return Number.isFinite(v) ? v : { n: String(v) };
+    if (t === 'object' && saveOk(v)) return { r: reg(v) };
+    if (v !== undefined) SAVE.dropped++;   // a function, canvas or other thing that cannot be saved
+    return undefined;
+  };
+  const root = {}; for (const k of Object.keys(game)) if (!SAVE.skip.has(k)) root[k] = game[k];
+  reg(root);
+  for (let i = 0; i < list.length; i++) {
+    const o = list[i];
+    if (o instanceof Map) objs.push(['m', [...o].map(([a, b]) => [val(a) === undefined ? null : val(a), val(b) === undefined ? null : val(b)])]);
+    else if (o instanceof Set) objs.push(['s', [...o].map(v => val(v)).filter(v => v !== undefined)]);
+    else if (Array.isArray(o)) objs.push(['a', o.map(v => { const x = val(v); return x === undefined ? null : x; })]);
+    else { const d = {}; for (const k of Object.keys(o)) { const x = val(o[k]); if (x !== undefined) d[k] = x; } objs.push(['o', d]); }
+  }
+  return JSON.stringify({ v: SAVE.ver, at: Date.now(), objs });
+}
+// JSON text -> the state object (not yet applied). Throws on anything it does not understand
+function saveDecode(text) {
+  const d = JSON.parse(text);
+  if (!d || d.v !== SAVE.ver || !Array.isArray(d.objs) || !d.objs.length) throw new Error('version');
+  const mk = d.objs.map(r => r[0] === 'a' ? [] : r[0] === 'm' ? new Map() : r[0] === 's' ? new Set() : {});
+  const dec = v => v !== null && typeof v === 'object' ? (v.r !== undefined ? mk[v.r] : Number(v.n)) : v;
+  d.objs.forEach((r, i) => {
+    const o = mk[i];
+    if (r[0] === 'a') for (const v of r[1]) o.push(dec(v));
+    else if (r[0] === 'm') for (const [a, b] of r[1]) o.set(dec(a), dec(b));
+    else if (r[0] === 's') for (const v of r[1]) o.add(dec(v));
+    else for (const k of Object.keys(r[1])) if (k !== '__proto__') o[k] = dec(r[1][k]);
+  });
+  const st = mk[0];
+  if (!st || !Array.isArray(st.polyps) || !Array.isArray(st.skeletons) || !(st.cells instanceof Map) || typeof st.time !== 'number' || !Array.isArray(st.lineages) || !st.goals) throw new Error('shape');
+  for (const [k, c] of st.cells) if (typeof k !== 'string' || !c || !c.ref) throw new Error('cells');
+  return st;
+}
+// puts a decoded state into the live game and rebuilds everything derived from it
+function saveApply(st) {
+  for (const k of Object.keys(st)) if (!SAVE.skip.has(k)) game[k] = st[k];
+  for (const q of game.newRock) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 1;   // S4 turned these into rock
+  game.fx.length = 0; game.parts.length = 0; game.keys.clear(); game.slow = game.kick = game.nudge = null; game.settleTarget = null;
+  game.rep.open = false; game.tree.open = false; game.mouse.down = false;
+  FLD.sig = null; SUP.sig = null; WT.t = -1; WT.sig = ''; game.res.sig = ''; seasonSig = ''; achSig = ''; repSig = ''; XO = null;
+  track.lit = game.goals.stage - 1; track.last = ''; track.sel = -1;
+  if (game.ev && game.ev.card) renderEventCard(true);
+  renderTrack(); updateCamera(0, true);
+}
+// compares the live game with a decoded state, following links (iteratively: a colony's parent chain can be long)
+function saveCompare(st) {
+  const seen = new Map(), stack = [], bad = [];
+  const pair = (a, b, path) => {
+    if (a === b) return;
+    if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') {
+      if (typeof a === 'number' && typeof b === 'number' && isNaN(a) && isNaN(b)) return;
+      if (a !== b && !(a === undefined && b === null)) bad.push(path); return;
+    }
+    if (seen.has(a)) { if (seen.get(a) !== b) bad.push(path + ' (link)'); return; }
+    seen.set(a, b); stack.push([a, b, path]);
+  };
+  for (const k of Object.keys(st)) pair(game[k], st[k], k);
+  while (stack.length && bad.length < 10) {
+    const [a, b, path] = stack.pop();
+    if (a instanceof Map) { if (!(b instanceof Map) || a.size !== b.size) { bad.push(path + ' (map)'); continue; } const bk = [...b.keys()]; let i = 0; for (const [k, v] of a) { if (bk[i] !== k && !(typeof k === 'object')) bad.push(path + ' (key)'); pair(v, b.get(bk[i]), path + '[' + k + ']'); i++; } }
+    else if (a instanceof Set) { if (!(b instanceof Set) || a.size !== b.size) bad.push(path + ' (set)'); else { const ar = [...a], br = [...b]; ar.forEach((v, i) => pair(v, br[i], path + '{}')); } }
+    else if (Array.isArray(a)) { if (!Array.isArray(b) || a.length !== b.length) { bad.push(path + ' (array)'); continue; } a.forEach((v, i) => pair(v, b[i], path + '.' + i)); }
+    else for (const k of Object.keys(a)) { if (typeof a[k] === 'function' || (a[k] && !saveOk(a[k]) && typeof a[k] === 'object') || a[k] === undefined) continue; pair(a[k], b[k], path + '.' + k); }
+  }
+  return bad;
+}
+// dev check: save, decode into a fresh object, compare. Returns { ok, bytes, counts, bad }
+function saveRoundTrip() {
+  const text = saveEncode(), st = saveDecode(text), bad = saveCompare(st);
+  const n = o => o.polyps.length + '/' + o.skeletons.length + '/' + o.cells.size + '/' + o.res.list.length + '/' + o.lineages.length + '/' + Object.keys(o.tree.state).length;
+  return { ok: !bad.length && n(st) === n(game), bytes: text.length, counts: n(st), bad, dropped: SAVE.dropped };
+}
+
 /* ---------- main loop ---------- */
 function step(dt) {
   if (game.tree.open || game.titleOn) return;   // the tree screen and the title card pause the game
