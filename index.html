@@ -4606,6 +4606,7 @@ function updateBar() {
     if (d.cd) d.cdEl.style.width = Math.round(clamp(d.cd(), 0, 1) * 100) + '%';
     d.dotEl.style.display = d.dot && d.dot() ? '' : 'none';
   }
+  if (devs.open) { const bt = Math.ceil(innerHeight - abar.getBoundingClientRect().top + 10) + 'px'; if (devPanel.style.bottom !== bt) devPanel.style.bottom = bt; }   // the side panel stays clear of the bar, however many rows it wraps to
   const bm = CONFIG.budMode, sw = `Controls: ${bm === 'both' ? '<b>both</b>' : 'both'} / ${bm === 'click' ? '<b>click</b>' : 'click'} / ${bm === 'keys' ? '<b>keys</b>' : 'keys'}`;
   if (barSwitch.innerHTML !== sw) barSwitch.innerHTML = sw;
 }
