@@ -227,6 +227,8 @@ const CONFIG = {
   seed: 7,
   title: 'reef', showTitle: true,   // placeholder name; the title card is skipped with #notitle in the URL
   // reef stages (see STAGES): income boost per stage, and the goal sizes
+  // the ending (content.md 9): crest columns and sand for the Atoll, the final cyclone, the island and its life
+  fin: { atollCols: 12, atollSand: 200, crestRows: 3, sandPer: 10, dropEvery: 3, cycDelay: 180, cycLen: 120, cycWaves: 5, cycFirst: 20, cycGap: 15, cycP: 95, cyc2P: 90, pBase: 50, wash: 0.15, winCols: 10, winLand: 4, verdictAfter: 8, sbEvery: 3, riseSecs: 14, birds: 60, grass: 120, palms: 240, turtles: 300, birdsLand: 4, grassLand: 4, palmsLand: 6, turtlesLand: 8, birdPlank: 0.15, birdRange: 15, palmEvery: 60, turtleB: 6, cardAt: 300, skyPx: 190 },
   stageBoost: [1, 1.2, 1.5, 1.8, 2.2, 2.5], stageColonyPolyps: 5, stageReefPolyps: 60, stageReefPatches: 3, stageReefSpecies: 3, stageCrestPolyps: 250, stageCrestSpecies: 6, crestLossMax: 0.1,
   // camera
   zoomStart: 1.5, zoomEnd: 1.15, zoomPolypsFull: 16, zoomMax: 2.2, wheelStep: 0.0012, reefMargin: 140, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
@@ -397,6 +399,8 @@ const game = {
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
   newRock: [],              // S4: skeleton cells that turned into rock
+  land: [],                 // the island: sand cells { c, r, born, grass }; their grid value is 2
+  fin: { atollAt: -1, cycAt: -1, cyc: 0, won: false, redo: false, sandbox: false, sbSeason: -1, sbN: 0, dropT: 0, washed: 0, islandAt: -1, life: {}, palmT: 0, carded: false, cardOpen: false, riseT: -1, sky: 0, lostSand: 0, ver: 0 },   // the ending: when the Atoll came, the cyclone clock, the island's timers
   regs: { slope: { open: false, a: 0 }, flat: { open: false, a: 0 } },
   sp: { nights: [], on: null, larvae: [], eggs: [], pairs: null, bank: [], bankNext: 0, plant: false, seen: -1 },   // spawning (slice 7)
   ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
@@ -433,7 +437,8 @@ function light(y) { return Math.pow(clamp(1 - y / H, 0, 1), CONFIG.lightPower); 
 function lightLabel(l) { return l < CONFIG.dimBelow ? 'Dim' : l < CONFIG.brightAbove ? 'Fair' : 'Bright'; }
 function cellCenter(c, r) { return { x: (c + 0.5) * CELL, y: (r + 0.5) * CELL }; }
 function inBounds(c, r) { return c >= 0 && r >= 0 && c < game.cols && r < game.rows; }
-function isRock(c, r) { return !inBounds(c, r) ? (r >= 0 || false) : game.grid[r * game.cols + c] === 1; }
+function isRock(c, r) { return !inBounds(c, r) ? (r >= 0 || false) : game.grid[r * game.cols + c] >= 1; }   // 1 = rock, 2 = sand (the island's cells are solid too)
+function isBed(c, r) { return !inBounds(c, r) ? r >= 0 : game.grid[r * game.cols + c] === 1; }   // bedrock only: sand anchors no coral
 function cellAt(c, r) { return game.cells.get(key(c, r)); }
 function floorY(x) { return game.floorRow[clamp(Math.floor(x / CELL), 0, game.cols - 1)] * CELL; }
 function currentAt(x, y, t) { return REGION_FLOW[regionAt(x)] * CONFIG.currentAmp * (Math.sin(t * 0.11 + y * 0.002) * 0.7 + Math.sin(t * 0.27 + 1.3 + x * 0.001) * 0.3) + (game.storm ? stormSurge(x, y, t) : 0); }
@@ -602,11 +607,12 @@ const STAGES = [
     goals: [{ label: 'Polyps', cur: () => game.polyps.length, need: CONFIG.stageCrestPolyps },
             { label: 'Storm season, under 10% lost', short: 'Clean storm', cur: () => game.goals.crestStorm ? 1 : 0, need: 1 },
             { label: 'Species', cur: () => game.species.length, need: CONFIG.stageCrestSpecies }] },
-  { name: 'Atoll', soon: true, desc: 'The reef reaches the surface.', opens: 'The island starts to rise',
-    goals: [{ label: 'Surface columns', cur: () => 0, need: 12 }, { label: 'Sand', cur: () => 0, need: 200 }] },
-  { name: 'Island', soon: true, end: true, desc: 'Your reef has risen out of the sea. The goal.', opens: 'Birds, seeds and palms', goals: [] },
+  { name: 'Atoll', desc: 'The reef reaches the surface.', opens: 'Sand piles on the crest, and the final cyclone is forecast',
+    goals: [{ label: 'Crest columns side by side', short: 'Crest columns', cur: () => crestInfo().run, need: CONFIG.fin.atollCols }, { label: 'Sand made', short: 'Sand', cur: () => Math.floor(game.stats.sandMade), need: CONFIG.fin.atollSand }] },
+  { name: 'Island', manual: true, end: true, desc: 'Your reef has risen out of the sea. The goal.', opens: 'Birds, beach grass, palms and nesting turtles',
+    goals: [{ label: 'Survive the final cyclone', short: 'Cyclone', cur: () => game.fin.won ? 1 : 0, need: 1 }, { label: 'Crest columns', cur: () => crestInfo().n, need: CONFIG.fin.winCols }, { label: 'Land cells side by side', short: 'Land', cur: () => landInfo().run, need: CONFIG.fin.winLand }] },
 ];
-const stageMet = i => !STAGES[i].soon && STAGES[i].goals.every(g => g.cur() >= g.need);
+const stageMet = i => !STAGES[i].manual && STAGES[i].goals.every(g => g.cur() >= g.need);
 function checkStage() {
   while (game.goals.stage < STAGES.length && stageMet(game.goals.stage)) stageUp(game.goals.stage + 1);
 }
@@ -631,19 +637,19 @@ function renderTrack() {
   const el = document.getElementById('track'), R = game.goals.stage;
   let h = '<div class="line">';
   STAGES.forEach((s, i) => {
-    const cls = (i < R - 1 ? 'done' : i === R - 1 ? 'cur' : '') + (s.soon ? ' soon' : '') + (s.end ? ' last' : '') + (track.lit === i ? ' lit' : '');
+    const cls = (i < R - 1 ? 'done' : i === R - 1 ? 'cur' : '') + (s.manual && i >= R ? ' soon' : '') + (s.end ? ' last' : '') + (track.lit === i ? ' lit' : '');
     h += `<div class="nd ${cls}" data-i="${i}"><div class="dot">${s.end ? islandSvg(22) : ''}</div><div class="nm">${s.end ? 'The goal' : s.name}</div></div>`;
   });
   h += '</div>';
   const nx = STAGES[R];
-  if (nx && !nx.end) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.soon ? '<span style="color:#8aa0b2">coming soon</span>' : nx.goals.map(g => glHtml(g)).join('')}</div>`;
+  if (nx && !nx.end) h += `<div class="goals"><span class="nx">Next: <b>${nx.name}</b></span>${nx.goals.map(g => glHtml(g)).join('')}</div>`;
   else h += '<div class="goals"><span class="nx">The goal: <b>an island</b></span></div>';
   if (h !== track.last) { el.innerHTML = h; track.last = h; }
   const i = track.sel >= 0 ? track.sel : track.hover, card = document.getElementById('stcard');
   if (i < 0) { card.style.display = 'none'; return; }
   const s = STAGES[i], bo = CONFIG.stageBoost[i] || 1;
   card.innerHTML = `<h4>${s.end ? 'Island' : s.name}</h4><p>${s.desc}</p>` + (s.goals.length ? s.goals.map(g => glHtml(g, true)).join('') : '') +
-    (s.soon ? '<div class="k soon">Coming soon: not reachable yet</div>' : '') + `<div class="k">Boost: <b>${bo > 1 ? 'income x' + bo : 'none'}</b></div><div class="k">Opens: <b>${s.opens}</b></div>`;
+    (s.manual ? '<div class="k soon">Comes by surviving the final cyclone on a crest with land on it</div>' : '') + `<div class="k">Boost: <b>${bo > 1 ? 'income x' + bo : 'none'}</b></div><div class="k">Opens: <b>${s.opens}</b></div>`;
   card.style.display = 'block';
   const nd = el.querySelector(`.nd[data-i="${i}"]`).getBoundingClientRect();
   card.style.left = clamp(nd.left + nd.width / 2 - 115, 8, innerWidth - 238) + 'px'; card.style.top = (el.getBoundingClientRect().bottom + 6) + 'px';
@@ -655,6 +661,40 @@ function renderTrack() {
   tr.addEventListener('click', e => { const n = e.target.closest('.nd'); const i = n ? +n.dataset.i : -1; track.sel = track.sel === i ? -1 : i; renderTrack(); });
   window.addEventListener('mousedown', e => { if (!e.target.closest('#track')) track.sel = -1; });
   for (const ev of ['mousedown', 'wheel', 'contextmenu']) tr.addEventListener(ev, e => e.stopPropagation());
+}
+
+/* ---------- the ending: crest columns, sand, the final cyclone, the island and its life (content.md 9) ---------- */
+// crest column: a live polyp or skeleton in row 1, 2 or 3. cols = sorted columns, run = the longest stretch of neighbours (a..b)
+const CREST = { sig: '', cols: [], set: new Set(), n: 0, run: 0, a: 0, b: -1 };
+function crestInfo(force) {
+  const sig = Math.floor(game.time * 5) + ',' + game.polyps.length + ',' + game.skeletons.length;
+  if (!force && CREST.sig === sig) return CREST;
+  CREST.sig = sig; const set = new Set(), rows = CONFIG.fin.crestRows;
+  for (const p of game.polyps) if (!p.dead && p.r >= 1 && p.r <= rows) set.add(p.c);
+  for (const q of game.skeletons) if (!q.rival && q.r >= 1 && q.r <= rows) set.add(q.c);
+  const cols = [...set].sort((x, y) => x - y); let run = 0, a = 0, b = -1, s0 = 0;
+  for (let i = 0; i < cols.length; i++) {
+    if (i && cols[i] !== cols[i - 1] + 1) s0 = i;
+    if (i - s0 + 1 > run) { run = i - s0 + 1; a = cols[s0]; b = cols[i]; }
+  }
+  CREST.cols = cols; CREST.set = set; CREST.n = cols.length; CREST.run = run; CREST.a = a; CREST.b = b;
+  return CREST;
+}
+// land: sand cells in row 0 (the surface). run = the longest stretch of neighbouring land columns
+const LAND = { sig: '', n: 0, row0: 0, run: 0, a: 0, b: -1, map: new Map() };
+function landRebuild() { LAND.map = new Map(); for (const q of game.land) LAND.map.set(key(q.c, q.r), q); LAND.sig = ''; }
+const landAt = (c, r) => LAND.map.get(key(c, r));
+function landInfo() {
+  const sig = game.land.length + ',' + game.fin.ver;
+  if (LAND.sig === sig) return LAND;
+  LAND.sig = sig; const cols = game.land.filter(q => q.r === 0).map(q => q.c).sort((x, y) => x - y);
+  let run = 0, a = 0, b = -1, s0 = 0;
+  for (let i = 0; i < cols.length; i++) {
+    if (i && cols[i] !== cols[i - 1] + 1) s0 = i;
+    if (i - s0 + 1 > run) { run = i - s0 + 1; a = cols[s0]; b = cols[i]; }
+  }
+  LAND.n = game.land.length; LAND.row0 = cols.length; LAND.run = run; LAND.a = a; LAND.b = b;
+  return LAND;
 }
 
 /* ---------- title card ---------- */
@@ -886,7 +926,7 @@ function setActive(p) {
 }
 function attachable(c, r) {
   if (!inBounds(c, r)) return false;
-  return game.grid[r * game.cols + c] === 1 || !!cellAt(c, r);
+  return game.grid[r * game.cols + c] >= 1 || !!cellAt(c, r);
 }
 function rectDist(px, py, c, r) {
   const dx = Math.max(c * CELL - px, 0, px - (c + 1) * CELL);
@@ -1007,7 +1047,7 @@ function bail() {
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 function validBudCell(c, r, tp, from) {   // tp/from: also check that coral type's placement rule from that parent
-  if (!inBounds(c, r) || game.grid[r * game.cols + c] === 1 || cellAt(c, r) || game.seaweed.has(key(c, r))) return false;   // no budding into seaweed
+  if (!inBounds(c, r) || r < 1 || game.grid[r * game.cols + c] >= 1 || cellAt(c, r) || game.seaweed.has(key(c, r))) return false;   // no budding into seaweed
   let ok = false;
   for (const [dc, dr] of Object.values(DIRS)) {
     const o = cellAt(c + dc, r + dr);
@@ -1122,7 +1162,7 @@ function updateBud(dt) {
 /* ---------- guided growth: the colony queues a path of attachable cells and grows along it by itself ---------- */
 // breadth-first from every polyp through free water cells, so each cell on the path touches the one before it and never rock
 function planPath(tc, tr) {
-  const free = (c, r) => inBounds(c, r) && game.grid[r * game.cols + c] !== 1 && !cellAt(c, r);
+  const free = (c, r) => inBounds(c, r) && r >= 1 && game.grid[r * game.cols + c] === 0 && !cellAt(c, r);
   if (!free(tc, tr)) return null;
   const prev = new Map(), q = [];
   for (const p of game.polyps) { prev.set(key(p.c, p.r), null); q.push([p.c, p.r, 0]); }
@@ -1902,7 +1942,7 @@ function updateResidents(dt) {
 function solidFor(c, r, curKey) {
   if (r < 0) return true;
   if (c < 0 || c >= game.cols || r >= game.rows) return true;
-  if (game.grid[r * game.cols + c] === 1) return true;
+  if (game.grid[r * game.cols + c] >= 1) return true;
   const o = cellAt(c, r);
   return !!o && key(c, r) !== curKey;
 }
@@ -2029,7 +2069,7 @@ function shooFish(dt) {   // fish that idle on a bud spot drift off, so it frees
 /* ---------- fish pathing: a grid search over water cells, and a way out of any pocket ---------- */
 const OPEN_CELLS = 140;   // a pocket of water smaller than this counts as enclosed
 const lagCols = () => Math.floor(LAG / CELL);
-const waterCell = (c, r) => c >= 0 && r >= 1 && c < lagCols() && r < game.rows && game.grid[r * game.cols + c] !== 1 && !cellAt(c, r);
+const waterCell = (c, r) => c >= 0 && r >= 1 && c < lagCols() && r < game.rows && game.grid[r * game.cols + c] === 0 && !cellAt(c, r);
 const gcell = (c, r) => c + r * game.cols;
 function floodSize(c0, r0, limit) {   // how many water cells connect to this one (counting stops at the limit)
   const seen = new Set([gcell(c0, r0)]), q = [[c0, r0]];
@@ -2075,7 +2115,7 @@ function escapePath(x, y, enclosed) {   // through coral if it has to: the short
       for (const k of fl.seen) bad.add(k);
     }
     for (const [dc, dr] of NB_DIRS) {
-      const nc = c + dc, nr = r + dr; if (nc < 0 || nr < 1 || nc >= lagCols() || nr >= game.rows || game.grid[nr * game.cols + nc] === 1) continue;
+      const nc = c + dc, nr = r + dr; if (nc < 0 || nr < 1 || nc >= lagCols() || nr >= game.rows || game.grid[nr * game.cols + nc] >= 1) continue;
       const nd = d + (cellAt(nc, nr) ? 3 : 1), k = gcell(nc, nr);
       if (dist.has(k) && dist.get(k) <= nd) continue;
       dist.set(k, nd); prev.set(k, gcell(c, r)); (buckets[nd] = buckets[nd] || []).push([nc, nr]);
@@ -4670,7 +4710,7 @@ function devSettle() {
 }
 // meet the goals of stage n (1 = Polyp ...) instantly, then run the stage-up moment(s)
 function devStage(n) {
-  if (n > 4) { toast('Not reachable yet', true); return; }
+  if (n > 6) return;
   if (!game.progress.settled || game.stage === 'larva' && !game.polyps.length) devSettle();
   game.progress.settled = true;
   if (n >= 2) devGrow(Math.max(0, CONFIG.stageColonyPolyps - game.polyps.length));
@@ -4682,6 +4722,8 @@ function devStage(n) {
   }
   if (n > game.goals.stage) checkStage();
   if (n >= 4 && game.goals.stage === 3) stageUp(4);   // the dev jump to Reef crest skips its goals (250 polyps, a clean storm season, 6 species) so the genetics can be tried at once
+  if (n >= 5 && game.goals.stage < 5) devAtoll();
+  if (n >= 6 && game.goals.stage < 6) devRise();
 }
 function devSpawnRes(kind) {   // a resident of this kind right now, ignoring its habitat
   if (kind === 'clown') { if (anemones().length && !game.clown.fish.length) spawnClowns(); else toast('Needs an anemone and no clownfish yet', true); return null; }
@@ -4705,10 +4747,23 @@ function devGrow(n) {
     addPolyp(c, r, false, from).parent = { c: from.c, r: from.r }; game.stats.buds++;
   }
 }
+function devCrest(cols, top, from) {   // a wall of coral up to the surface: `cols` columns, topmost row `top`, starting at column `from` (default: on the reef flat)
+  cols = cols || 14; top = top || 1; from = from === undefined ? CONFIG.flatCol + 4 : from;
+  for (let c = from; c < from + cols && c < game.cols - 1; c++) {
+    for (let r = game.floorRow[c] - 1; r >= top; r--) if (!isRock(c, r) && !cellAt(c, r)) addPolyp(c, r);
+  }
+  crestInfo(true);
+}
+function devAtoll() {   // the Atoll goals, ready: a 14-column crest at row 1 and 200 sand made
+  if (game.goals.stage < 4) devStage(4);
+  if (crestInfo(true).run < CONFIG.fin.atollCols) devCrest(14, 1);
+  if (game.stats.sandMade < CONFIG.fin.atollSand) { game.sand += CONFIG.fin.atollSand - game.stats.sandMade; game.stats.sandMade = CONFIG.fin.atollSand; }
+  checkStage();
+}
 // turn the game into a mature reef: branching colony with gaps, a few outlying patches, every unlock, residents
 // build a thicket, a cave, a tunnel and a dead-coral patch on bare floor away from the colony, so habitats exist (devThrive)
 function devHabitats() {
-  const used = new Set(), free = (c, r) => inBounds(c, r) && !isRock(c, r) && !cellAt(c, r), put = (c, r) => { if (free(c, r)) addPolyp(c, r); };
+  const used = new Set(), free = (c, r) => inBounds(c, r) && r >= 1 && !isRock(c, r) && !cellAt(c, r), put = (c, r) => { if (free(c, r)) addPolyp(c, r); };
   const start = game.active ? game.active.c : Math.floor(game.cols / 2);
   const spot = (w, flat) => {   // w columns with one floor row (when flat), nothing built there, clear of earlier pieces; the nearest to the colony wins
     for (let i = 0; i < game.cols * 2; i++) {
@@ -4844,7 +4899,7 @@ const devGroups = [
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
   ['Colony', ['<button data-a="settle">settle here</button><button data-a="g5">grow +5</button><button data-a="g20">+20</button><button data-a="kill">kill active polyp</button>','<button data-a="thrive">thriving reef</button>']],
   ['Coral', ['<button data-a="ty" data-v="branch">branch</button><button data-a="ty" data-v="plate">plate</button><button data-a="ty" data-v="brain">brain</button><button data-a="ty" data-v="fan">fan</button><button data-a="ty" data-v="anemone">anemone</button>', '<button data-a="ownty">own all types</button><button data-a="mixed">grow mixed reef</button>']],
-  ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
+  ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
     '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
@@ -5239,8 +5294,8 @@ const lightOf = p => light(p.r * CELL + CELL / 2) * shadeOf(p) * (game.seaweed.s
 /* ---------- structure: how well each polyp is held up (0..10), cached until the cells change ---------- */
 const mixedSide = p => NB_DIRS.some(([dc, dr]) => { const o = cellAt(p.c + dc, p.r + dr); return o && o.kind === 'polyp' && !o.ref.dead && typeOf(o.ref) !== typeOf(p); });   // T4: a side neighbour of another coral type
 const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
-const skelRooted = (c, r) => { const o = cellAt(c, r); return !!o && o.kind === 'skel' && !o.ref.rival && NB_DIRS.some(([a, b]) => isRock(c + a, r + b)); };   // S4: dead coral touching rock
-const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isRock(c + a, r + b) || (has('S4') && skelRooted(c + a, r + b)));
+const skelRooted = (c, r) => { const o = cellAt(c, r); return !!o && o.kind === 'skel' && !o.ref.rival && NB_DIRS.some(([a, b]) => isBed(c + a, r + b)); };   // S4: dead coral touching rock
+const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isBed(c + a, r + b) || (has('S4') && skelRooted(c + a, r + b)));
 const skelEdible = q => !(has('S4') && skelRooted(q.c, q.r));
 const denseP = p => { let n = 0; for (const [dc, dr] of NB_DIRS) if (livePolypAt(p.c + dc, p.r + dr)) n++; return n >= CONFIG.unl.f5.near; };
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
@@ -5383,6 +5438,14 @@ function drawStructure(t) {
   const z = 1 / game.cam.zoom, w = screenToWorld(game.mouse.sx, game.mouse.sy), M = supportMap();
   let hov = null, hd = (0.8 * CELL) ** 2;
   ctx.save(); ctx.lineWidth = 2 * z;
+  if (game.goals.stage >= 4) {   // crest columns: the surface above each one is marked, and a run of neighbours is joined
+    const ci = crestInfo();
+    for (const c of ci.cols) {
+      const inRun = c >= ci.a && c <= ci.b;
+      ctx.fillStyle = inRun ? 'rgba(255,224,130,0.5)' : 'rgba(255,224,130,0.3)'; ctx.fillRect(c * CELL + 2, 2, CELL - 4, CELL - 4);
+      ctx.fillStyle = 'rgba(255,240,190,0.85)'; ctx.fillRect(c * CELL + 4, 0, CELL - 8, 3);
+    }
+  }
   for (const p of game.polyps) {
     const q = drawPos(p), s = M.str.get(key(p.c, p.r)) || 0, c = strCol(s);
     ctx.fillStyle = `rgba(${c},0.26)`; ctx.strokeStyle = `rgba(${c},0.85)`;
@@ -5449,6 +5512,7 @@ function findProblems() {
   }
   if (P.some(p => p.inf)) { const g = diseaseGroup(); add('P12', 50, `White band disease is spreading through ${g.length} connected polyps.`, 'Cut a gap ahead of it, or bring it near cleaner shrimp.', g); }
   if (starN()) { const sf = game.starfish.filter(f => !f.dead && f.mode !== 'leave'); add('P11', 50, `${sf.length} crown-of-thorns starfish are eating your coral.`, 'Sting each one three times, or grow branching thickets for guard crabs.', P.filter(p => sf.some(f => Math.hypot((p.c + 0.5) * CELL - f.x, (p.r + 0.5) * CELL - f.y) <= 4 * CELL))); }
+  if (game.goals.stage === 4) { const ci = crestInfo(); if (ci.run < C.fin.atollCols) add('P15', 25, `Your crest reaches the surface across ${ci.run} of ${C.fin.atollCols} columns.`, 'Fill the gaps at the top: plates and brain coral spread sideways.', P.filter(p => p.r >= 1 && p.r <= 8)); }
   const top = C.reportTop.reduce((a, [from, k]) => n >= from ? k : a, 3);
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
 }
@@ -5841,7 +5905,7 @@ function rootFrag(f, q) {
   const c0 = Math.floor(q.x / CELL), r0 = Math.floor(q.y / CELL), cand = [];
   for (let dr = -7; dr <= 7; dr++) for (let dc = -7; dc <= 7; dc++) {
     const c = c0 + dc, r = r0 + dr;
-    if (inBounds(c, r) && !isRock(c, r) && !cellAt(c, r) && (touchesRock(c, r) || (f.throw && NB_DIRS.some(([a, b]) => { const o = cellAt(c + a, r + b); return o && o.kind === 'skel'; }))) && !game.seaweed.has(key(c, r))) cand.push([c, r, dc * dc + dr * dr]);   // seaweed holds no new coral
+    if (inBounds(c, r) && r >= 1 && !isRock(c, r) && !cellAt(c, r) && (touchesRock(c, r) || (f.throw && NB_DIRS.some(([a, b]) => { const o = cellAt(c + a, r + b); return o && o.kind === 'skel'; }))) && !game.seaweed.has(key(c, r))) cand.push([c, r, dc * dc + dr * dr]);   // seaweed holds no new coral
   }
   if (!cand.length) return false;
   cand.sort((a, b) => a[2] - b[2]);
