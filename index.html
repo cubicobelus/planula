@@ -1024,6 +1024,7 @@ function tryHop(dir) {
     game.hop = { fx: from.x, fy: from.y, t: 0 };
     game.progress.hopped = true;
   } else if (validBudCell(c, r, game.nextType, a)) {
+    if (fishInWay(c, r)) { game.facing = null; toast(FISH_MSG); return; }
     game.facing = { c, r }; game.bud.src = 'key';
   } else {
     game.facing = null;
@@ -1046,8 +1047,9 @@ const BUD_MODES = ['both', 'click', 'keys'];
 // open cells the active polyp can bud into (click mode shows these as spots)
 function budSpots() {
   const a = game.active; if (game.stage !== 'polyp' || !a) return [];
-  return Object.values(DIRS).map(([dc, dr]) => ({ c: a.c + dc, r: a.r + dr })).filter(s => validBudCell(s.c, s.r, game.nextType, a));
+  return Object.values(DIRS).map(([dc, dr]) => ({ c: a.c + dc, r: a.r + dr })).filter(s => validBudCell(s.c, s.r, game.nextType, a)).map(s => (s.blocked = !!fishInWay(s.c, s.r), s));   // blocked: a fish is on it
 }
+const FISH_MSG = 'A fish is in the way';
 function spotAtMouse() {
   if (!spotMode() || game.tree.open || game.mouse.ui) return null;
   const w = screenToWorld(game.mouse.sx, game.mouse.sy), c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
@@ -1061,6 +1063,7 @@ function spotAtMouse() {
 // mouse down on a spot: same as pressing Space toward that cell
 function pressSpot(sp) {
   const b = game.bud;
+  if (fishInWay(sp.c, sp.r)) { game.facing = null; b.armed = false; b.fail = 0.9; toast(FISH_MSG); return; }
   game.facing = { c: sp.c, r: sp.r }; b.src = 'mouse'; b.t = 0;
   const short = budShort();
   if (short) { b.fail = 0.9; b.armed = false; toast(short); return; }
@@ -1092,6 +1095,7 @@ function updateBud(dt) {
   const cost = budCost(), f = game.facing, short = budShort(), fp = spotPos(f.c, f.r);
   b.t = 0; b.armed = false;
   if (short) { b.fail = 0.9; toast(short); return; }
+  if (fishInWay(f.c, f.r)) { b.fail = 0.9; toast(FISH_MSG); return; }
   game.energy -= cost; game.calcium -= budCalcium();
   const tp = game.nextType, anem = tp === 'anemone'; if (anem) game.nextType = 'branch';
   const p = addPolyp(f.c, f.r, tp, game.active);
@@ -1147,6 +1151,7 @@ function updateGuide(dt) {
   if (g.t < CONFIG.guideInterval) return;
   while (g.path.length && cellAt(g.path[0].c, g.path[0].r)) g.path.shift();   // already grown by hand
   if (!g.path.length) { game.guide = null; game.stats.guideRuns++; toast('Guided growth complete'); return; }
+  if (fishInWay(g.path[0].c, g.path[0].r)) { g.t = CONFIG.guideInterval - 0.4; return; }   // a fish is in the way: wait for it to move
   if (!validBudCell(g.path[0].c, g.path[0].r)) {
     const np = planPath(g.target.c, g.target.r);
     if (!np || !validBudCell(np[0].c, np[0].r)) { cancelGuide('Guided growth: the way is blocked'); return; }
@@ -1258,6 +1263,7 @@ function updateClown(dt) {
       tx = an.x + Math.cos(t * 0.7 + f.orbit) * 44; ty = an.y - 26 + Math.sin(t * 1.1 + f.orbit) * 18;
       sp = clamp(Math.hypot(tx - f.x, ty - f.y) * 1.6, 25, CONFIG.clownSpeed);
     }
+    if (fishGuard(f, dt, 6, Math.hypot(tx - f.x, ty - f.y) > 40)) continue;
     const dd = Math.hypot(tx - f.x, ty - f.y) || 1, k = 1 - Math.exp(-3.5 * dt);
     f.vx = lerp(f.vx, (tx - f.x) / dd * sp, k); f.vy = lerp(f.vy, (ty - f.y) / dd * sp, k);
     const nx = f.x + f.vx * dt, ny = f.y + f.vy * dt;
@@ -1617,6 +1623,7 @@ function leaveClown(why) {
 // ----- movement and jobs, every frame
 function steer(r, tx, ty, sp, dt, rad, k = 3.5) {   // swim toward a point, bumping off coral and rock
   const dd = Math.hypot(tx - r.x, ty - r.y) || 1, kk = 1 - Math.exp(-k * dt);
+  if (fishGuard(r, dt, rad, dd > 30)) return dd;
   r.vx = lerp(r.vx, (tx - r.x) / dd * sp, kk); r.vy = lerp(r.vy, (ty - r.y) / dd * sp, kk);
   const nx = r.x + r.vx * dt, ny = r.y + r.vy * dt;
   if (!blockedAt(nx, r.y, rad, '')) r.x = nx; else { r.vx *= -0.3; r.vy -= 20; }
@@ -1954,8 +1961,10 @@ function updateFish(dt) {
     if (f.mode === 'chase') { if (!canChase || d > CONFIG.fishGiveUp) { f.mode = 'patrol'; pickWaypoint(f); } }
     else if (canChase && d < CONFIG.fishSense) f.mode = 'chase';
     let tx = f.tx, ty = f.ty, sp = CONFIG.fishPatrolSpeed;
+    if (f.pickNew) { f.pickNew = false; f.mode = 'patrol'; f.cool = Math.max(f.cool, 2); pickWaypoint(f); tx = f.tx; ty = f.ty; }
     if (f.mode === 'chase') { tx = L.x; ty = L.y; sp = CONFIG.fishChaseSpeed; }
     else if (Math.hypot(tx - f.x, ty - f.y) < 30) pickWaypoint(f);
+    if (fishGuard(f, dt, R * 0.7, true)) continue;
     const dd = Math.hypot(tx - f.x, ty - f.y) || 1;
     const k = 1 - Math.exp(-2.5 * dt);
     f.vx = lerp(f.vx, (tx - f.x) / dd * sp, k); f.vy = lerp(f.vy, (ty - f.y) / dd * sp, k);
@@ -1977,6 +1986,115 @@ function updateFish(dt) {
     }
   }
 }
+
+/* ---------- fish in the way: a bud spot a fish overlaps is blocked ---------- */
+function fishHitboxes() {   // everything with a body in the water: [entity, radius]
+  const o = [];
+  for (const f of game.fish) o.push([f, CONFIG.fishRadius * 0.7]);
+  for (const n of game.nibblers) o.push([n, CONFIG.nibblerRadius]);
+  for (const f of game.clown.fish) if (!f.gone) o.push([f, 7]);
+  for (const r of game.res.list) if (r.kind !== 'clown' && !r.gone && r.x !== undefined) o.push([r, 8]);
+  for (const s of game.starfish) if (!s.dead) o.push([s, 10]);
+  for (const l of game.sp.larvae) if (!(l.delay > 0) && l.x !== undefined) o.push([l, 6]);
+  if (game.stage === 'larva') o.push([game.larva, CONFIG.larvaRadius]);
+  return o;
+}
+const hitsCell = (e, rad, c, r) => { const x0 = c * CELL, y0 = r * CELL, dx = Math.max(x0 - e.x, 0, e.x - (x0 + CELL)), dy = Math.max(y0 - e.y, 0, e.y - (y0 + CELL)); return dx * dx + dy * dy < rad * rad; };
+function fishInWay(c, r) { for (const [e, rad] of fishHitboxes()) if (hitsCell(e, rad, c, r)) return e; return null; }
+function shooFish(dt) {   // fish that idle on a bud spot drift off, so it frees up within a few seconds
+  if (game.stage !== 'polyp' || !game.active || game.tree.open) return;
+  for (const sp of budSpots()) {
+    const cc = cellCenter(sp.c, sp.r);
+    for (const [e, rad] of fishHitboxes()) {
+      if (e.mode === 'bite' || !canShoo(e) || !hitsCell(e, rad, sp.c, sp.r)) continue;
+      let dx = e.x - cc.x, dy = e.y - cc.y; if (Math.hypot(dx, dy) < 1) { dx = 0; dy = -1; } const m = Math.hypot(dx, dy);
+      const nx = e.x + dx / m * 55 * dt, ny = e.y + dy / m * 55 * dt;
+      if (!blockedAt(nx, ny, Math.min(rad, 8), '')) { e.x = nx; e.y = ny; }
+    }
+  }
+}
+/* ---------- fish pathing: a grid search over water cells, and a way out of any pocket ---------- */
+const OPEN_CELLS = 140;   // a pocket of water smaller than this counts as enclosed
+const lagCols = () => Math.floor(LAG / CELL);
+const waterCell = (c, r) => c >= 0 && r >= 1 && c < lagCols() && r < game.rows && game.grid[r * game.cols + c] !== 1 && !cellAt(c, r);
+const gcell = (c, r) => c + r * game.cols;
+function floodSize(c0, r0, limit) {   // how many water cells connect to this one (counting stops at the limit)
+  const seen = new Set([gcell(c0, r0)]), q = [[c0, r0]];
+  for (let i = 0; i < q.length && q.length < limit; i++) for (const [dc, dr] of NB_DIRS) {
+    const c = q[i][0] + dc, r = q[i][1] + dr;
+    if (waterCell(c, r) && !seen.has(gcell(c, r))) { seen.add(gcell(c, r)); q.push([c, r]); }
+  }
+  return { n: q.length, seen };
+}
+function fishPath(x, y, goal, rad, maxN = 2600) {   // the cells to swim through to the nearest cell where goal(c, r) is true, or null
+  const c0 = Math.floor(x / CELL), r0 = Math.floor(y / CELL), prev = new Map([[gcell(c0, r0), -1]]), q = [[c0, r0]];
+  let end = null;
+  if (goal(c0, r0)) return [];
+  for (let i = 0; i < q.length && q.length < maxN; i++) {
+    const [c, r] = q[i]; if (i && goal(c, r)) { end = q[i]; break; }
+    for (const [dc, dr] of NB_DIRS) { const nc = c + dc, nr = r + dr; if (waterCell(nc, nr) && !prev.has(gcell(nc, nr))) { prev.set(gcell(nc, nr), gcell(c, r)); q.push([nc, nr]); } }
+  }
+  if (!end) return null;
+  const cells = []; for (let k = gcell(end[0], end[1]); k !== -1; k = prev.get(k)) cells.push(cellCenter(k % game.cols, Math.floor(k / game.cols)));
+  cells.reverse(); cells.shift();
+  const out = []; let ax = x, ay = y;   // drop corners the fish can cut across
+  for (let i = 0; i < cells.length; i++) {
+    const nx = cells[i + 1];
+    if (nx && clearLine(ax, ay, nx.x, nx.y, rad)) continue;
+    out.push(cells[i]); ax = cells[i].x; ay = cells[i].y;
+  }
+  return out;
+}
+function clearLine(x0, y0, x1, y1, rad) {
+  const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 5);
+  for (let i = 1; i <= n; i++) if (blockedAt(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n, rad, '')) return false;
+  return true;
+}
+function escapePath(x, y, enclosed) {   // through coral if it has to: the shortest way to open water (or, if just stuck, to somewhere well away)
+  const c0 = Math.floor(x / CELL), r0 = Math.floor(y / CELL), dist = new Map([[gcell(c0, r0), 0]]), prev = new Map([[gcell(c0, r0), -1]]), buckets = [[[c0, r0]]];
+  const bad = enclosed ? new Set(floodSize(c0, r0, OPEN_CELLS).seen) : new Set();
+  let end = null, n = 0;
+  for (let d = 0; d < buckets.length && !end && n < 3500; d++) for (let i = 0; buckets[d] && i < buckets[d].length && !end; i++) {
+    const [c, r] = buckets[d][i]; if (dist.get(gcell(c, r)) !== d) continue; n++;
+    if (d > 0 && waterCell(c, r) && !bad.has(gcell(c, r)) && (enclosed || d >= 8)) {
+      const fl = floodSize(c, r, OPEN_CELLS);
+      if (fl.n >= OPEN_CELLS) { end = [c, r]; break; }
+      for (const k of fl.seen) bad.add(k);
+    }
+    for (const [dc, dr] of NB_DIRS) {
+      const nc = c + dc, nr = r + dr; if (nc < 0 || nr < 1 || nc >= lagCols() || nr >= game.rows || game.grid[nr * game.cols + nc] === 1) continue;
+      const nd = d + (cellAt(nc, nr) ? 3 : 1), k = gcell(nc, nr);
+      if (dist.has(k) && dist.get(k) <= nd) continue;
+      dist.set(k, nd); prev.set(k, gcell(c, r)); (buckets[nd] = buckets[nd] || []).push([nc, nr]);
+    }
+  }
+  if (!end) return null;
+  const cells = []; for (let k = gcell(end[0], end[1]); k !== -1; k = prev.get(k)) cells.push(cellCenter(k % game.cols, Math.floor(k / game.cols)));
+  return cells.reverse().slice(1);
+}
+function fishGuard(e, dt, rad, moving) {   // stuck or sealed in? Slip out through the nearest gap, squeezing through coral (drawn faded) if there is none. True while it is doing that
+  if (e.ghost) {
+    const w = e.ghost[0];
+    if (!w) { e.ghost = null; e.gStuck = 0; e.vx = e.vy = 0; return false; }
+    const dx = w.x - e.x, dy = w.y - e.y, d = Math.hypot(dx, dy), m = Math.min(d, 120 * dt);
+    if (d < 4) e.ghost.shift(); else { e.x += dx / d * m; e.y += dy / d * m; e.vx = dx / d * 90; e.vy = dy / d * 90; e.head = Math.atan2(dy, dx); if (e.face !== undefined) e.face = dx >= 0 ? 1 : -1; }
+    e.fade = lerp(e.fade ?? 1, cellAt(Math.floor(e.x / CELL), Math.floor(e.y / CELL)) ? 0.4 : 1, 1 - Math.exp(-8 * dt));
+    return true;
+  }
+  if (e.fade !== undefined && e.fade < 1) e.fade = Math.min(1, e.fade + dt * 2);
+  e.gT = (e.gT || 0) + dt; if (e.gT < 1.5) return false;
+  e.gT = 0;
+  const mv = e.gx === undefined ? 99 : Math.hypot(e.x - e.gx, e.y - e.gy); e.gx = e.x; e.gy = e.y;
+  e.gStuck = moving && mv < 12 ? (e.gStuck || 0) + 1 : 0;
+  const encl = moving && floodSize(Math.floor(e.x / CELL), Math.floor(e.y / CELL), OPEN_CELLS).n < OPEN_CELLS;
+  if (encl || e.gStuck >= 6) {
+    const p = escapePath(e.x, e.y, encl);
+    if (p && p.length) { e.ghost = p; e.fade = e.fade ?? 1; e.gStuck = 0; if (e.mode === 'bite') e.mode = 'seek'; }
+  } else if (e.gStuck >= 3) e.pickNew = true;   // no progress for about 4 s: choose a new route
+  return false;
+}
+const ROAMERS = new Set(['parrot', 'turtle', 'moray']);
+const canShoo = e => game.fish.includes(e) || game.nibblers.includes(e) || game.clown.fish.includes(e) || (game.res.list.includes(e) && (e.mode === 'leave' || e.mode === 'arrive' || ROAMERS.has(e.kind)));
 
 /* ---------- nibblers: small reef fish that eat polyps, slowly ---------- */
 function nibblerMax() { return Math.min(CONFIG.nibblerMaxCap, 1 + Math.floor(Math.max(0, game.polyps.length - CONFIG.nibblerStart) / CONFIG.nibblerPerPolyps)); }
@@ -2003,7 +2121,7 @@ function pickNibbleTarget(n) {
   if (game.polyps.length <= CONFIG.nibblerSpare) return null;   // the last few polyps are left alone
   let best = null, bd = 1e9;
   for (const p of game.polyps) {
-    if (!freeNeighbours(p).length) continue;
+    if (!freeNeighbours(p).length || (n.bad && n.bad.get(p) > game.time)) continue;
     const cc = cellCenter(p.c, p.r);
     const d = Math.hypot(cc.x - n.x, cc.y - n.y) + 400 * game.nibblers.filter(o => o !== n && o.tgt === p).length;
     if (d < bd) { bd = d; best = p; }
@@ -2029,7 +2147,15 @@ function updateNibblers(dt) {
       tx = n.x + dx / m * 200; ty = n.y + dy / m * 200 - 25; sp = CONFIG.nibblerFleeSpeed;
       if (n.fleeT <= 0) { n.mode = 'seek'; n.tgt = null; }
     } else if (n.mode === 'leave') {
-      tx = n.x < LAG / 2 ? -200 : LAG + 200; ty = n.y - 80; sp = CONFIG.nibblerSpeed * 1.4;
+      sp = CONFIG.nibblerSpeed * 1.4;   // leaving fish hold a mid-water height and swim for the nearer edge, round any coral
+      const left = n.x < LAG / 2; if (n.ly === undefined) n.ly = clamp(n.y, 170, 700);
+      tx = left ? -200 : LAG + 200; ty = n.ly;
+      n.pathT = (n.pathT || 0) - dt;
+      if (n.x > 70 && n.x < LAG - 70 && (n.pathT <= 0 || n.pickNew)) {
+        n.pathT = 1.5; n.pickNew = false;
+        n.path = fishPath(n.x, n.y, (c, r) => (left ? c <= 1 : c >= lagCols() - 2) && Math.abs(r * CELL - n.ly) < 4 * CELL, R);
+      }
+      if (n.path && n.x > 70 && n.x < LAG - 70) { while (n.path.length > 1 && Math.hypot(n.path[0].x - n.x, n.path[0].y - n.y) < 10) n.path.shift(); if (n.path.length) { tx = n.path[0].x; ty = n.path[0].y; } }
       if (n.x < -30 || n.x > LAG + 30 || n.age > CONFIG.nibblerLife + 30) n.gone = true;
     } else {
       if (!n.tgt || n.tgt.dead || !game.polyps.includes(n.tgt)) { n.tgt = pickNibbleTarget(n); n.bite = 0; }
@@ -2041,7 +2167,17 @@ function updateNibblers(dt) {
           let ap = free[0], bd = 1e9;
           for (const f of free) { const d = Math.hypot(f.x - n.x, f.y - n.y); if (d < bd) { bd = d; ap = f; } }
           tx = ap.x; ty = ap.y;
-          const dd = Math.hypot(tx - n.x, ty - n.y);
+          if (bd >= 12) {   // path round the coral to the nearest bite spot
+            n.pathT = (n.pathT || 0) - dt;
+            if (n.pathT <= 0 || n.pickNew || !n.path) {
+              n.pathT = 1.2; n.pickNew = false;
+              const fc = new Set(free.map(f => gcell(Math.floor(f.x / CELL), Math.floor(f.y / CELL))));
+              n.path = fishPath(n.x, n.y, (c, r) => fc.has(gcell(c, r)), R);
+              if (!n.path) { (n.bad = n.bad || new Map()).set(n.tgt, game.time + 25); n.tgt = null; }
+            }
+            if (n.path) { while (n.path.length > 1 && Math.hypot(n.path[0].x - n.x, n.path[0].y - n.y) < 10) n.path.shift(); if (n.path.length) { tx = n.path[0].x; ty = n.path[0].y; } }
+          } else n.path = null;
+          const dd = Math.hypot(ap.x - n.x, ap.y - n.y);
           if (dd < 12) {
             n.mode = 'bite'; sp = 18; n.head = Math.atan2(cc.y - n.y, cc.x - n.x);
             n.bite += dt;
@@ -2059,6 +2195,7 @@ function updateNibblers(dt) {
         }
       }
     }
+    if (n.mode !== 'bite' && !(n.mode === 'leave' && (n.x < 60 || n.x > LAG - 60)) && fishGuard(n, dt, R, Math.hypot(tx - n.x, ty - n.y) > 14)) continue;
     const dd = Math.hypot(tx - n.x, ty - n.y) || 1, k = 1 - Math.exp(-3 * dt);
     n.vx = lerp(n.vx, (tx - n.x) / dd * sp, k); n.vy = lerp(n.vy, (ty - n.y) / dd * sp, k);
     const nx = n.x + n.vx * dt, ny = n.y + n.vy * dt;
@@ -3825,6 +3962,12 @@ function drawSpots(t) {
   for (const sp of budSpots()) {
     if (f && f.c === sp.c && f.r === sp.r) continue;   // the bud ring is drawn there
     const cc = spotPos(sp.c, sp.r), h = hov && hov.c === sp.c && hov.r === sp.r, a = h ? 0.6 : 0.2 + 0.12 * Math.sin(t * 2.6 + sp.c * 0.9 + sp.r * 0.7);
+    if (sp.blocked) {   // dimmed, with a small fish mark
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(cc.x, cc.y, 11, 0, 6.3); ctx.fill();
+      ctx.fillStyle = 'rgba(255,200,150,0.75)'; ctx.beginPath(); ctx.ellipse(cc.x - 1, cc.y, 6, 3.4, 0, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.moveTo(cc.x + 4, cc.y); ctx.lineTo(cc.x + 9, cc.y - 3.5); ctx.lineTo(cc.x + 9, cc.y + 3.5); ctx.closePath(); ctx.fill();
+      if (h) { ctx.font = '600 11px "Segoe UI", sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(2,16,32,0.78)'; roundRectPath(cc.x - 55, cc.y - 36, 110, 17, 6); ctx.fill(); ctx.fillStyle = '#ffd9b8'; ctx.fillText(FISH_MSG, cc.x, cc.y - 24); }
+      continue;
+    }
     const g = ctx.createRadialGradient(cc.x, cc.y, 1, cc.x, cc.y, 15);
     g.addColorStop(0, `rgba(255,248,200,${a})`); g.addColorStop(1, 'rgba(255,248,200,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cc.x, cc.y, 15, 0, 6.3); ctx.fill();
@@ -3864,6 +4007,7 @@ function drawPlankton(t) {
   }
   ctx.globalCompositeOperation = 'source-over';
 }
+function fadeDraw(e, fn) { if (e.fade === undefined || e.fade >= 0.99) return fn(); ctx.save(); ctx.globalAlpha *= e.fade; fn(); ctx.restore(); }   // squeezing through coral: drawn faded
 function drawFish(f, t) {
   ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.head);
   if (Math.cos(f.head) < 0) ctx.scale(1, -1);
@@ -4272,7 +4416,7 @@ function drawResidents(t) {
   for (const r of game.res.list) {
     if (r.gone || r.kind === 'clown') continue;
     if (Math.abs(r.x - c.x) > v.w / 2 / z + pad || Math.abs(r.y - c.y) > v.h / 2 / z + pad) continue;
-    ctx.save(); ctx.globalAlpha = r.alpha * (r.mode === 'arrive' ? 0.8 : 1);
+    ctx.save(); ctx.globalAlpha = r.alpha * (r.mode === 'arrive' ? 0.8 : 1) * (r.fade ?? 1);
     DRAW[r.kind](r, t);
     ctx.restore(); drawMood(r, t);
   }
@@ -4311,10 +4455,10 @@ function render() {
   for (const p of game.polyps) drawPolypStatus(p);
   drawGenomeFx(t);
   drawThreatPolyps(t); drawDisease(t);
-  for (const f of game.fish) drawFish(f, t);
-  for (const n of game.nibblers) drawNibbler(n, t);
+  for (const f of game.fish) fadeDraw(f, () => drawFish(f, t));
+  for (const n of game.nibblers) fadeDraw(n, () => drawNibbler(n, t));
   drawStarfish(t);
-  for (const f of game.clown.fish) drawClown(f, t);
+  for (const f of game.clown.fish) fadeDraw(f, () => drawClown(f, t));
   drawResidents(t); drawEventWorld(t); drawPlans(t); drawSpawn(t);
   if (!game.riding) drawLarva(t);
   if (on.layers) { drawSnow(t); drawForeground(t); worldTransform(ctx); }
@@ -4540,7 +4684,7 @@ function devPatch() {   // a one-polyp colony on other rock, away from the colon
 function devGrow(n) {
   for (let i = 0; i < n; i++) {
     const cand = [];
-    for (const p of game.polyps) for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) if (validBudCell(p.c + dc, p.r + dr)) cand.push([p.c + dc, p.r + dr, p]);
+    for (const p of game.polyps) for (const [dc, dr] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) if (validBudCell(p.c + dc, p.r + dr) && !fishInWay(p.c + dc, p.r + dr)) cand.push([p.c + dc, p.r + dr, p]);
     if (!cand.length) break;
     const [c, r, from] = cand[Math.floor(Math.random() * cand.length)];
     addPolyp(c, r, false, from).parent = { c: from.c, r: from.r }; game.stats.buds++;
@@ -6919,7 +7063,7 @@ function cyclePlan() {
 function planBud(g, plan) {
   if (budShort('branch')) return false;
   const cand = new Map(), cx = g.reduce((s, p) => s + p.c, 0) / g.length, cy = g.reduce((s, p) => s + p.r, 0) / g.length;
-  for (const p of g) for (const [dc, dr] of NB_DIRS) { const c = p.c + dc, r = p.r + dr, k = key(c, r); if (!cand.has(k) && validBudCell(c, r, 'branch', p)) cand.set(k, { c, r, from: p }); }
+  for (const p of g) for (const [dc, dr] of NB_DIRS) { const c = p.c + dc, r = p.r + dr, k = key(c, r); if (!cand.has(k) && validBudCell(c, r, 'branch', p) && !fishInWay(c, r)) cand.set(k, { c, r, from: p }); }
   if (!cand.size) return false;
   const L = [...cand.values()]; let pick = null;
   if (plan === 'up') pick = L.sort((a, b) => a.r - b.r || Math.abs(a.c - cx) - Math.abs(b.c - cx))[0];
@@ -6968,7 +7112,7 @@ function step(dt) {
   if (game.stage === 'larva' && !game.riding) updateLarva(dt); else game.settleTarget = null;
   if (!devs.noFish) updateFish(dt);
   if (!devs.noNib) updateNibblers(dt);
-  updateClown(dt); updateResidents(dt);
+  updateClown(dt); updateResidents(dt); shooFish(dt);
   updateDayNight(dt); updateStreaks(dt);
   updatePlankton(dt);
   updatePolyps(dt);
