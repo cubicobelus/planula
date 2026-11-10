@@ -131,6 +131,13 @@
   #banner { position: fixed; left: 0; right: 0; top: 27%; z-index: 25; text-align: center; pointer-events: none; opacity: 0; color: #fff3d6; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 210, 150, 0.6); }
   #banner h1 { margin: 0; font-size: 64px; font-weight: 700; letter-spacing: 0.06em; } #banner p { margin: 6px 0 0; font-size: 18px; color: #ffe3d3; }
   #banner.show { animation: bshow 3.4s ease-out; }
+  #ending { position: fixed; inset: 0; z-index: 45; display: none; align-items: center; justify-content: center; background: rgba(8, 24, 40, 0.5); backdrop-filter: blur(2px); color: #e8f6ff; }
+  #ending.open { display: flex; animation: endfade 2.4s ease-out; } @keyframes endfade { from { opacity: 0; } to { opacity: 1; } }
+  #ending .tp { width: min(460px, 92vw); max-height: 94vh; overflow: auto; box-sizing: border-box; padding: 24px 30px 20px; text-align: center; border-radius: 18px; background: linear-gradient(180deg, rgba(40, 96, 118, 0.94), rgba(8, 36, 58, 0.96)); border: 1px solid rgba(255, 230, 190, 0.35); box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5); }
+  #ending h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: 0.06em; color: #ffeccc; } #ending p { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: #d6efe8; }
+  #ending .sum { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; margin: 0 0 12px; text-align: left; font-size: 13px; } #ending .sum div { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 2px; } #ending .sum span { color: #b5d9e4; } #ending .sum b { color: #fff3d6; }
+  #ending h5 { margin: 6px 0 6px; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #ffd9a8; } #ending .rb { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 12px; } #ending .rb span { width: 70px; text-align: left; color: #cfe6ee; } #ending .rb i { flex: 1; height: 7px; border-radius: 4px; background: rgba(255,255,255,0.15); overflow: hidden; } #ending .rb u { display: block; height: 100%; } #ending .rb em { width: 26px; font-style: normal; text-align: right; color: #fff3d6; }
+  #ending button { font: inherit; font-size: 14px; cursor: pointer; padding: 8px 18px; margin: 14px 6px 0; border-radius: 10px; border: 1px solid rgba(255, 230, 190, 0.45); background: rgba(255, 220, 160, 0.16); color: #fff3d6; } #ending button:hover { background: rgba(255, 220, 160, 0.3); } #ending button.new { opacity: 0.75; }
   #cyc { position: fixed; left: 12px; top: 352px; z-index: 24; display: none; text-align: center; pointer-events: none; padding: 7px 22px 8px; border-radius: 12px; background: rgba(40, 6, 14, 0.62); border: 1px solid rgba(255, 150, 130, 0.5); color: #ffd9cf; text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
   #cyc b { display: block; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: #ff9c86; } #cyc span { font-size: 22px; font-weight: 700; } #cyc i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin: 0 4px; border: 2px solid #ff9c86; vertical-align: middle; } #cyc i.on { background: #ff9c86; } #cyc em { display: block; font-style: normal; font-size: 12px; color: #f2c4b8; }
   @keyframes bshow { 0% { opacity: 0; transform: scale(0.8); } 12% { opacity: 1; transform: scale(1.04); } 20% { transform: scale(1); } 78% { opacity: 1; } 100% { opacity: 0; transform: scale(1.04); } }
@@ -346,7 +353,7 @@ const CONFIG = {
   maxParts: 240,
   audio: {
     master: 0.5, ambience: 0.5, maxVoices: 14, pitchVar: 0.07, bubbleMin: 4000, bubbleMax: 11000,
-    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, stage: 1, buy: 0.3, whoosh: 0.4, clown: 2, forecast: 3, rumble: 1.1, snap: 0.25, sport: 1, species: 1.5, crunch: 0.25 },
+    gap: { catch: 0.07, auto: 0.4, budDone: 0.3, bubble: 0.09, thud: 0.3, sting: 0.2, bite: 0.3, reveal: 0.5, stage: 1, buy: 0.3, whoosh: 0.4, clown: 2, forecast: 3, rumble: 1.1, snap: 0.25, sport: 1, species: 1.5, crunch: 0.25, swell: 8, gull: 3 },
   },
   // look test (visual only)
   look: {
@@ -622,7 +629,7 @@ function checkStage() {
 function stageUp(n) {
   game.goals.stage = n;
   const s = STAGES[n - 1], a = game.active || game.polyps[0], cc = a ? cellCenter(a.c, a.r) : playerPos();
-  track.lit = n - 1; saveSoon(); if (n === 5) atollStart();
+  track.lit = n - 1; saveSoon(); if (n === 5) atollStart(); if (n === 6) islandStart();
   const b = document.getElementById('banner'); b.innerHTML = `<h1>${s.name}</h1><p>${s.desc}</p>`;
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
   beat(1.1, 0.35); sfx('stage');
@@ -683,19 +690,20 @@ function crestInfo(force) {
   return CREST;
 }
 // land: sand cells in row 0 (the surface). run = the longest stretch of neighbouring land columns
-const LAND = { sig: '', n: 0, row0: 0, run: 0, a: 0, b: -1, map: new Map() };
+const LAND = { sig: '', n: 0, row0: 0, run: 0, a: 0, b: -1, runs: [], map: new Map() };
 function landRebuild() { LAND.map = new Map(); for (const q of game.land) LAND.map.set(key(q.c, q.r), q); LAND.sig = ''; }
 const landAt = (c, r) => LAND.map.get(key(c, r));
 function landInfo() {
   const sig = game.land.length + ',' + game.fin.ver;
   if (LAND.sig === sig) return LAND;
   LAND.sig = sig; const cols = game.land.filter(q => q.r === 0).map(q => q.c).sort((x, y) => x - y);
-  let run = 0, a = 0, b = -1, s0 = 0;
+  let run = 0, a = 0, b = -1, s0 = 0; const runs = [];
   for (let i = 0; i < cols.length; i++) {
-    if (i && cols[i] !== cols[i - 1] + 1) s0 = i;
+    if (i && cols[i] !== cols[i - 1] + 1) { runs.push({ a: cols[s0], b: cols[i - 1] }); s0 = i; }
     if (i - s0 + 1 > run) { run = i - s0 + 1; a = cols[s0]; b = cols[i]; }
   }
-  LAND.n = game.land.length; LAND.row0 = cols.length; LAND.run = run; LAND.a = a; LAND.b = b;
+  if (cols.length) runs.push({ a: cols[s0], b: cols[cols.length - 1] });
+  LAND.runs = runs; LAND.n = game.land.length; LAND.row0 = cols.length; LAND.run = run; LAND.a = a; LAND.b = b;
   return LAND;
 }
 
@@ -717,7 +725,7 @@ function sandSpot() {
 }
 function addSand(c, r, quiet) {
   if (!sandFree(c, r)) return null;
-  const q = { c, r, born: game.time, grass: false };
+  const q = { c, r, born: game.time, grass: !!(r === 0 && game.fin.life && game.fin.life.grass) };
   game.land.push(q); game.grid[r * game.cols + c] = 2; landRebuild(); finTouch();
   if (!quiet) { const x = (c + 0.5) * CELL, y = (r + 0.5) * CELL; spawnParts('sand', x, y, 6); sfx('thud', x, y); }
   return q;
@@ -729,7 +737,7 @@ function removeSand(q) {
 function settleSand() {
   let moved = false;
   for (const q of game.land.slice().sort((a, b) => b.r - a.r)) {
-    if (sandSolid(q.c, q.r + 1)) continue;
+    if (sandSolid(q.c, q.r + 1) || q.root) continue;
     let r = q.r; while (sandFree(q.c, r + 1) && r <= CONFIG.fin.crestRows) r++;
     if (r > CONFIG.fin.crestRows || !sandFree(q.c, r)) { removeSand(q); game.fin.lostSand++; moved = true; continue; }
     game.grid[q.r * game.cols + q.c] = 0; q.r = r; q.born = game.time; game.grid[r * game.cols + q.c] = 2; moved = true;
@@ -766,17 +774,14 @@ function drawLand(t) {
     if (fall > 0) { ctx.fillStyle = 'rgba(244,226,180,0.5)'; ctx.fillRect(x + CELL * 0.3, y - 14 * fall, 2, 12); ctx.fillRect(x + CELL * 0.65, y - 22 * fall, 2, 14); }
   }
   // a beach top on the land: a soft hump that rises above the surface across each run of row-0 sand
-  const cols = game.land.filter(q => q.r === 0).map(q => q.c).sort((a, b) => a - b);
-  for (let i = 0; i < cols.length;) {
-    let j = i; while (j + 1 < cols.length && cols[j + 1] === cols[j] + 1) j++;
-    const x0 = cols[i] * CELL, x1 = (cols[j] + 1) * CELL, n = j - i + 1, hh = Math.min(26, 8 + n * 3.2);
+  for (const R of landInfo().runs) {
+    const x0 = R.a * CELL, x1 = (R.b + 1) * CELL, n = R.b - R.a + 1, hh = Math.min(26, 8 + n * 3.2) * riseK();
     ctx.beginPath(); ctx.moveTo(x0 - 5, 6);
-    for (let k = 0; k <= 16; k++) { const u = k / 16, y = 4 - hh * Math.pow(Math.sin(Math.PI * u), 0.7) * (0.9 + 0.1 * Math.sin(u * 19 + cols[i])); ctx.lineTo(x0 - 5 + (x1 - x0 + 10) * u, y); }
+    for (let k = 0; k <= 16; k++) { const u = k / 16, y = 4 - hh * Math.pow(Math.sin(Math.PI * u), 0.7) * (0.9 + 0.1 * Math.sin(u * 19 + R.a)); ctx.lineTo(x0 - 5 + (x1 - x0 + 10) * u, y); }
     ctx.lineTo(x1 + 5, 6); ctx.closePath();
     const g = ctx.createLinearGradient(0, -hh, 0, 8); g.addColorStop(0, '#f8ecc6'); g.addColorStop(1, '#e8d09c');
     ctx.fillStyle = g; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 - 9, 7 + Math.sin(t * 2) * 1.2); ctx.lineTo(x0 + 2, 6); ctx.moveTo(x1 - 2, 6); ctx.lineTo(x1 + 9, 7 + Math.sin(t * 2 + 1) * 1.2); ctx.stroke();   // a little foam at each end
-    i = j + 1;
   }
   ctx.restore();
 }
@@ -862,6 +867,8 @@ function updateFin(dt) {
   if (cycloneWaiting() && !game.storm && game.season.t >= F.cycAt) startCyclone(CONFIG.fin.cycP);
   if (F.wave > 0) F.wave = Math.max(0, F.wave - dt / 2.4);
   if (F.won && game.goals.stage === 5 && !game.storm && !F.rising) riseIsland();
+  game.stats.polypPeak = Math.max(game.stats.polypPeak || 0, game.polyps.length);
+  updateIsland(dt);
   updateFinUi();
 }
 const cycEl = document.getElementById('cyc');
@@ -875,7 +882,170 @@ function updateFinUi() {
   cycEl.innerHTML = `<b>${Y.final ? 'Final cyclone' : 'Cyclone'}</b><span>Wave ${Math.max(1, Math.min(Y.n + (Y.n < C.cycWaves && S.t >= Y.next - 4 ? 1 : 0), C.cycWaves))} of ${C.cycWaves}</span><div>${dots}</div><em>${left} left</em>`;
   cycEl.style.display = 'block';
 }
-function riseIsland() { game.fin.rising = true; stageUp(6); }
+
+// ---- the island rises, then life comes: seabirds, beach grass, palms and nesting turtles (timers start when the Island is reached) ----
+const riseK = () => { const F = game.fin; return F.riseT < 0 || F.riseT >= CONFIG.fin.riseSecs ? 1 : sm01(F.riseT / CONFIG.fin.riseSecs); };   // 0 to 1: how far the island has come up
+const riseOn = () => game.fin.riseT >= 0 && game.fin.riseT < CONFIG.fin.riseSecs;
+function riseIsland() {
+  game.fin.rising = true;
+  stageUp(6);
+}
+function islandStart() {   // called by stageUp(6)
+  const F = game.fin; F.islandAt = game.time; F.riseT = 0; F.life = {}; F.palmT = 0; F.palmSide = 1; F.birdT = 0;
+  sfx('swell'); award('A17');
+}
+// the height of the beach above the waterline at world x (negative = up), from the same hump the sand is drawn with
+function beachY(x) {
+  const li = landInfo();
+  for (const R of li.runs) {
+    const x0 = R.a * CELL - 5, x1 = (R.b + 1) * CELL + 5; if (x < x0 || x > x1) continue;
+    const u = (x - x0) / (x1 - x0), n = R.b - R.a + 1, hh = Math.min(26, 8 + n * 3.2) * riseK();
+    return 4 - hh * Math.pow(Math.sin(Math.PI * u), 0.7) * (0.9 + 0.1 * Math.sin(u * 19 + R.a));
+  }
+  return 6;
+}
+function grassUp() {
+  for (const q of game.land) if (q.r === 0) q.grass = true;
+  finTouch();
+}
+function palmSpread() {   // roots hold new sand: one more land cell at the end of the longest run
+  const F = game.fin, li = landInfo(), C = CONFIG.fin; if (li.b < li.a) return false;
+  for (const side of [F.palmSide, -F.palmSide]) {
+    const c = side > 0 ? li.b + 1 : li.a - 1;
+    if (!sandFree(c, 0)) continue;
+    const q = addSand(c, 0); if (!q) continue;
+    q.root = true; game.sand -= C.sandPer; F.palmSide = -side; return true;
+  }
+  return false;
+}
+function updateIsland(dt) {
+  const F = game.fin, C = CONFIG.fin;
+  if (game.goals.stage < 6 || F.islandAt < 0) return;
+  if (F.riseT >= 0 && F.riseT < C.riseSecs) F.riseT += dt;
+  const t = game.time - F.islandAt, li = landInfo(), L = F.life;
+  const step = (name, at, need, fn) => { if (!L[name] && t >= at && li.row0 >= need) { L[name] = game.time; fn(); finTouch(); } };
+  step('birds', C.birds, C.birdsLand, () => { toast('Seabirds have found the island. Their droppings feed the plankton'); sfx('gull'); });
+  step('grass', C.grass, C.grassLand, () => { grassUp(); toast('Seeds washed up and beach grass is growing. Grassed sand never washes away'); });
+  step('palms', C.palms, C.palmsLand, () => { toast('Palms have taken root. Their roots hold new sand'); });
+  step('turtles', C.turtles, C.turtlesLand, () => {
+    game.res.turtlePerm = true; syncSpecies(); calcBio();
+    banner('Turtles nest', 'A green sea turtle is now a permanent species', '#ffe9c0'); toast(`Turtles came ashore to nest on the beach. +${C.turtleB} biodiversity`); sfx('stage');
+  });
+  if (L.birds && li.row0 >= C.birdsLand) {   // droppings: about +15% plankton within 15 cells of the island
+    const target = Math.round(CONFIG.plankton * planktonMult() * W / LAG), life = 1 / CONFIG.planktonLeave, cells = (li.b - li.a + 1 + 2 * C.birdRange) * CELL * (2 * C.birdRange) * CELL;
+    const rate = C.birdPlank * target * cells / (W * H) / life;
+    F.birdT += dt * rate;
+    while (F.birdT >= 1) {
+      F.birdT -= 1; const p = mkPlankton((li.a * CELL) + (li.b - li.a + 1) * CELL / 2 + rr(-1, 1) * ((li.b - li.a + 1) / 2 + C.birdRange) * CELL, rr(14, C.birdRange * 2 * CELL), false);
+      p.leave = 1; game.plankton.push(p);
+    }
+  }
+  if (L.palms && li.row0 >= C.palmsLand && game.sand >= C.sandPer) { F.palmT += dt; if (F.palmT >= C.palmEvery) { F.palmT = 0; palmSpread(); } }
+  if (!F.carded && ((L.turtles && game.time - L.turtles >= 8) || t >= C.cardAt + 8)) { F.carded = true; openEnding(); }
+}
+window.addEventListener('keydown', () => { const F = game.fin; if (F.riseT >= 0 && F.riseT < CONFIG.fin.riseSecs) F.riseT = CONFIG.fin.riseSecs; });   // any key skips the slow rise
+
+// ---- drawing the island's life ----
+function drawPalm(x, y, h, t, seed) {
+  const sw = Math.sin(t * 0.9 + seed) * 0.05, lean = (hash2(seed | 0, 1, 5) - 0.5) * 0.5;
+  const tx = x + Math.sin(lean) * h, ty = y - Math.cos(lean) * h;
+  ctx.strokeStyle = '#8a6a44'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x, y + 2); ctx.quadraticCurveTo(x + Math.sin(lean) * h * 0.3 - 3, y - h * 0.55, tx, ty); ctx.stroke();
+  ctx.strokeStyle = 'rgba(60,40,20,0.5)'; ctx.lineWidth = 1; for (let k = 1; k < 5; k++) { const u = k / 5; ctx.beginPath(); ctx.moveTo(x + (tx - x) * u - 2, y + (ty - y) * u); ctx.lineTo(x + (tx - x) * u + 2, y + (ty - y) * u); ctx.stroke(); }
+  for (let k = 0; k < 7; k++) {   // fronds
+    const a = -Math.PI / 2 + (k - 3) * 0.55 + sw * (1 + k % 2), L = h * 0.62;
+    const ex = tx + Math.cos(a) * L, ey = ty + Math.sin(a) * L * 0.8 + L * 0.35 * Math.abs(k - 3) / 3;
+    ctx.fillStyle = k % 2 ? '#4f9a52' : '#62b360';
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.quadraticCurveTo(tx + Math.cos(a) * L * 0.6, ty + Math.sin(a) * L * 0.7 - 7, ex, ey); ctx.quadraticCurveTo(tx + Math.cos(a) * L * 0.55, ty + Math.sin(a) * L * 0.7 + 1, tx, ty); ctx.fill();
+  }
+  ctx.fillStyle = '#6b4a2a'; ctx.beginPath(); ctx.arc(tx - 2, ty + 3, 2.2, 0, 6.3); ctx.arc(tx + 2.5, ty + 4, 2.2, 0, 6.3); ctx.fill();
+}
+function drawGrassTuft(x, y, t, seed) {
+  ctx.strokeStyle = '#5fae5a'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  for (let k = 0; k < 5; k++) { const a = -Math.PI / 2 + (k - 2) * 0.32 + Math.sin(t * 1.4 + seed + k) * 0.08, L = 9 + hash2(seed | 0, k, 8) * 6; ctx.beginPath(); ctx.moveTo(x + (k - 2) * 1.5, y + 1); ctx.lineTo(x + (k - 2) * 1.5 + Math.cos(a) * L, y + Math.sin(a) * L); ctx.stroke(); }
+}
+function drawBird(x, y, flap, face, sit) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(face, 1);
+  ctx.fillStyle = '#f6f8fa'; ctx.strokeStyle = '#f6f8fa'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  if (sit) {
+    ctx.beginPath(); ctx.ellipse(0, -4, 6, 4, 0, 0, 6.3); ctx.fill(); ctx.beginPath(); ctx.arc(5, -8, 2.6, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#f2a65a'; ctx.beginPath(); ctx.moveTo(7.4, -8); ctx.lineTo(11, -7.2); ctx.lineTo(7.4, -6.6); ctx.fill();
+    ctx.fillStyle = '#9aa8b3'; ctx.beginPath(); ctx.ellipse(-1, -5, 4, 2, 0.2, 0, 6.3); ctx.fill();
+  } else {
+    const w = Math.sin(flap) * 7;
+    ctx.beginPath(); ctx.ellipse(0, 0, 5, 2.4, 0, 0, 6.3); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-1, 0); ctx.quadraticCurveTo(-8, -4 - w, -17, -2 - w * 1.4); ctx.moveTo(1, 0); ctx.quadraticCurveTo(8, -4 - w, 17, -2 - w * 1.4); ctx.stroke();
+    ctx.beginPath(); ctx.arc(6, -1, 2.1, 0, 6.3); ctx.fill();
+    ctx.fillStyle = '#f2a65a'; ctx.beginPath(); ctx.moveTo(7.8, -1.4); ctx.lineTo(11, -0.6); ctx.lineTo(7.8, 0); ctx.fill();
+  }
+  ctx.restore();
+}
+function drawBirds(t) {   // seabirds circle the island, drop in to land on the beach for a while, and take off again
+  const F = game.fin, li = landInfo(); if (!F.life.birds || li.b < li.a) return;
+  const age = clamp((game.time - F.life.birds) / 3, 0, 1), n = Math.min(6, 2 + Math.floor(li.row0 / 2)), mx = (li.a + li.b + 1) / 2 * CELL, wd = (li.b - li.a + 1) * CELL;
+  ctx.save(); ctx.globalAlpha = age;
+  for (let i = 0; i < n; i++) {
+    const per = 26 + i * 3.1, ph = ((t + i * 7.7) % per) / per, rx = 120 + wd * 0.5 + i * 18, spot = li.a * CELL + CELL * (0.5 + (i * 1.7) % (li.b - li.a + 1));
+    const ang = t * (0.55 + i * 0.05) * (i % 2 ? -1 : 1) + i * 2;
+    let x = mx + Math.cos(ang) * rx, y = -80 - 18 * i % 40 + Math.sin(ang) * 22, sit = false, face = Math.sin(ang) * (i % 2 ? 1 : -1) >= 0 ? 1 : -1;
+    if (ph > 0.52 && ph < 0.9) {   // down to the beach, a rest, then up again
+      const u = ph < 0.6 ? (ph - 0.52) / 0.08 : ph > 0.82 ? 1 - (ph - 0.82) / 0.08 : 1, e = sm01(u), by = beachY(spot) - 1;
+      x = lerp(x, spot, e); y = lerp(y, by, e); sit = e > 0.97; if (e > 0.02) face = 1;
+    }
+    drawBird(x, y, t * 11 + i * 2, face, sit);
+  }
+  ctx.restore();
+}
+function drawIslandLife(t) {
+  const F = game.fin, L = F.life || {}, li = landInfo(); if (game.goals.stage < 5 || li.b < li.a) return;
+  const cells = game.land.filter(q => q.r === 0);
+  if (L.grass) for (const q of cells) { const x = (q.c + 0.5) * CELL; for (const d of [-7, 6]) drawGrassTuft(x + d, beachY(x + d) + 1, t, q.c * 3 + d); }
+  if (L.palms) {
+    const age = clamp((game.time - L.palms) / 5, 0, 1), e = sm01(age);
+    for (const q of cells) {
+      if (hash2(q.c, 0, 9) >= 0.34 || landAt(q.c - 1, 0) && hash2(q.c - 1, 0, 9) < 0.34) continue;
+      const x = (q.c + 0.5) * CELL; drawPalm(x, beachY(x) + 2, (44 + hash2(q.c, 0, 10) * 26) * e, t, q.c);
+    }
+  }
+  if (L.turtles) {   // two rows of flipper tracks up the sand from the water, and a small mound of eggs with the turtle on it
+    const R = li.runs[li.runs.length - 1], nc = Math.floor((R.a + R.b) / 2) * CELL + CELL * 0.5, side = hash2(R.a, R.b, 3) < 0.5 ? -1 : 1, nx = nc + side * CELL * 0.8;
+    ctx.fillStyle = 'rgba(140,110,70,0.55)';
+    for (let k = 0; k < 8; k++) { const x = nx - side * (k * 9 + 6) - (k % 2) * 2; if (x < R.a * CELL || x > (R.b + 1) * CELL) continue; ctx.beginPath(); ctx.ellipse(x, beachY(x) - 0.5 + 3 * (k % 2), 3.2, 1.2, 0, 0, 6.3); ctx.fill(); }
+    const y = beachY(nx);
+    ctx.fillStyle = '#d9bd86'; ctx.beginPath(); ctx.ellipse(nx, y + 1, 12, 4.5, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = '#fbf6e8'; for (const d of [-5, 0, 5]) { ctx.beginPath(); ctx.ellipse(nx + d, y - 1.4, 2.6, 3.2, 0, 0, 6.3); ctx.fill(); }
+    const age = game.time - L.turtles; if (age < 40) {   // she heads back to sea after a while
+      const tx = nx - side * 22 - side * Math.max(0, age - 20) * 2.5; ctx.save(); ctx.translate(tx, beachY(tx) - 5); ctx.scale(-side, 1);
+      ctx.fillStyle = '#4f7f50'; ctx.beginPath(); ctx.ellipse(0, 0, 11, 6, 0, Math.PI, 0); ctx.fill(); ctx.fillStyle = '#7ba36b'; ctx.beginPath(); ctx.ellipse(11, -1, 3.4, 2.6, 0, 0, 6.3); ctx.fill(); ctx.fillRect(-7, -1, 5, 3); ctx.restore();
+    }
+  }
+  drawBirds(t);
+  if (riseOn()) {   // the light swells as the island breaks the water
+    const u = clamp(F.riseT / CONFIG.fin.riseSecs, 0, 1), a = Math.sin(Math.PI * u) * 0.55, mx = (li.a + li.b + 1) / 2 * CELL;
+    const g = ctx.createRadialGradient(mx, -30, 10, mx, -30, 520); g.addColorStop(0, `rgba(255,236,170,${a})`); g.addColorStop(1, 'rgba(255,236,170,0)');
+    ctx.fillStyle = g; ctx.fillRect(mx - 520, -520, 1040, 560);
+  }
+}
+
+// ---- the ending card (after the turtles nest) and the sandbox ----
+const endEl = document.createElement('div'); endEl.id = 'ending'; document.body.appendChild(endEl);
+function fmtTime(s) { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; }
+function openEnding() {
+  const F = game.fin, v = calcRatings(), L = F.life || {};
+  const ach = game.ach.order.length, achAll = ACH.filter(x => !x.later).length;
+  const rows = [['Time played', fmtTime(game.time)], ['Most polyps at once', Math.max(game.stats.polypPeak || 0, game.polyps.length)], ['Species', game.species.length], ['Lineages', game.lineages.length], ['Storms survived', game.stats.stormsSurvived], ['Achievements', `${ach} of ${achAll}`]];
+  const rat = ratingRows().map(([k, nm, col]) => `<div class="rb"><span>${nm}</span><i><u style="width:${Math.round(v[k] || 0)}%;background:${col}"></u></i><em>${Math.round(v[k] || 0)}</em></div>`).join('');
+  endEl.innerHTML = `<div class="tp"><h1>An island</h1><p>Your reef has risen out of the sea. Birds circle it, grass is holding the sand, and the turtles have come ashore.</p>` +
+    `<div class="sum">${rows.map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div><h5>Reef ratings</h5><div class="rt">${rat}</div>` +
+    `<div class="btns"><button class="keep">Keep playing</button><button class="new">New game</button></div></div>`;
+  endEl.classList.add('open'); F.cardOpen = true; F.carded = true;
+}
+function closeEnding(keep) {
+  const F = game.fin; endEl.classList.remove('open'); F.cardOpen = false; last = performance.now();
+  if (keep) { F.sandbox = true; toast('Sandbox: the seasons go on, and a cyclone comes every 3rd Storm season'); }
+}
+endEl.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (b.classList.contains('keep')) closeEnding(true); else if (b.classList.contains('new')) askNewGame(); });
+for (const ev of ['mousedown', 'wheel', 'contextmenu']) endEl.addEventListener(ev, e => e.stopPropagation());
 
 /* ---------- title card ---------- */
 function openTitle() {
@@ -1732,7 +1902,7 @@ function leaveRes(r, why) {
 function syncSpecies() {
   const names = [], seen = new Set();
   for (const r of game.res.list) if (resLive(r) && !seen.has(r.kind)) { seen.add(r.kind); names.push(...RES[r.kind].sp); }
-  if (!seen.has('turtle') && game.res.turtleYear === Math.floor(game.season.t / CONFIG.yearSecs)) names.push(...RES.turtle.sp);   // the turtle counts for the rest of that year
+  if (!seen.has('turtle') && (game.res.turtlePerm || game.res.turtleYear === Math.floor(game.season.t / CONFIG.yearSecs))) names.push(...RES.turtle.sp);   // the turtle counts for the rest of that year
   game.species = names;
 }
 // the clownfish pair keeps its own movement (updateClown); this record gives it a place in the lists
@@ -1783,7 +1953,7 @@ function calcBio() {
   let B = 0;
   for (const k of RESKINDS) {
     const rs = game.res.list.filter(r => r.kind === k && resLive(r));
-    const turtleYr = k === 'turtle' && !rs.length && game.res.turtleYear === Math.floor(game.season.t / CONFIG.yearSecs);
+    const turtleYr = k === 'turtle' && !rs.length && (game.res.turtlePerm || game.res.turtleYear === Math.floor(game.season.t / CONFIG.yearSecs));
     if (!rs.length && !turtleYr) continue;
     const K = CONFIG.res[k], f = rs.length ? rs.reduce((a, r) => a + F[hapLevel(r)], 0) / rs.length : 1;
     const dbl = has('R4') && game.res.habs.some(h => h.kind === k && h.res.length >= 2) ? CONFIG.res.r4Value : 1;
@@ -2628,6 +2798,8 @@ const audio = {
     buy() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {   // a richer rising arpeggio of triangle and sine
         this.tone({ f, type: 'triangle', d: 1.1, v: 0.11, t: i * 0.075, a: 0.01, send: 0.55, lp: 3000 }); this.tone({ f: f * 2, d: 0.8, v: 0.035, t: i * 0.075, a: 0.01, send: 0.4 }); }); },
     whoosh() { this.noise({ f: 250, f2: 1400, q: 1.2, d: 0.2, v: 0.2, a: 0.1, glide: 0.2 }); this.noise({ f: 1400, f2: 350, q: 1.2, d: 0.5, v: 0.14, t: 0.18, a: 0.04 }); },
+    swell() { [261.63, 329.63, 392, 523.25, 659.25].forEach((f, i) => this.tone({ f, type: 'sine', d: 7, v: 0.1, t: i * 0.9, a: 3.2, send: 0.8, lp: 2400 })); },   // the island rises: a slow chord that swells
+    gull() { for (let i = 0; i < 3; i++) this.tone({ f: 1500 + Math.random() * 300, f2: 900, type: 'triangle', d: 0.28, v: 0.05, t: i * 0.3, a: 0.02, lp: 3200, send: 0.3 }); },   // a few seabird calls
     forecast() { [330, 262, 196].forEach((f, i) => this.tone({ f, type: 'triangle', d: 1.0, v: 0.14, t: i * 0.3, a: 0.02, send: 0.6, lp: 1500 })); },   // three falling bell notes: a warning
     rumble() { this.noise({ type: 'lowpass', f: 90 + Math.random() * 40, q: 0.8, d: 1.3, v: 0.5, a: 0.25, brown: true }); this.tone({ f: 46 * this.pv(), f2: 34, d: 1.2, v: 0.22, a: 0.2 }); },   // low storm thunder
     snap(x, y) { const v = this.near(x, y); this.noise({ f: 1300, f2: 300, q: 2, d: 0.18, v: 0.4 * v }); this.tone({ f: 200, f2: 60, d: 0.25, v: 0.3 * v, type: 'triangle' }); },
@@ -2720,8 +2892,9 @@ function updateCamera(dt, snap) {
   c.zoom = snap ? zt : lerp(c.zoom, zt, 1 - Math.exp(-CONFIG.zoomSmooth * dt));
   c.zoom = Math.max(c.zoom, v.w / W, v.h / H);
   const k = snap ? 1 : 1 - Math.exp(-CONFIG.camSmooth * (1 - 0.45 * kk) * dt);
-  let tx = p.x, ty = p.y;
-  if (game.reefView) {
+  let tx = p.x, ty = p.y, kr = 0;
+  if (riseOn() && landInfo().b >= landInfo().a) { tx = (landInfo().a + landInfo().b + 1) / 2 * CELL; ty = -9999; kr = 1; }   // the slow rise: the view eases up to the island and the sky
+  else if (game.reefView) {
     const b = reefBox(); if (!b || (!snap && ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].some(k => game.keys.has(k)))) game.reefView = false;
     else { tx = (b.x0 + b.x1) / 2; ty = (b.y0 + b.y1) / 2; }
   }
@@ -2729,7 +2902,8 @@ function updateCamera(dt, snap) {
     const n = game.nudge, b = Math.sin(Math.PI * clamp(n.t / n.life, 0, 1)), dx = n.x - p.x, dy = n.y - p.y, d = Math.hypot(dx, dy) || 1, m = Math.min(d * M.nudgeFrac, M.nudgeMax) * b;
     tx += dx / d * m; ty += dy / d * m;
   }
-  c.x = lerp(c.x, tx, k); c.y = lerp(c.y, ty, k);
+  const kk2 = kr ? 1 - Math.exp(-0.9 * dt) : k;
+  c.x = lerp(c.x, tx, kk2); c.y = lerp(c.y, ty, kk2);
   const hw = v.w / c.zoom / 2, hh = v.h / c.zoom / 2;
   c.x = hw * 2 >= W ? W / 2 : clamp(c.x, hw, W - hw);
   c.y = hh * 2 >= H ? H / 2 : clamp(c.y, hh - game.fin.sky * CONFIG.fin.skyPx, H - hh);   // once there is land, the view may rise above the surface into the sky
@@ -4710,7 +4884,7 @@ function render() {
   else if (on.organic) drawCoralLayer(L.polyLayer);
   drawFans(t);
   for (const p of game.polyps) (L.coral ? drawPolypStyled : drawPolypBody)(p, t, p === game.active && game.stage === 'polyp');
-  drawFrags(t); drawLand(t);
+  drawFrags(t); drawLand(t); drawIslandLife(t);
   drawPolypTentacles(t);
   if (!post) { drawGuide(t); drawSpots(t); drawGhost(t); }
   for (const p of game.polyps) drawPolypStatus(p);
@@ -4964,6 +5138,13 @@ function devCrest(cols, top, from, weak) {   // a wall of coral up to the surfac
     if (weak) for (let r = game.floorRow[c] - 1; r >= base; r--) if (!isRock(c, r) && !cellAt(c, r)) addPolyp(c, r);
   }
   crestInfo(true);
+}
+function devRise() {   // the island, now: a ready crest, 8 or more land cells, the cyclone counted as won, and the rise begins
+  if (game.goals.stage < 5) devAtoll();
+  if (game.storm) { game.storm = null; game.stormPw = 0; }
+  const F = game.fin; F.cyc = Math.max(F.cyc, 1); F.won = true; F.redo = false;
+  for (let i = 0; i < 200; i++) { const sp = sandSpot(); if (!sp) break; addSand(sp[0], sp[1], true); if (landInfo().row0 >= 10) break; }
+  if (game.goals.stage < 6) riseIsland();
 }
 function devAtoll() {   // the Atoll goals, ready: a 14-column crest at row 1 and 200 sand made
   if (game.goals.stage < 4) devStage(4);
@@ -5731,6 +5912,7 @@ function findProblems() {
   return out.sort((a, b) => b.sev - a.sev).slice(0, top);
 }
 /* ---------- reef ratings: five bars, recomputed every 5 s; the two weakest give advice ---------- */
+const RATING_ISLAND = ['island', 'Island', '#ffd27a', 'Keep sand coming: parrotfish need dead coral, and a crest to keep the sand from washing away.'];
 const RATINGS = [
   ['structure', 'Structure', '#d6a8ff', 'Thicken bases and brace long arms. Brain coral anchors a reef.'],
   ['light', 'Light', '#ffe08a', 'Too much of your reef shades itself. Spread out, and put plates on top.'],
@@ -5738,9 +5920,10 @@ const RATINGS = [
   ['diversity', 'Diversity', '#7be3b0', 'Build more homes: caves, thickets, tunnels, ledges and sandy patches.'],
   ['health', 'Health', '#ff9c7a', 'Your coral is struggling. Clear the seaweed, heal with shrimp, and get through the threat.'],
 ];
+const ratingRows = () => game.goals.stage >= 5 ? RATINGS.concat([RATING_ISLAND]) : RATINGS;
 function computeRatings() {
   const C = CONFIG.ratings, P = game.polyps, n = P.length, v = {};
-  if (!n) { for (const [k] of RATINGS) v[k] = 0; return v; }
+  if (!n) { for (const [k] of ratingRows()) v[k] = 0; return v; }
   const sup = supportMap();
   let sSum = 0, weak = 0, eff = 0, open = 0, lSum = 0, fSum = 0, bad = 0;
   for (const p of P) {
@@ -5755,15 +5938,16 @@ function computeRatings() {
   v.diversity = clamp(C.diversityK * game.bio.B, 0, 100);
   const T = game.thr, threats = (starN() ? 1 : 0) + (game.nibblers.length ? 1 : 0) + (T.weed.on ? 1 : 0);
   v.health = clamp(100 - C.healthShare * bad / n - C.healthThreat * threats, 0, 100);
+  if (game.goals.stage >= 5) v.island = clamp(8 * landInfo().row0 + 10 * Object.values(game.fin.life || {}).filter(Boolean).length, 0, 100);
   return v;
 }
 function calcRatings() { const v = computeRatings(); game.rat = { v, t: game.time }; return v; }
 function ratingsHtml() {
   const v = game.rat && game.rat.v; if (!v || !game.polyps.length) return '';
-  const order = RATINGS.slice().sort((a, b) => v[a[0]] - v[b[0]]), weak = order.slice(0, 2).map(x => x[0]);
+  const order = ratingRows().slice().sort((a, b) => v[a[0]] - v[b[0]]), weak = order.slice(0, 2).map(x => x[0]);
   let h = '<div class="rt"><h5>Reef ratings</h5>';
-  for (const [k, nm, col] of RATINGS) h += `<div class="rb${weak.includes(k) ? ' wk' : ''}" data-r="${k}"><span>${nm}</span><i><u style="width:${Math.round(v[k])}%;background:${col}"></u></i><em>${Math.round(v[k])}</em></div>`;
-  for (const k of weak) { const r = RATINGS.find(x => x[0] === k); h += `<div class="ra"><b>${r[1]}:</b> ${r[3]}</div>`; }
+  for (const [k, nm, col] of ratingRows()) h += `<div class="rb${weak.includes(k) ? ' wk' : ''}" data-r="${k}"><span>${nm}</span><i><u style="width:${Math.round(v[k])}%;background:${col}"></u></i><em>${Math.round(v[k])}</em></div>`;
+  for (const k of weak) { const r = ratingRows().find(x => x[0] === k); h += `<div class="ra"><b>${r[1]}:</b> ${r[3]}</div>`; }
   return h + '</div>';
 }
 function updateReport(dt) {
@@ -7209,10 +7393,10 @@ const ACH = [
   { id: 'A11', name: 'Sport of kings', desc: 'Grow a lineage that began as a sport to 20 polyps', chk: () => { const n = {}; for (const p of game.polyps) n[p.lin || 0] = (n[p.lin || 0] || 0) + 1; return game.lineages.some(L => L.parent >= 0 && (n[L.id] || 0) >= 20); } },
   { id: 'A12', name: 'Big spawn', desc: 'Have 25 colonies at once', chk: () => game.goals.stage >= 4 && colonyCount() >= 25, slow: true },
   { id: 'A13', name: 'Sand castle', desc: 'Make 300 sand', chk: () => game.stats.sandMade >= 300 },
-  { id: 'A14', name: 'Cyclone proof', desc: 'Lose under 10% of your polyps in the final cyclone', later: true },
+  { id: 'A14', name: 'Cyclone proof', desc: 'Lose under 10% of your polyps in the final cyclone' },
   { id: 'A15', name: 'Landlord', desc: '8 residents happy at once', chk: () => game.res.list.filter(r => resLive(r) && hapLevel(r) === 2).length >= 8 },
   { id: 'A16', name: 'Thread-free', desc: 'Reach Reef without ever having an arm of 8 or more polyps that is one polyp thick', chk: () => game.goals.stage >= 3 && !game.ach.thread },
-  { id: 'A17', name: 'Castaway', desc: 'The island rises', later: true },
+  { id: 'A17', name: 'Castaway', desc: 'The island rises', chk: () => game.goals.stage >= 6 },
 ];
 const achEl = document.getElementById('achpanel');
 function award(id) {
@@ -7465,7 +7649,7 @@ function saveApply(st) {
   for (const q of game.newRock) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 1;   // S4 turned these into rock
   for (let i = 0; i < game.grid.length; i++) if (game.grid[i] === 2) game.grid[i] = 0;   // the island: clear the old sand, then lay the saved sand
   for (const q of game.land) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 2;
-  landRebuild(); CREST.sig = '';
+  landRebuild(); CREST.sig = ''; cycSig = ''; endEl.classList.remove('open'); if (game.fin.cardOpen) openEnding();
   game.fx.length = 0; game.parts.length = 0; game.keys.clear(); game.slow = game.kick = game.nudge = null; game.settleTarget = null;
   game.rep.open = false; game.tree.open = false; game.mouse.down = false;
   FLD.sig = null; SUP.sig = null; WT.t = -1; WT.sig = ''; game.res.sig = ''; seasonSig = ''; achSig = ''; repSig = ''; XO = null;
@@ -7570,7 +7754,7 @@ function newGame() { SAVE.wiping = true; saveDel(SAVE.key); location.reload(); }
 
 /* ---------- main loop ---------- */
 function step(dt) {
-  if (game.tree.open || game.titleOn || askOn) return;   // the tree screen, the title card and the New game question pause the game
+  if (game.tree.open || game.titleOn || askOn || game.fin.cardOpen) return;   // the tree screen, the title card and the New game question pause the game
   game.time += dt;
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
   if (game.stage === 'larva' && !game.riding) updateLarva(dt); else game.settleTarget = null;
