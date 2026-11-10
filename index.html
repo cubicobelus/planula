@@ -2007,9 +2007,12 @@ function shooFish(dt) {   // fish that idle on a bud spot drift off, so it frees
     const cc = cellCenter(sp.c, sp.r);
     for (const [e, rad] of fishHitboxes()) {
       if (e.mode === 'bite' || !canShoo(e) || !hitsCell(e, rad, sp.c, sp.r)) continue;
-      let dx = e.x - cc.x, dy = e.y - cc.y; if (Math.hypot(dx, dy) < 1) { dx = 0; dy = -1; } const m = Math.hypot(dx, dy);
-      const nx = e.x + dx / m * 55 * dt, ny = e.y + dy / m * 55 * dt;
-      if (!blockedAt(nx, ny, Math.min(rad, 8), '')) { e.x = nx; e.y = ny; }
+      let dx = e.x - cc.x, dy = e.y - cc.y; if (Math.hypot(dx, dy) < 1) { dx = 0; dy = -1; }
+      const a0 = Math.atan2(dy, dx);
+      for (const da of [0, 0.8, -0.8, 1.6, -1.6, 2.4, -2.4]) {   // away from the spot, or round whatever is in the way
+        const nx = e.x + Math.cos(a0 + da) * 55 * dt, ny = e.y + Math.sin(a0 + da) * 55 * dt;
+        if (!blockedAt(nx, ny, Math.min(rad, 8), '')) { e.x = nx; e.y = ny; break; }
+      }
     }
   }
 }
