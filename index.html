@@ -6239,7 +6239,7 @@ const EVENTS = [
       for (let i = 0; i < C.n && cand.length; i++) {
         const q = cand.splice(Math.floor(Math.random() * cand.length), 1)[0]; if (cellAt(q.c, q.r)) continue;
         const tr = { form: 1 + Math.floor(Math.random() * 5) }; POWER.forEach(k => tr[k] = 1); const top = pick1(POWER); tr[top] = 5;
-        for (let left = C.budget - 9; left > 0;) { const k = pick1(POWER); if (k !== top && tr[k] < 4) { tr[k]++; left--; } }   // one trait at 5, the budget spent on the other three
+        for (let left = C.budget - 8; left > 0;) { const k = pick1(POWER); if (k !== top && tr[k] < 4) { tr[k]++; left--; } }   // one trait at 5, the budget spent on the other three
         const L = newLineage(-1, tr);
         const p = addPolyp(q.c, q.r, 'branch'); p.lin = L.id; n++;
         game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.8 });
