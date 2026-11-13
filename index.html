@@ -7,36 +7,54 @@
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #031326; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
-  #hud { position: fixed; left: 12px; top: 12px; padding: 8px 12px; min-width: 150px; background: rgba(2, 16, 32, 0.55); color: #d6f2ff; border-radius: 8px; font-size: 13px; line-height: 1.55; pointer-events: none; }
+  #hud { position: fixed; left: 12px; top: 12px; padding: 8px 12px; min-width: 150px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); box-sizing: border-box; color: #d6f2ff; border-radius: 12px; font-size: 13px; line-height: 1.55; pointer-events: none; }
   #hud b { color: #fff; font-weight: 600; }
   #hud .row { display: flex; justify-content: space-between; gap: 18px; }
   #hud .stage { font-size: 15px; font-weight: 700; color: #ffd9c9; margin-bottom: 2px; }
   #bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.18); margin: 2px 0 3px; overflow: hidden; }
   #barfill { height: 100%; width: 0; background: #7be3b0; transition: background 0.2s; }
-  #hint { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); padding: 7px 16px; background: rgba(2, 16, 32, 0.6); color: #e8f8ff; border-radius: 16px; font-size: 14px; pointer-events: none; white-space: nowrap; }
-  #toasts { position: fixed; left: 50%; top: 118px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
-  .toast { padding: 7px 16px; background: rgba(255, 244, 230, 0.92); color: #3a2a2a; border-radius: 14px; font-size: 14px; font-weight: 600; animation: tin 0.25s ease-out; transition: opacity 0.5s; }
+  #hint { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); padding: 7px 16px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); backdrop-filter: blur(4px); color: #d6f2ff; border-radius: 16px; font-size: 14px; pointer-events: none; white-space: nowrap; }
+  #toasts { position: fixed; left: 12px; top: 316px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
+  .toast { max-width: 300px; box-sizing: border-box; padding: 7px 14px; background: rgba(2, 16, 32, 0.72); border: 1px solid rgba(255, 226, 176, 0.35); color: #fff3d6; border-radius: 10px; font-size: 13px; font-weight: 600; line-height: 1.35; animation: tin 0.25s ease-out; transition: opacity 0.5s; }
   .toast.out { opacity: 0; }
   #ui { position: fixed; left: 0; top: 0; pointer-events: none; }
-  #abar { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); width: max-content; z-index: 12; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 5px; max-width: 96vw; box-sizing: border-box; padding: 5px 7px; background: rgba(2, 16, 32, 0.62); border: 1px solid rgba(150, 220, 240, 0.16); border-radius: 14px; backdrop-filter: blur(4px); color: #e8f8ff; font-size: 12px; }
-  #abar button { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; font: inherit; padding: 4px 9px; border-radius: 9px; border: 1px solid rgba(150, 220, 240, 0.22); background: rgba(255, 255, 255, 0.08); color: #e8f8ff; cursor: pointer; white-space: nowrap; transition: background 0.12s, border-color 0.12s; }
-  #abar button:hover { background: rgba(255, 255, 255, 0.17); border-color: rgba(190, 235, 250, 0.45); }
-  #abar button:active { background: rgba(255, 255, 255, 0.24); }
-  #abar button.dis { opacity: 0.4; cursor: not-allowed; } #abar button.dis:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(150, 220, 240, 0.22); }
-  #abar button.on { border-color: rgba(255, 226, 176, 0.7); color: #fff3d6; }
-  #abar .ic { order: -1; display: inline-flex; } #abar .ic:empty { display: none; }
-  #abar button.pop { animation: apop 0.28s ease-out; }
-  #abar button.sw { margin-left: 6px; border-radius: 9px; color: #9cc5d6; } #abar button.sw b { color: #ffe3d3; font-weight: 600; }
-  #abar kbd { font: inherit; font-size: 11px; min-width: 11px; padding: 0 4px; text-align: center; border-radius: 3px; background: rgba(255, 255, 255, 0.16); color: #fff; }
-  #abar .cd { position: absolute; left: 0; bottom: 0; height: 100%; width: 0; background: rgba(255, 226, 176, 0.22); pointer-events: none; }
-  #abar .dot { width: 6px; height: 6px; border-radius: 3px; background: #ffe2b0; box-shadow: 0 0 6px #ffe2b0; animation: tnote 2.4s ease-in-out infinite; }
+  .bgrp { position: fixed; z-index: 12; box-sizing: border-box; color: #d6f2ff; font-size: 12px; }
+  .bgrp button, #gmenu button { position: relative; overflow: hidden; display: inline-flex; align-items: center; font: inherit; margin: 0; padding: 0; border-radius: 9px; border: 1px solid rgba(150, 220, 240, 0.18); background: rgba(255, 255, 255, 0.06); color: #d6f2ff; cursor: pointer; white-space: nowrap; transition: background 0.12s, border-color 0.12s; }
+  .bgrp button:hover, #gmenu button:hover { background: rgba(255, 255, 255, 0.14); }
+  .bgrp button:active, #gmenu button:active { background: rgba(255, 255, 255, 0.2); }
+  .bgrp button.dis, #gmenu button.dis { opacity: 0.4; cursor: not-allowed; } .bgrp button.dis:hover, #gmenu button.dis:hover { background: rgba(255, 255, 255, 0.06); }
+  .bgrp button.on, #gmenu button.on { border-color: rgba(255, 226, 176, 0.7); color: #fff3d6; }
+  .bgrp .ic, #gmenu .ic { order: -1; display: inline-flex; } .bgrp .ic:empty, #gmenu .ic:empty { display: none; }
+  .bgrp button.pop { animation: apop 0.28s ease-out; }
+  .bgrp kbd, #gmenu kbd { font: inherit; font-size: 10px; min-width: 11px; padding: 0 4px; text-align: center; border-radius: 3px; background: rgba(255, 255, 255, 0.14); color: #fff; }
+  .bgrp kbd:empty, #gmenu kbd:empty { display: none; }
+  .bgrp .cd { position: absolute; left: 0; bottom: 0; height: 100%; width: 0; background: rgba(255, 226, 176, 0.22); pointer-events: none; }
+  .bgrp .dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 4px; background: #7be3b0; box-shadow: 0 0 6px #7be3b0; animation: tnote 2.4s ease-in-out infinite; }
+  #abar { left: 50%; bottom: 12px; transform: translateX(-50%); width: max-content; display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 6px; padding: 6px 8px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); border-radius: 12px; backdrop-filter: blur(4px); }
+  #abar.wide { min-width: 212px; }
+  #abar button { flex: none; width: 56px; height: 56px; flex-direction: column; justify-content: center; gap: 2px; padding-top: 6px; font-size: 11px; }
+  #abar .ic svg { width: 22px; height: 22px; } #abar .lb { max-width: 52px; overflow: hidden; text-overflow: ellipsis; line-height: 14px; font-size: 11px; }
+  #abar kbd { position: absolute; top: 3px; right: 3px; font-size: 0; padding: 0 3px; } #abar kbd::after { content: attr(data-s); font-size: 10px; }
+  #abar .sep { flex: none; width: 1px; align-self: stretch; margin: 4px 3px; background: rgba(150, 220, 240, 0.18); }
+  #pbar { right: 12px; top: 12px; display: flex; gap: 6px; }
+  #pbar button { flex: none; width: 40px; height: 40px; justify-content: center; border-radius: 12px; border-color: rgba(150, 220, 240, 0.14); background: rgba(2, 16, 32, 0.55); backdrop-filter: blur(4px); }
+  #pbar button:hover { background: rgba(8, 36, 58, 0.7); }
+  #pbar .ic svg { width: 22px; height: 22px; } #pbar .lb, #pbar kbd { display: none; }
+  #vbar { right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  #vbar button { flex: none; height: 28px; gap: 6px; padding: 0 8px 0 9px; border-radius: 12px; border-color: rgba(150, 220, 240, 0.14); background: rgba(2, 16, 32, 0.55); backdrop-filter: blur(4px); font-size: 12px; }
+  #vbar button:hover { background: rgba(8, 36, 58, 0.7); }
+  #vbar .ic svg { width: 16px; height: 16px; } #vbar .dot { display: none !important; }
+  #gmenu { position: fixed; z-index: 16; right: 12px; top: 58px; width: 210px; box-sizing: border-box; padding: 6px; display: none; flex-direction: column; gap: 4px; color: #d6f2ff; font-size: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); border-radius: 12px; backdrop-filter: blur(4px); background: rgba(2, 16, 32, 0.8); }
+  #gmenu.open { display: flex; }
+  #gmenu button { width: 100%; height: 28px; padding: 0 8px; gap: 8px; } #gmenu .lb { flex: 1; text-align: left; } #gmenu .ic, #gmenu .dot { display: none; }
+  #gmenu button.sw { color: #9cc5d6; } #gmenu button.sw b { color: #fff3d6; font-weight: 600; }
   @keyframes apop { 0% { transform: scale(0.5); opacity: 0; } 70% { transform: scale(1.1); opacity: 1; } 100% { transform: none; } }
-  body.treeopen #abar { display: none; }
-  #looklist { position: fixed; right: 12px; top: 12px; padding: 7px 11px; background: rgba(2, 16, 32, 0.5); color: #cfeaf6; border-radius: 8px; font-size: 12px; line-height: 1.5; pointer-events: none; min-width: 150px; }
+  body.treeopen .bgrp, body.treeopen #gmenu { display: none; }
+  #looklist { position: fixed; right: 12px; top: 62px; box-sizing: border-box; padding: 7px 11px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); backdrop-filter: blur(4px); color: #d6f2ff; border-radius: 12px; font-size: 12px; line-height: 1.5; pointer-events: none; min-width: 150px; }
   #looklist .t { font-weight: 700; color: #ffd9c9; margin-bottom: 1px; }
   #looklist .row { display: flex; justify-content: space-between; gap: 14px; }
   #looklist kbd { font: inherit; display: inline-block; min-width: 11px; margin-right: 5px; padding: 0 3px; text-align: center; border-radius: 3px; background: rgba(255,255,255,0.16); color: #fff; }
-  #devtools { position: fixed; right: 12px; top: 12px; bottom: 60px; width: 330px; overflow-y: auto; display: none; padding: 8px 10px; background: rgba(2, 16, 32, 0.82); color: #cfeaf6; border-radius: 10px; font-size: 11.5px; line-height: 1.4; z-index: 15; }
+  #devtools { position: fixed; right: 12px; top: 62px; bottom: 60px; width: 330px; overflow-y: auto; display: none; padding: 8px 10px; background: rgba(2, 16, 32, 0.82); border: 1px solid rgba(150, 220, 240, 0.14); backdrop-filter: blur(4px); box-sizing: border-box; color: #d6f2ff; border-radius: 12px; font-size: 11.5px; line-height: 1.4; z-index: 15; }
   #devtools .dh { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; } #devtools .dh b { color: #ffd9c9; font-size: 13px; } #devtools .dh span { color: #8aa0b2; }
   #devtools .dg { margin-top: 7px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.12); } #devtools .dt { font-weight: 700; color: #9cc5d6; margin-bottom: 3px; }
   #devtools .dr { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 3px; }
@@ -159,7 +177,7 @@
   #title .ladder { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 12px; color: #9cc5d6; margin-bottom: 18px; }
   #title .ladder span.a { opacity: 0.5; } #title .ladder b { font-weight: 600; color: #bfeed6; }
   #title .go { font-size: 13px; color: #ffe2b0; letter-spacing: 0.04em; animation: tnote 2.4s ease-in-out infinite; }
-  #season { position: fixed; left: 12px; top: 250px; z-index: 11; display: none; align-items: center; gap: 9px; box-sizing: border-box; min-width: 174px; padding: 6px 12px 6px 8px; border-radius: 10px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); color: #d6f2ff; font-size: 12px; line-height: 1.3; cursor: pointer; user-select: none; }
+  #season { position: fixed; left: 12px; top: 250px; z-index: 11; display: none; align-items: center; gap: 9px; box-sizing: border-box; min-width: 174px; padding: 6px 12px 6px 8px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); color: #d6f2ff; font-size: 12px; line-height: 1.3; cursor: pointer; user-select: none; }
   #season:hover { background: rgba(8, 36, 58, 0.7); }
   #season b { display: block; color: #fff; font-size: 13px; font-weight: 600; } #season span { color: #9cc5d6; } #season.warn span { color: #ffd9a0; } #season.storm span { color: #ff9f8c; }
   #seasoncard, #lincard, #rescard { position: fixed; z-index: 35; display: none; width: 250px; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
@@ -222,7 +240,7 @@
 <div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="cyc"></div><div id="title"></div><div id="welcome"></div><div id="ask"></div>
 <div id="hint"></div>
 <div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="sportcard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div>
-<div id="abar"></div>
+<div id="abar" class="bgrp"></div><div id="pbar" class="bgrp"></div><div id="vbar" class="bgrp"></div><div id="gmenu"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
 <div id="devtools"></div>
@@ -428,7 +446,7 @@ const game = {
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
-  look: { on: { caustics: true, shafts: true, bloom: true, haze: true, wobble: true, organic: true, layers: true }, coral: 4, saved: null, list: true },
+  look: { on: { caustics: true, shafts: true, bloom: true, haze: true, wobble: true, organic: true, layers: true }, coral: 4, saved: null, list: false },
 };
 
 /* ---------- helpers ---------- */
@@ -2708,7 +2726,7 @@ function toast(msg, now) {
   const box = document.getElementById('toasts');
   const el = document.createElement('div'); el.className = 'toast' + (now ? ' now' : ''); el.textContent = msg;
   box.appendChild(el);
-  while (box.children.length > 3) box.removeChild(box.firstChild);
+  while (box.children.length > 5) box.removeChild(box.firstChild);
   setTimeout(() => el.classList.add('out'), 2300);
   setTimeout(() => el.remove(), 2900);
 }
@@ -4950,7 +4968,7 @@ function updateHud() {
 /* ---------- action bar: a button for each key, shown by stage and by what is owned ---------- */
 const abar = el('abar');
 const polypNow = () => game.stage === 'polyp' && !!game.active;
-const svgI = d => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-linecap="round">${d}</svg>`;
+const svgI = d => `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const TYPE_ICON = {
   branch: svgI('<path d="M8 14V8M8 8L4 3M8 8l4-5M8 11l-3-2" stroke="#ffb3a0" stroke-width="1.8"/>'),
   plate: svgI('<path d="M1.5 6.5c4-3 9-3 13 0" stroke="#ffd98a" stroke-width="2.2"/><path d="M8 7v6" stroke="#e8b46a" stroke-width="1.6"/>'),
@@ -4958,58 +4976,105 @@ const TYPE_ICON = {
   fan: svgI('<path d="M8 14L2 5c4-3 8-3 12 0z" stroke="#c9a0ff" stroke-width="1.2"/><path d="M8 14V5M8 14L5 5M8 14l3-9" stroke="#c9a0ff" stroke-width="0.8"/>'),
   anemone: svgI('<circle cx="8" cy="11" r="2.4" fill="#ff9ac0" stroke="none"/><path d="M8 9V3M6 9L4 4M10 9l2-5" stroke="#ff9ac0" stroke-width="1.4"/>'),
 };
+const BAR_ICON = {
+  settle: svgI('<path d="M2 14c2-3 4-3.5 6-3.5s4 .5 6 3.5" stroke="#d6f2ff" stroke-width="1.6"/><circle cx="8" cy="6.5" r="2.4" stroke="#fff3d6" stroke-width="1.6"/><path d="M8 9v1.5" stroke="#fff3d6" stroke-width="1.6"/>'),
+  bud: svgI('<path d="M8 14V8.5" stroke="#d6f2ff" stroke-width="1.8"/><path d="M8 9c-3 0-4.5-1.7-4.5-4C6.5 5 8 6.5 8 9z" stroke="#7be3b0" stroke-width="1.6"/><path d="M8 8c0-2.8 1.7-4.3 4.5-4.5 0 2.8-1.5 4.5-4.5 4.5z" stroke="#7be3b0" stroke-width="1.6"/>'),
+  sting: svgI('<path d="M9.5 1.8L4.2 9h3.8l-1.5 5.2L12 7H8.2z" stroke="#fff3d6" stroke-width="1.6"/>'),
+  guide: svgI('<path d="M3 13.5c1.5-5 4.5-2.5 6-6" stroke="#d6f2ff" stroke-width="1.8" stroke-dasharray="0.1 3"/><circle cx="11.5" cy="4.5" r="2.4" stroke="#fff3d6" stroke-width="1.6"/><circle cx="11.5" cy="4.5" r="0.6" stroke="#fff3d6" stroke-width="1"/>'),
+  frag: svgI('<path d="M2.5 14L7 9.5M5 11.8L3 10" stroke="#d6f2ff" stroke-width="1.6"/><path d="M9.5 7l4-4.5M12 4.8l2.2.2" stroke="#ffd9c9" stroke-width="1.6"/>'),
+  plan: svgI('<path d="M4.5 13V4M2 6.5L4.5 4 7 6.5" stroke="#d6f2ff" stroke-width="1.6"/><path d="M8.5 11h5.5M12 8.5l2.5 2.5-2.5 2.5" stroke="#fff3d6" stroke-width="1.6"/>'),
+  bail: svgI('<circle cx="6" cy="8" r="2.2" stroke="#d6f2ff" stroke-width="1.6"/><path d="M3.8 8c-1-1.2-2 .8-2.8 0" stroke="#d6f2ff" stroke-width="1.4"/><path d="M10 5h4M10.5 8h3.5M10 11h4" stroke="#7be3b0" stroke-width="1.4"/>'),
+  tree: svgI('<path d="M8 4.5V7.5M8 7.5L4.5 10M8 7.5l3.5 2.5" stroke="#d6f2ff" stroke-width="1.6"/><circle cx="8" cy="3.2" r="1.7" stroke="#fff3d6" stroke-width="1.6"/><circle cx="4" cy="11.5" r="1.7" stroke="#7be3b0" stroke-width="1.6"/><circle cx="12" cy="11.5" r="1.7" stroke="#7be3b0" stroke-width="1.6"/>'),
+  report: svgI('<rect x="3.2" y="3" width="9.6" height="11" rx="1.8" stroke="#d6f2ff" stroke-width="1.6"/><path d="M6 3V2h4v1" stroke="#d6f2ff" stroke-width="1.6"/><path d="M5.8 7h4.4M5.8 9.8h2.4" stroke="#d6f2ff" stroke-width="1.4"/><circle cx="10.6" cy="10.8" r="1" fill="#7be3b0" stroke="none"/>'),
+  ach: svgI('<path d="M8 1.8l1.9 3.9 4.2.6-3.1 3 .8 4.2L8 11.5l-3.8 2 .8-4.2-3.1-3 4.2-.6z" stroke="#fff3d6" stroke-width="1.6"/>'),
+  genome: svgI('<path d="M5 2c0 3.2 6 4 6 6s-6 2.8-6 6" stroke="#d6f2ff" stroke-width="1.6"/><path d="M11 2c0 3.2-6 4-6 6s6 2.8 6 6" stroke="#fff3d6" stroke-width="1.6"/><path d="M5.8 4.6h4.4M5.8 11.4h4.4" stroke="#7be3b0" stroke-width="1.2"/>'),
+  struct: svgI('<path d="M8 2l6 3-6 3-6-3z" stroke="#fff3d6" stroke-width="1.6"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3" stroke="#d6f2ff" stroke-width="1.6"/>'),
+  zoom: svgI('<path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5" stroke="#d6f2ff" stroke-width="1.6"/><path d="M8 11.5V8M8 9.6L6.2 7.6M8 9l1.9-2.5" stroke="#7be3b0" stroke-width="1.6"/>'),
+  gear: svgI('<circle cx="8" cy="8" r="3.6" stroke="#d6f2ff" stroke-width="1.6"/><circle cx="8" cy="8" r="1.3" stroke="#fff3d6" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="#d6f2ff" stroke-width="1.6"/>'),
+};
 const BAR = [
-  { id: 'settle', label: () => 'Settle', key: () => 'Space', show: () => game.stage === 'larva', dis: () => game.settleTarget ? '' : 'Swim against rock to settle', tip: 'Settle here', go: () => pressSpace() },
-  { id: 'bud', label: () => 'Bud', key: () => clickMode() ? 'Click' : spotMode() ? 'Space / Click' : 'Space', show: polypNow, hold: true,
+  { id: 'settle', grp: 'act', label: () => 'Settle', key: () => 'Space', show: () => game.stage === 'larva', dis: () => game.settleTarget ? '' : 'Swim against rock to settle', tip: 'Settle here', go: () => pressSpace() },
+  { id: 'bud', grp: 'act', label: () => 'Bud', key: () => clickMode() ? 'Click' : spotMode() ? 'Space / Click' : 'Space', show: polypNow, hold: true,
     dis: () => !budSpots().length ? 'No free space here' : budShort() || '', tip: () => clickMode() ? 'Hold the mouse on a glowing cell to bud' : spotMode() ? 'Click a glowing cell, or press a direction, then hold Space' : 'Press a direction, then hold Space to bud',
     go: () => toast('Hold the mouse on a glowing cell to bud') },
-  { id: 'bail', label: () => 'Bail', key: () => 'R', show: polypNow, dis: () => '', tip: 'Swim free as a larva', go: () => bail() },
-  { id: 'guide', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide, dis: () => polypNow() ? '' : 'Settle first', tip: 'Hold G and click a cell to grow towards it',
+  { id: 'bail', grp: 'act', label: () => 'Bail', key: () => 'R', show: polypNow, dis: () => '', tip: 'Swim free as a larva', go: () => bail() },
+  { id: 'guide', grp: 'act', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide, dis: () => polypNow() ? '' : 'Settle first', tip: 'Hold G and click a cell to grow towards it',
     go: () => game.guide ? cancelGuide('Guided growth cancelled') : toast('Hold G and click a cell to grow towards it') },
-  { id: 'type', label: () => TYPE_NAME[game.nextType], icon: () => TYPE_ICON[game.nextType], key: () => 'Q', show: () => ownedTypes().length > 1, on: () => game.nextType !== 'branch', dis: () => polypNow() ? '' : 'Settle first', tip: () => `Next bud: ${TYPE_NAME[game.nextType]}, ${Math.ceil(budCost())} energy${budCalcium() ? ' + ' + budCalcium() + ' Ca' : ''}. Click or Q for the next type, right-click or Shift+Q for the last`, go: () => cycleType() },
-  { id: 'sting', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
-  { id: 'struct', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
-  { id: 'report', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
-  { id: 'frag', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', tip: 'Snap off a branch tip and throw it where you aim', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => pressFrag() },
-  { id: 'plan', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
-  { id: 'ach', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
-  { id: 'genome', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
-  { id: 'zoom', label: () => 'Reef view', key: () => 'Z', show: () => game.polyps.length >= 2, on: () => game.reefView, dis: () => '', tip: 'Zoom out to see the whole reef. Mouse wheel zooms in and out', go: () => toggleReefView() },
-  { id: 'tree', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
-  { id: 'new', label: () => 'New game', key: () => '', show: () => !game.titleOn, dis: () => '', tip: 'Erase the saved reef and start again', go: () => askNewGame() },
-  { id: 'mute', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
-  { id: 'dev', label: () => 'Dev', key: () => '\\', show: () => true, on: () => devs.open, dis: () => '', tip: 'Developer tools', go: () => devToggle() },
+  { id: 'type', grp: 'act', label: () => TYPE_NAME[game.nextType], icon: () => TYPE_ICON[game.nextType], key: () => 'Q', show: () => ownedTypes().length > 1, on: () => game.nextType !== 'branch', dis: () => polypNow() ? '' : 'Settle first', tip: () => `Next bud: ${TYPE_NAME[game.nextType]}, ${Math.ceil(budCost())} energy${budCalcium() ? ' + ' + budCalcium() + ' Ca' : ''}. Click or Q for the next type, right-click or Shift+Q for the last`, go: () => cycleType() },
+  { id: 'sting', grp: 'act', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
+  { id: 'struct', grp: 'view', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
+  { id: 'report', grp: 'panel', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
+  { id: 'frag', grp: 'act', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', tip: 'Snap off a branch tip and throw it where you aim', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => pressFrag() },
+  { id: 'plan', grp: 'act', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
+  { id: 'ach', grp: 'panel', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
+  { id: 'genome', grp: 'panel', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
+  { id: 'zoom', grp: 'view', label: () => 'Reef view', key: () => 'Z', show: () => game.polyps.length >= 2, on: () => game.reefView, dis: () => '', tip: 'Zoom out to see the whole reef. Mouse wheel zooms in and out', go: () => toggleReefView() },
+  { id: 'tree', grp: 'panel', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
+  { id: 'new', grp: 'menu', label: () => 'New game', key: () => '', show: () => !game.titleOn, dis: () => '', tip: 'Erase the saved reef and start again', go: () => askNewGame() },
+  { id: 'mute', grp: 'menu', label: () => `Sound ${audio.muted ? 'off' : 'on'}`, key: () => 'M', show: () => true, dis: () => '', tip: 'Mute or unmute', go: () => toggleMute() },
+  { id: 'dev', grp: 'menu', label: () => 'Dev', key: () => '\\', show: () => true, on: () => devs.open, dis: () => '', tip: 'Developer tools', go: () => devToggle() },
 ];
-for (const d of BAR) {
-  const b = d.btn = document.createElement('button');
-  b.dataset.bar = d.id; b.tabIndex = -1; b.style.display = 'none';
+const BAR_ORDER = {
+  act: ['settle', 'bud', 'sting', 'guide', 'frag', 'plan', 'bail', 'type'],
+  panel: ['tree', 'report', 'ach', 'genome'],
+  view: ['struct', 'zoom'],
+  menu: ['mute', 'new', 'dev'],
+};
+const pbar = el('pbar'), vbar = el('vbar'), gmenu = el('gmenu');
+const BAR_BOX = { act: abar, panel: pbar, view: vbar, menu: gmenu };
+const KSHORT = k => k.replace('Space / Click', 'Spc/Clk').replace('Space', 'Spc');
+function barBtn(id) {
+  const o = {}, b = o.btn = document.createElement('button');
+  b.dataset.bar = id; b.tabIndex = -1; b.style.display = 'none';
   b.innerHTML = '<span class="cd"></span><span class="lb"></span><kbd></kbd><i class="dot"></i><span class="ic"></span>';
-  d.cdEl = b.children[0]; d.lb = b.children[1]; d.kb = b.children[2]; d.dotEl = b.children[3]; d.icEl = b.children[4];
+  o.cdEl = b.children[0]; o.lb = b.children[1]; o.kb = b.children[2]; o.dotEl = b.children[3]; o.icEl = b.children[4];
+  if (BAR_ICON[id]) o.icEl.innerHTML = BAR_ICON[id];
   b.addEventListener('animationend', () => b.classList.remove('pop'));
-  abar.appendChild(b);
+  return o;
 }
+const barSep = document.createElement('i'); barSep.className = 'sep'; barSep.style.display = 'none';
+for (const g of Object.keys(BAR_ORDER)) for (const id of BAR_ORDER[g]) {
+  const d = BAR.find(x => x.id === id);
+  if (id === 'type') abar.appendChild(barSep);
+  const o = barBtn(id); Object.assign(d, o);
+  BAR_BOX[g].appendChild(d.btn);
+}
+// the gear button (opens the menu), the bud-mode switch and the look-list row live outside BAR
+const gear = barBtn('gear'); gear.dotEl.style.display = 'none'; gear.btn.style.display = ''; gear.btn.title = 'Menu: sound, controls, new game, dev tools, look list';
+pbar.appendChild(gear.btn);
 const barSwitch = document.createElement('button');
 barSwitch.className = 'sw'; barSwitch.tabIndex = -1; barSwitch.dataset.bar = 'mode'; barSwitch.title = 'Switch how buds are placed';
-abar.appendChild(barSwitch);
-abar.addEventListener('mousedown', e => {
-  e.preventDefault(); e.stopPropagation();   // no focus (Space must not press a button) and nothing reaches the canvas
-  game.slow = null;
-  const b = e.target.closest('button'), d = b && BAR.find(x => x.btn === b);
-  if (d && d.hold && !clickMode() && !d.reason) { game.keys.add('Space'); pressSpace(); d.held = true; }   // keys mode: the button is Space, held
-});
+gmenu.insertBefore(barSwitch, BAR.find(x => x.id === 'new').btn);
+const lookRow = barBtn('look'); lookRow.btn.style.display = ''; lookRow.lb.textContent = 'Look list'; lookRow.kb.textContent = 'H'; lookRow.btn.title = 'Show or hide the look test list';
+gmenu.appendChild(lookRow.btn);
+const gmenuOpen = on => { gmenu.classList.toggle('open', on); gear.btn.classList.toggle('on', on); };
+window.addEventListener('mousedown', e => { if (gmenu.classList.contains('open') && !gmenu.contains(e.target) && !gear.btn.contains(e.target)) gmenuOpen(false); }, true);
+function bindBar(box) {
+  box.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();   // no focus (Space must not press a button) and nothing reaches the canvas
+    game.slow = null;
+    const b = e.target.closest('button'), d = b && BAR.find(x => x.btn === b);
+    if (d && d.hold && !clickMode() && !d.reason) { game.keys.add('Space'); pressSpace(); d.held = true; }   // keys mode: the button is Space, held
+  });
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b === barSwitch) { setBudMode(BUD_MODES[(BUD_MODES.indexOf(CONFIG.budMode) + 1) % 3]); return; }
+    if (b === gear.btn) { gmenuOpen(!gmenu.classList.contains('open')); return; }
+    if (b === lookRow.btn) { game.look.list = !game.look.list; updateLookList(); return; }
+    const d = BAR.find(x => x.btn === b); if (!d) return;
+    if (d.reason) { toast(d.reason); return; }
+    if (d.hold && !clickMode()) return;   // handled on press
+    d.go();
+    if (d.id === 'new' || d.id === 'dev') gmenuOpen(false);
+  });
+  for (const ev of ['contextmenu', 'wheel']) box.addEventListener(ev, e => e.stopPropagation());
+  box.addEventListener('contextmenu', e => { const b = e.target.closest('button'), d = b && BAR.find(x => x.btn === b); if (d && d.id === 'type' && !d.reason) cycleType(-1); });
+}
+[abar, pbar, vbar, gmenu].forEach(bindBar);
 const barRelease = () => { for (const d of BAR) if (d.held) { d.held = false; game.keys.delete('Space'); } };
 window.addEventListener('mouseup', barRelease); window.addEventListener('blur', barRelease);
-abar.addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  if (b === barSwitch) { setBudMode(BUD_MODES[(BUD_MODES.indexOf(CONFIG.budMode) + 1) % 3]); return; }
-  const d = BAR.find(x => x.btn === b); if (!d) return;
-  if (d.reason) { toast(d.reason); return; }
-  if (d.hold && !clickMode()) return;   // handled on press
-  d.go();
-});
-for (const ev of ['contextmenu', 'wheel']) abar.addEventListener(ev, e => e.stopPropagation());
-abar.addEventListener('contextmenu', e => { const b = e.target.closest('button'), d = b && BAR.find(x => x.btn === b); if (d && d.id === 'type' && !d.reason) cycleType(-1); });
 function updateBar() {
+  const nvis = { act: 0, view: 0 };
   for (const d of BAR) {
     const vis = !!d.show(), b = d.btn;
     if (vis !== d.vis) {
@@ -5018,19 +5083,31 @@ function updateBar() {
       d.vis = vis;
     }
     if (!vis) continue;
+    if (d.grp in nvis) nvis[d.grp]++;
     d.reason = d.dis();
-    const lb = d.label(), kb = d.key(), tip = d.reason || (typeof d.tip === 'function' ? d.tip() : d.tip);
+    const lb = d.label(), kb = d.key();
+    let tip = d.reason || (typeof d.tip === 'function' ? d.tip() : d.tip);
+    if (d.grp === 'panel') tip = `${lb} (${kb})${tip ? ': ' + tip : ''}`;   // icon-only buttons: the tooltip names them
     if (d.lb.textContent !== lb) d.lb.textContent = lb;
-    if (d.kb.textContent !== kb) d.kb.textContent = kb;
+    if (d.kb.textContent !== kb) { d.kb.textContent = kb; d.kb.dataset.s = KSHORT(kb); }
     if (d.icon) { const ic = d.icon(); if (d.icEl.innerHTML !== ic) d.icEl.innerHTML = ic; }
     if (b.title !== tip) b.title = tip;
     b.classList.toggle('dis', !!d.reason); b.classList.toggle('on', !!(d.on && d.on()));
     if (d.cd) d.cdEl.style.width = Math.round(clamp(d.cd(), 0, 1) * 100) + '%';
     d.dotEl.style.display = d.dot && d.dot() ? '' : 'none';
   }
-  if (devs.open) { const bt = Math.ceil(innerHeight - abar.getBoundingClientRect().top + 10) + 'px'; if (devPanel.style.bottom !== bt) devPanel.style.bottom = bt; }   // the side panel stays clear of the bar, however many rows it wraps to
-  const bm = CONFIG.budMode, sw = `Controls: ${bm === 'both' ? '<b>both</b>' : 'both'} / ${bm === 'click' ? '<b>click</b>' : 'click'} / ${bm === 'keys' ? '<b>keys</b>' : 'keys'}`;
-  if (barSwitch.innerHTML !== sw) barSwitch.innerHTML = sw;
+  const showAct = nvis.act > 0, showView = nvis.view > 0;
+  if ((abar.style.display === 'none') === showAct) abar.style.display = showAct ? '' : 'none';
+  if ((vbar.style.display === 'none') === showView) vbar.style.display = showView ? '' : 'none';
+  abar.classList.toggle('wide', polypNow());
+  const tp = BAR.find(x => x.id === 'type'), sp = tp.vis && nvis.act > 1 ? '' : 'none'; if (barSep.style.display !== sp) barSep.style.display = sp;
+  lookRow.btn.classList.toggle('on', !!game.look.list);
+  if (devs.open) {   // the side panel stays clear of the bottom bar and the view buttons
+    const tops = [abar, vbar].map(x => x.getBoundingClientRect()).filter(r => r.height > 0).map(r => r.top);
+    const bt = Math.ceil(innerHeight - (tops.length ? Math.min(...tops) : innerHeight - 50) + 10) + 'px'; if (devPanel.style.bottom !== bt) devPanel.style.bottom = bt;
+  }   // the side panel stays clear of the bar, however many rows it wraps to
+  const bm = CONFIG.budMode; let sw = `Controls: ${bm === 'both' ? '<b>both</b>' : 'both'} / ${bm === 'click' ? '<b>click</b>' : 'click'} / ${bm === 'keys' ? '<b>keys</b>' : 'keys'}`;
+  sw = `<span class="lb">${sw}</span>`; if (barSwitch.innerHTML !== sw) barSwitch.innerHTML = sw;
 }
 
 /* ---------- developer tools: backslash toggles a side panel (time, resources, tree, colony, spawn, toggles, CONFIG) ---------- */
