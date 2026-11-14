@@ -271,7 +271,7 @@ const CONFIG = {
   larvaRadius: 8, larvaAccel: 430, larvaDrag: 2.4, settleReach: 10, eatPad: 6,
   // predators
   fishCount: 2, fishRadius: 15, fishPatrolSpeed: 65, fishChaseSpeed: 150, fishSense: 230, fishGiveUp: 380,
-  hitLossFraction: 1 / 3, hitKnockback: 430, invulnerable: 2.0, fishRetreat: 2.5,
+  hitLossFraction: 1 / 3, hitKnockback: 430, invulnerable: 2.0, fishRetreat: 2.5, fishStung: 12, fishStingKnock: 260,
   // polyps
   tentacleReach: 120, tentacleIdleLen: 32, tentacleSpeed: 7, pullRadius: 36, pullSpeed: 230, eatDist: 9,
   budMode: 'both', budTime: 1.2, budCostBase: 12, budCostPerPolyp: 1.5,
@@ -1467,7 +1467,7 @@ function budSpots() {
   const a = game.active; if (game.stage !== 'polyp' || !a) return [];
   return Object.values(DIRS).map(([dc, dr]) => ({ c: a.c + dc, r: a.r + dr })).filter(s => validBudCell(s.c, s.r, game.nextType, a)).map(s => (s.blocked = !!fishInWay(s.c, s.r), s));   // blocked: a fish is on it
 }
-const FISH_MSG = 'A fish is in the way';
+const FISH_MSG = 'A creature is in the way';
 function spotAtMouse() {
   if (!spotMode() || game.tree.open || game.mouse.ui) return null;
   const w = screenToWorld(game.mouse.sx, game.mouse.sy), c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
@@ -1591,7 +1591,7 @@ function updateGuide(dt) {
   if (!g.path.length) { game.guide = null; game.stats.guideRuns++; toast('Guided growth complete'); }
 }
 
-/* ---------- sting: the active polyp lashes out toward the cursor and drives nibblers away ---------- */
+/* ---------- sting: the active polyp lashes out toward the cursor and drives nibblers and the orange hunters away ---------- */
 function distSeg(px, py, x0, y0, x1, y1) {
   const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1, u = clamp(((px - x0) * dx + (py - y0) * dy) / l2, 0, 1);
   return Math.hypot(px - (x0 + dx * u), py - (y0 + dy * u));
@@ -1607,6 +1607,13 @@ function doSting() {
   let hit = 0;
   for (const n of game.nibblers) {
     if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
+  }
+  for (const f of game.fish) {   // the orange hunters: a sting knocks one back and puts it off chasing for fishStung seconds
+    if (distSeg(f.x, f.y, cc.x, sy, ex, ey) > CONFIG.stingRadius + CONFIG.fishRadius * 0.7) continue;
+    const fx = f.x - cc.x, fy = f.y - cc.y, fm = Math.hypot(fx, fy) || 1;
+    f.mode = 'patrol'; pickWaypoint(f); f.cool = Math.max(f.cool, CONFIG.fishStung);
+    f.vx = fx / fm * CONFIG.fishStingKnock; f.vy = fy / fm * CONFIG.fishStingKnock;
+    game.stats.fishStung = (game.stats.fishStung || 0) + 1; hit++; spawnParts('spark', f.x, f.y, 4);
   }
   for (const f of game.starfish) {   // a starfish takes 3 stings (D4: one)
     if (f.dead || f.mode === 'leave' || distSeg(f.x, f.y, cc.x, sy, ex, ey) > CONFIG.stingRadius + 10) continue;
