@@ -332,7 +332,7 @@ const CONFIG = {
   res: {
     tick: 1.2, hapStart: 60, hapBase: 40, hapFood: 30, hapSafe: 15, hapClean: 15, hapCrowd: 15, hapRate: 8, hapHappy: 70, hapContent: 40, hapLeave: 25, hapLeaveSecs: 60, brokenHap: 30,
     jobHappy: 1.25, jobContent: 1, jobUnhappy: 0.6, safeSecs: 30, safeCells: 6, crowdCells: 5, cleanCells: 10, noneSecs: 60, noneMinPolyps: 20,
-    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4,
+    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4, asideSecs: 25, asideSpeed: 110,
     clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5, leaveSpeed: 120 },
     crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
     shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.35, healDelay: 4, radius: 4, r3Radius: 7, fishCells: 10 },
@@ -1625,6 +1625,7 @@ function doSting() {
     f.hp -= has('D4') ? 99 : CONFIG.threat.star.sting; f.hurt = 0.6; hit++; spawnParts('spark', f.x, f.y, 4);
   }
   for (const r of game.rivals) if (r.hp > 0 && distSeg((r.c + 0.5) * CELL, (r.r + 0.5) * CELL, cc.x, sy, ex, ey) <= CONFIG.stingRadius + 10) { r.hp--; hit++; spawnParts('spark', (r.c + 0.5) * CELL, (r.r + 0.5) * CELL, 3); }   // CE2: 3 stings kill a rival
+  if (stingResidents(cc.x, sy, ex, ey)) hit++;
   game.stats.stings++;
   sfx('sting');
   game.fx.push({ kind: 'sting', x: cc.x, y: sy, x1: ex, y1: ey, t: 0, life: 0.5, hit: hit > 0 });
@@ -1644,6 +1645,7 @@ function cycleType(dir = 1) {
 }
 const toggleAnemone = () => cycleType();
 function clownAnchor(f) {
+  if (f.pin) { const a = anemones().find(p => p.c === f.pin.c && p.r === f.pin.r); if (a) return cellCenter(a.c, a.r); f.pin = null; }
   let best = null, bd = 1e9;
   for (const p of anemones()) { const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - f.x, c.y - f.y); if (d < bd) { bd = d; best = c; } }
   if (best) return best;
@@ -1688,8 +1690,10 @@ function updateClown(dt) {
     if (tgt) {
       f.mode = 'chase'; tx = tgt.x; ty = tgt.y; sp = CONFIG.clownChaseSpeed;
       if (bd < 18) { driveOff(tgt, f.x, f.y, CONFIG.clownFlee, false); f.cool = 1.6; }
+    } else if (f.aside && game.time < f.aside.until) {   // stung aside: it keeps clear of the spot for a while
+      f.mode = 'home'; tx = f.aside.x; ty = f.aside.y; sp = CONFIG.res.asideSpeed;
     } else {
-      f.mode = 'home';
+      f.aside = null; f.mode = 'home';
       tx = an.x + Math.cos(t * 0.7 + f.orbit) * 44; ty = an.y - 26 + Math.sin(t * 1.1 + f.orbit) * 18;
       sp = clamp(Math.hypot(tx - f.x, ty - f.y) * 1.6, 25, CONFIG.clownSpeed);
     }
@@ -2275,6 +2279,64 @@ function jobTurtle(r, dt) {
   }
 }
 const JOBS = { crab: jobCrab, shrimp: jobShrimp, parrot: jobParrot, urchin: jobUrchin, moray: jobMoray, goby: jobGoby, turtle: jobTurtle };
+/* ---------- a sting repositions residents (never hurts them): to another free habitat of their kind, else aside for a while ---------- */
+function asidePoint(e) {   // the nearest open water 3 to 6 cells away that no bud spot touches
+  const spots = budSpots(); let best = null, bd = 1e9;
+  for (let dc = 3; dc <= 6 && !best; dc++) for (let k = 0; k < 24; k++) {
+    const a = k / 24 * Math.PI * 2, x = e.x + Math.cos(a) * dc * CELL, y = e.y + Math.sin(a) * dc * CELL;
+    if (x < 40 || x > LAG - 40 || y < 60 || blockedAt(x, y, 10, '') || !waterCell(Math.floor(x / CELL), Math.floor(y / CELL))) continue;
+    if (spots.some(sp => hitsCell({ x, y }, 12, sp.c, sp.r))) continue;
+    const d = Math.hypot(x - e.x, y - e.y) + k * 0.01; if (d < bd) { bd = d; best = { x, y }; }
+  }
+  return best;
+}
+function freeHab(r) {
+  if (!r.hab) return null;
+  const C = CONFIG.res; let best = null, bd = 1e9;
+  for (const h of game.res.habs) {
+    if (h === r.hab || h.kind !== r.kind || h.broken !== null || game.goals.stage < C[h.kind].stage) continue;
+    if (h.res.length >= h.cap * (has('R4') && h.kind !== 'moray' ? C.r4Cap : 1)) continue;
+    const d = Math.hypot(h.c - r.hab.c, h.r - r.hab.r); if (d < bd) { bd = d; best = h; }
+  }
+  return best;
+}
+function stingResidents(x0, y0, x1, y1) {
+  const R = CONFIG.stingRadius + 8, C = CONFIG.res; let n = 0, msg = '';
+  for (const r of game.res.list.slice()) {
+    if (r.kind === 'clown' || r.kind === 'moray' || !resLive(r) || r.mode === 'arrive' || r.x === undefined || distSeg(r.x, r.y, x0, y0, x1, y1) > R) continue;
+    const nm = RES[r.kind].name.toLowerCase(), h2 = freeHab(r);
+    game.fx.push({ kind: 'ring', x: r.x, y: r.y, t: 0, life: 0.6 }); spawnParts('spark', r.x, r.y, 4);
+    if (h2) {
+      r.hab.res = r.hab.res.filter(q => q !== r); r.hab.since = game.time;
+      h2.res.push(r); r.hab = h2; r.home = null; r.aside = null; r.backT = undefined; r.stand = null; r.act = null; r.wp = null; r.first = false; r.mode = 'arrive';
+      msg = msg || `The ${nm} moves to another ${RES[r.kind].home}`; n++;
+    } else {
+      const pt = asidePoint(r); if (!pt) continue;
+      r.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; r.backT = undefined; r.act = null;
+      msg = msg || `The ${nm} moves aside for a while`; n++;
+    }
+  }
+  const hurt = game.clown.fish.filter(f => !f.leave && !f.gone && distSeg(f.x, f.y, x0, y0, x1, y1) <= R);
+  if (hurt.length) {
+    const an = clownAnchor(hurt[0]), other = anemones().find(a => anemoneOK(a) && Math.hypot(cellCenter(a.c, a.r).x - an.x, cellCenter(a.c, a.r).y - an.y) > CELL);
+    for (const f of hurt) game.fx.push({ kind: 'ring', x: f.x, y: f.y, t: 0, life: 0.6 });
+    if (other) { for (const f of game.clown.fish) { f.pin = { c: other.c, r: other.r }; f.aside = null; } msg = msg || 'The clownfish move to another anemone'; n++; }
+    else for (const f of hurt) { const pt = asidePoint(f); if (pt) { f.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; msg = msg || 'The clownfish move aside for a while'; n++; } }
+  }
+  if (msg) toast(msg);
+  return n;
+}
+function asideStep(r, dt) {
+  const C = CONFIG.res;
+  if (r.aside && game.time >= r.aside.until) { r.aside = null; if (homeOf(r)) r.backT = 0; }
+  if (r.aside) { steer(r, r.aside.x, r.aside.y, C.asideSpeed, dt, 7); return true; }
+  if (r.backT !== undefined) {   // the time is up: swim back to the home spot (or give up after a few seconds, the job takes over)
+    const hp = homeOf(r), t = r.kind === 'crab' ? crabStand(r, hp)[0] : hp; r.backT += dt;
+    const d = steer(r, t.x, t.y, C.asideSpeed, dt, 7);
+    if (d < 12 || r.backT > 8) r.backT = undefined; else return true;
+  }
+  return false;
+}
 function updateRes(r, dt) {
   const C = CONFIG.res;
   r.t += dt;
@@ -2302,6 +2364,7 @@ function updateRes(r, dt) {
     if (d < 6) arrived(r);
     return;
   }
+  if ((r.aside || r.backT !== undefined) && asideStep(r, dt)) return;   // stung aside (or swimming back): the job waits
   if (r.hab && r.hab.broken !== null) r.parts = r.parts || null;
   JOBS[r.kind](r, dt, jobMult(r));
 }
@@ -5024,7 +5087,7 @@ const BAR = [
   { id: 'guide', grp: 'act', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide || game.arm === 'guide', dis: () => polypNow() ? '' : 'Settle first', tip: 'Click, then click a cell to grow towards it (or hold G and click)', arm: 'guide',
     go: () => game.guide ? cancelGuide('Guided growth cancelled') : toggleArm('guide') },
   { id: 'type', grp: 'act', label: () => TYPE_NAME[game.nextType], icon: () => TYPE_ICON[game.nextType], key: () => 'Q', show: () => ownedTypes().length > 1, on: () => game.nextType !== 'branch', dis: () => polypNow() ? '' : 'Settle first', tip: () => `Next bud: ${TYPE_NAME[game.nextType]}, ${Math.ceil(budCost())} energy${budCalcium() ? ' + ' + budCalcium() + ' Ca' : ''}. Click or Q for the next type, right-click or Shift+Q for the last`, go: () => cycleType() },
-  { id: 'sting', grp: 'act', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', on: () => game.arm === 'sting', tip: 'Click, then click the reef to lash out there (E: towards the cursor)', arm: 'sting', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => toggleArm('sting') },
+  { id: 'sting', grp: 'act', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', on: () => game.arm === 'sting', tip: 'Click, then click the reef to lash out there, driving off pests and nudging your residents out of the way (E: towards the cursor)', arm: 'sting', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => toggleArm('sting') },
   { id: 'struct', grp: 'view', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
   { id: 'report', grp: 'panel', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
   { id: 'frag', grp: 'act', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', on: () => game.arm === 'frag', tip: 'Click, then click the reef to throw a snapped branch tip there (F: at the cursor)', arm: 'frag', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => toggleArm('frag') },
