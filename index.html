@@ -64,7 +64,7 @@
   #devtools button { font: inherit; padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e8f8ff; cursor: pointer; } #devtools button:hover { background: rgba(255,255,255,0.2); } #devtools button.on { background: #2f7f62; }
   #devtools label { display: inline-flex; gap: 4px; align-items: center; margin-right: 8px; }
   #devtools input[type=text], #devtools input[type=number] { font: inherit; color: #e8f8ff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 1px 4px; }
-  #devtools input[type=text] { width: 100%; box-sizing: border-box; } #devtools #devread, #devtools #devcfg, #devtools #devtree { width: 100%; }
+  #devtools input[type=text] { width: 100%; box-sizing: border-box; } #devtools #devread, #devtools #stageread, #devtools #devcfg, #devtools #devtree { width: 100%; }
   #devtools .tr { display: flex; gap: 5px; align-items: center; margin-bottom: 2px; } #devtools .tr b { width: 22px; } #devtools .tr .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e8f8ff; } #devtools .tr .s { width: 50px; color: #8aa0b2; } #devtools .tr .s.revealed { color: #ffd9a0; } #devtools .tr .s.owned { color: #8ff0c0; }
   #devtools .cr { display: flex; justify-content: space-between; gap: 6px; margin: 0 0 2px; width: 100%; } #devtools .cr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #devtools .cr input { width: 84px; flex: none; } #devtools .cr.chg span { color: #ffd34d; } #devtools .cr.chg input { border-color: #ffd34d; background: rgba(255,211,77,0.15); }
   #devstats { position: fixed; left: 12px; bottom: 60px; display: none; padding: 4px 9px; background: rgba(2, 16, 32, 0.7); color: #cfeaf6; border-radius: 6px; font-size: 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
@@ -447,7 +447,7 @@ const game = {
   res: { list: [], habs: [], rush: 0, tickT: 0, sig: '', clownBroken: 0, turtleYear: -1, pin: null, fishE: 0, noneT: 0 },   // residents: list of animals, habitats found on the grid
   bio: { B: 0, parts: [], t: 0 }, bp: 0, sand: 0, seaweed: new Set(), starfish: [],
   thr: { plan: { heat: {}, weed: {}, star: {} }, n: { heat: 0, weed: 0, star: 0 }, heat: { on: false, t: 0, checkT: 0, hit: [], ran: -1 }, weed: { on: false, t: 0, tick: 0, ran: -1 }, dis: { on: false, tick: 0, startAt: -1, seals: new Set(), ver: 0, drag: null }, star: { ran: -1, endAt: -1, n: 0 } },   // threats: which seasons will bring them, and their running state
-  goals: { stage: 0, chk: 0, shown: 0, crestStorm: false, sr: null },   // stage = how many STAGES are reached (0 = none yet); never goes down
+  goals: { stage: 0, chk: 0, shown: 0, crestStorm: false, sr: null, at: [] },   // stage = how many STAGES are reached (0 = none yet); never goes down
   bloom: { next: CONFIG.bloomFirst, x: 0, y: 0, count: 0 },
   current: 0,
   settleTarget: null,
@@ -651,6 +651,7 @@ function checkStage() {
 // the moment: banner, slow beat, pulse on the colony, a chime, then a toast with what changed
 function stageUp(n) {
   game.goals.stage = n;
+  (game.goals.at = game.goals.at || [])[n - 1] = game.time;   // play time when this stage was reached (saved with the goals), for pacing
   const s = STAGES[n - 1], a = game.active || game.polyps[0], cc = a ? cellCenter(a.c, a.r) : playerPos();
   track.lit = n - 1; saveSoon(); if (n === 5) atollStart(); if (n === 6) islandStart();
   const b = document.getElementById('banner'); b.innerHTML = `<div class="bn"><h1>${s.name}</h1><p>${s.desc}</p></div>`;
@@ -1053,13 +1054,20 @@ function drawIslandLife(t) {
 // ---- the ending card (after the turtles nest) and the sandbox ----
 const endEl = document.createElement('div'); endEl.id = 'ending'; document.body.appendChild(endEl);
 function fmtTime(s) { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? `${h} h ${m} min` : `${m} min`; }
+// the play time each stage was reached and how long the stage before it took: [name, 'm:ss', '+m:ss']
+function stageTimes() {
+  const at = game.goals.at || [], out = []; let prev = 0;
+  STAGES.forEach((st, i) => { const t = at[i]; if (typeof t !== 'number') return; out.push([st.name, mmss(t), '+' + mmss(Math.max(0, t - prev))]); prev = t; });
+  return out;
+}
 function openEnding() {
   const F = game.fin, v = calcRatings(), L = F.life || {};
   const ach = game.ach.order.length, achAll = ACH.filter(x => !x.later).length;
   const rows = [['Time played', fmtTime(game.time)], ['Most polyps at once', Math.max(game.stats.polypPeak || 0, game.polyps.length)], ['Species', game.species.length], ['Lineages', game.lineages.length], ['Storms survived', game.stats.stormsSurvived], ['Achievements', `${ach} of ${achAll}`]];
   const rat = ratingRows().map(([k, nm, col]) => `<div class="rb"><span>${nm}</span><i><u style="width:${Math.round(v[k] || 0)}%;background:${col}"></u></i><em>${Math.round(v[k] || 0)}</em></div>`).join('');
   endEl.innerHTML = `<div class="tp"><h1>An island</h1><p>Your reef has risen out of the sea. Birds circle it, grass is holding the sand, and the turtles have come ashore.</p>` +
-    `<div class="sum">${rows.map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div><h5>Reef ratings</h5><div class="rt">${rat}</div>` +
+    `<div class="sum">${rows.map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>` +
+    (stageTimes().length ? `<h5>Stage reached at</h5><div class="sum">${stageTimes().map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>` : '') + `<h5>Reef ratings</h5><div class="rt">${rat}</div>` +
     `<div class="btns"><button class="keep">Keep playing</button><button class="new">New game</button></div></div>`;
   endEl.classList.add('open'); F.cardOpen = true; F.carded = true;
 }
@@ -5498,7 +5506,7 @@ const devGroups = [
   ['Resources', [
     '<button data-a="e50">+50 energy</button><button data-a="efill">fill energy</button><button data-a="ca20">+20 calcium</button>',
     '<label><input type="checkbox" data-t="inf"> infinite energy</label>',
-    '<div id="devread"></div>']],
+    '<div id="devread"></div><div id="stageread"></div>']],
   ['Tech tree', [
     '<div id="devtree"></div>',
     '<button data-a="revall">reveal all</button><button data-a="ownall">own all</button><button data-a="treereset" title="Clears the tree state only. Effects already applied (unlocks, calcium) are not undone">reset tree</button>']],
@@ -5642,6 +5650,8 @@ function devRefresh() {
   const sv = document.getElementById('savread'), sv0 = `slot ${devSaveKey()} · ${SAVE.size ? (SAVE.size / 1024).toFixed(1) + ' KB' : 'empty'}${SAVE.on ? '' : ' (saving is off here)'}`; if (sv.textContent !== sv0) sv.textContent = sv0;
   const rd = document.getElementById('devread'), s = `energy ${game.energy.toFixed(1)} · calcium ${Math.floor(game.calcium)} · polyps ${game.polyps.length} · time ${game.time.toFixed(1)} s`;
   if (rd.textContent !== s) rd.textContent = s;
+  const sg = document.getElementById('stageread'), s2 = 'stages: ' + (stageTimes().map(r => `${r[0]} ${r[1]} (${r[2]})`).join(' · ') || 'none yet');
+  if (sg.textContent !== s2) sg.textContent = s2;
 }
 function devForecast() {   // jump the clock to 60 s before the next storm
   if (game.goals.stage < 2) devStage(2);
