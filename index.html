@@ -7,6 +7,7 @@
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #031326; font-family: "Segoe UI", system-ui, sans-serif; user-select: none; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+  canvas.armed { cursor: cell; }
   #hud { position: fixed; left: 12px; top: 12px; padding: 8px 12px; min-width: 150px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); box-sizing: border-box; color: #d6f2ff; border-radius: 12px; font-size: 13px; line-height: 1.55; pointer-events: none; }
   #hud b { color: #fff; font-weight: 600; }
   #hud .row { display: flex; justify-content: space-between; gap: 18px; }
@@ -39,7 +40,9 @@
   #pbar { right: 12px; top: 12px; display: flex; gap: 6px; }
   #pbar button { flex: none; width: 40px; height: 40px; justify-content: center; border-radius: 12px; border-color: rgba(150, 220, 240, 0.14); background: rgba(2, 16, 32, 0.55); backdrop-filter: blur(4px); }
   #pbar button:hover { background: rgba(8, 36, 58, 0.7); }
-  #pbar .ic svg { width: 22px; height: 22px; } #pbar .lb, #pbar kbd { display: none; }
+  #pbar .ic svg { width: 22px; height: 22px; } #pbar .lb { display: none; }
+  #pbar kbd { position: absolute; top: 2px; right: 3px; font-size: 0; padding: 0 2px; line-height: 12px; } #pbar kbd::after { content: attr(data-s); font-size: 9px; }
+  #abar button.hint, #abar button.hint:hover { cursor: default; background: rgba(255, 255, 255, 0.06); border-color: rgba(150, 220, 240, 0.18); }
   #vbar { right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
   #vbar button { flex: none; height: 28px; gap: 6px; padding: 0 8px 0 9px; border-radius: 12px; border-color: rgba(150, 220, 240, 0.14); background: rgba(2, 16, 32, 0.55); backdrop-filter: blur(4px); font-size: 12px; }
   #vbar button:hover { background: rgba(8, 36, 58, 0.7); }
@@ -146,7 +149,8 @@
   .gl.met .t, .gl.met .t b { color: #8ff0c0; } .gl.met .b i { background: #7be3b0; }
   #stcard { position: fixed; z-index: 35; display: none; width: 230px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.94); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); pointer-events: none; }
   #stcard h4 { margin: 0 0 2px; font-size: 14px; color: #ffe3d3; } #stcard p { margin: 0 0 5px; color: #bcdbe8; } #stcard .gl { margin-top: 4px; } #stcard .k { margin-top: 5px; color: #9cc5d6; } #stcard .k b { color: #ffe3d3; font-weight: 600; } #stcard .soon { color: #8aa0b2; font-style: italic; }
-  #banner { position: fixed; left: 0; right: 0; top: 27%; z-index: 25; text-align: center; pointer-events: none; opacity: 0; color: #fff3d6; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 210, 150, 0.6); }
+  #banner { position: fixed; left: 0; right: 0; top: 14%; z-index: 25; display: flex; justify-content: center; text-align: center; pointer-events: none; opacity: 0; color: #fff3d6; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 210, 150, 0.6); }
+  #banner .bn { padding: 10px 28px 14px; max-width: 90vw; box-sizing: border-box; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); border-radius: 16px; backdrop-filter: blur(6px); }
   #banner h1 { margin: 0; font-size: 64px; font-weight: 700; letter-spacing: 0.06em; } #banner p { margin: 6px 0 0; font-size: 18px; color: #ffe3d3; }
   #banner.show { animation: bshow 3.4s ease-out; }
   #ending { position: fixed; inset: 0; z-index: 45; display: none; align-items: center; justify-content: center; background: rgba(8, 24, 40, 0.5); backdrop-filter: blur(2px); color: #e8f6ff; }
@@ -391,6 +395,7 @@ const CONFIG = {
 
 const game = {
   time: 0,
+  arm: null,                 // 'sting' | 'frag' | 'guide': a bar button armed, the next canvas click fires it (not saved)
   stage: 'larva',            // 'larva' | 'polyp'
   energy: CONFIG.startEnergy,
   cols: Math.ceil(CONFIG.worldW / CONFIG.cell),
@@ -4937,7 +4942,7 @@ function render() {
 /* ---------- HUD ---------- */
 const el = id => document.getElementById(id);
 const hud = { stage: el('hStage'), energy: el('hEnergy'), polyps: el('hPolyps'), light: el('hLight'), bar: el('barfill'), hint: el('hint'), rowCa: el('rowCa'), calcium: el('hCa'), species: el('hSpecies'), note: el('treeNote'), rowBoost: el('rowBoost'), boost: el('hBoost'), rowBio: el('rowBio'), bio: el('hBio'), rowBp: el('rowBp'), bp: el('hBp'), rowSand: el('rowSand'), sand: el('hSand') };
-function updateMuteLabel() { el('muteNote').innerHTML = `<kbd style="font:inherit;padding:0 4px;border-radius:3px;background:rgba(255,255,255,0.18)">M</kbd> sound ${audio.muted ? 'off' : 'on'}`; }
+function updateMuteLabel() { el('muteNote').innerHTML = audio.muted ? '<kbd style="font:inherit;padding:0 4px;border-radius:3px;background:rgba(255,255,255,0.18)">M</kbd> sound off' : ''; }
 updateMuteLabel();
 function currentHint() {
   const pr = game.progress, n = game.polyps.length;
@@ -4999,19 +5004,30 @@ const BAR_ICON = {
   zoom: svgI('<path d="M2 5.5V2h3.5M10.5 2H14v3.5M14 10.5V14h-3.5M5.5 14H2v-3.5" stroke="#d6f2ff" stroke-width="1.6"/><path d="M8 11.5V8M8 9.6L6.2 7.6M8 9l1.9-2.5" stroke="#7be3b0" stroke-width="1.6"/>'),
   gear: svgI('<circle cx="8" cy="8" r="3.6" stroke="#d6f2ff" stroke-width="1.6"/><circle cx="8" cy="8" r="1.3" stroke="#fff3d6" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="#d6f2ff" stroke-width="1.6"/>'),
 };
+const ARM_MSG = { sting: 'Click where to sting. Right-click or Esc to cancel.', frag: 'Click where to throw the branch tip. Right-click or Esc to cancel.', guide: 'Click a cell to grow towards. Right-click or Esc to cancel.' };
+function setArm(k) { game.arm = k; canvas.classList.toggle('armed', !!k); }
+function toggleArm(k) { if (game.arm === k) { setArm(null); return; } setArm(k); toast(ARM_MSG[k]); }
+function armFire() {   // the armed action fires at the click point
+  const k = game.arm; setArm(null);
+  if (k === 'sting') doSting(); else if (k === 'frag') pressFrag(); else if (k === 'guide') guideClick();
+}
+function armCheck() {   // arm drops when the action is no longer usable
+  if (!game.arm) return;
+  if (game.stage !== 'polyp' || game.tree.open || game.titleOn) setArm(null);
+}
 const BAR = [
   { id: 'settle', grp: 'act', label: () => 'Settle', key: () => 'Space', show: () => game.stage === 'larva', dis: () => game.settleTarget ? '' : 'Swim against rock to settle', tip: 'Settle here', go: () => pressSpace() },
   { id: 'bud', grp: 'act', label: () => 'Bud', key: () => clickMode() ? 'Click' : spotMode() ? 'Space / Click' : 'Space', show: polypNow, hold: true,
     dis: () => !budSpots().length ? 'No free space here' : budShort() || '', tip: () => clickMode() ? 'Hold the mouse on a glowing cell to bud' : spotMode() ? 'Click a glowing cell, or press a direction, then hold Space' : 'Press a direction, then hold Space to bud',
-    go: () => toast('Hold the mouse on a glowing cell to bud') },
+    go: () => {} },
   { id: 'bail', grp: 'act', label: () => 'Bail', key: () => 'R', show: polypNow, dis: () => '', tip: 'Swim free as a larva', go: () => bail() },
-  { id: 'guide', grp: 'act', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide, dis: () => polypNow() ? '' : 'Settle first', tip: 'Hold G and click a cell to grow towards it',
-    go: () => game.guide ? cancelGuide('Guided growth cancelled') : toast('Hold G and click a cell to grow towards it') },
+  { id: 'guide', grp: 'act', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide || game.arm === 'guide', dis: () => polypNow() ? '' : 'Settle first', tip: 'Click, then click a cell to grow towards it (or hold G and click)', arm: 'guide',
+    go: () => game.guide ? cancelGuide('Guided growth cancelled') : toggleArm('guide') },
   { id: 'type', grp: 'act', label: () => TYPE_NAME[game.nextType], icon: () => TYPE_ICON[game.nextType], key: () => 'Q', show: () => ownedTypes().length > 1, on: () => game.nextType !== 'branch', dis: () => polypNow() ? '' : 'Settle first', tip: () => `Next bud: ${TYPE_NAME[game.nextType]}, ${Math.ceil(budCost())} energy${budCalcium() ? ' + ' + budCalcium() + ' Ca' : ''}. Click or Q for the next type, right-click or Shift+Q for the last`, go: () => cycleType() },
-  { id: 'sting', grp: 'act', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', tip: 'Lash out towards the cursor', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => doSting() },
+  { id: 'sting', grp: 'act', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', on: () => game.arm === 'sting', tip: 'Click, then click the reef to lash out there (E: towards the cursor)', arm: 'sting', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => toggleArm('sting') },
   { id: 'struct', grp: 'view', label: () => ({ light: 'Light', flow: 'Flow' })[ovMode()] || 'Structure', key: () => 'V', show: () => game.goals.stage >= 2, on: () => structureShown() || !!devs.ov2, dis: () => '', tip: 'Cycle the overlay: structure, light, flow, off', go: () => toggleStructure() },
   { id: 'report', grp: 'panel', label: () => 'Report', key: () => 'Tab', show: () => game.goals.stage >= 2, on: () => game.rep.open, dot: () => reportDot(), dis: () => '', tip: 'The loudest problems on the reef, and how to fix them', go: () => toggleReport() },
-  { id: 'frag', grp: 'act', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', tip: 'Snap off a branch tip and throw it where you aim', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => pressFrag() },
+  { id: 'frag', grp: 'act', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', on: () => game.arm === 'frag', tip: 'Click, then click the reef to throw a snapped branch tip there (F: at the cursor)', arm: 'frag', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => toggleArm('frag') },
   { id: 'plan', grp: 'act', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
   { id: 'ach', grp: 'panel', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
   { id: 'genome', grp: 'panel', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
@@ -5029,7 +5045,7 @@ const BAR_ORDER = {
 };
 const pbar = el('pbar'), vbar = el('vbar'), gmenu = el('gmenu');
 const BAR_BOX = { act: abar, panel: pbar, view: vbar, menu: gmenu };
-const KSHORT = k => k.replace('Space / Click', 'Spc/Clk').replace('Space', 'Spc');
+const KSHORT = k => k.replace('Shift+click', '⇧Clk').replace('Space / Click', 'Spc/Clk').replace('Space', 'Spc');
 function barBtn(id) {
   const o = {}, b = o.btn = document.createElement('button');
   b.dataset.bar = id; b.tabIndex = -1; b.style.display = 'none';
@@ -5069,8 +5085,10 @@ function bindBar(box) {
     if (b === gear.btn) { gmenuOpen(!gmenu.classList.contains('open')); return; }
     if (b === lookRow.btn) { game.look.list = !game.look.list; updateLookList(); return; }
     const d = BAR.find(x => x.btn === b); if (!d) return;
+    if (d.id === 'bud' && clickMode()) return;   // the Bud button is only a hint
     if (d.reason) { toast(d.reason); return; }
     if (d.hold && !clickMode()) return;   // handled on press
+    if (d.arm && game.arm && game.arm !== d.arm) setArm(null);
     d.go();
     if (d.id === 'new' || d.id === 'dev') gmenuOpen(false);
   });
@@ -5081,6 +5099,7 @@ function bindBar(box) {
 const barRelease = () => { for (const d of BAR) if (d.held) { d.held = false; game.keys.delete('Space'); } };
 window.addEventListener('mouseup', barRelease); window.addEventListener('blur', barRelease);
 function updateBar() {
+  armCheck();
   const nvis = { act: 0, view: 0 };
   for (const d of BAR) {
     const vis = !!d.show(), b = d.btn;
@@ -5099,6 +5118,7 @@ function updateBar() {
     if (d.kb.textContent !== kb) { d.kb.textContent = kb; d.kb.dataset.s = KSHORT(kb); }
     if (d.icon) { const ic = d.icon(); if (d.icEl.innerHTML !== ic) d.icEl.innerHTML = ic; }
     if (b.title !== tip) b.title = tip;
+    b.classList.toggle('hint', d.id === 'bud' && clickMode());
     b.classList.toggle('dis', !!d.reason); b.classList.toggle('on', !!(d.on && d.on()));
     if (d.cd) d.cdEl.style.width = Math.round(clamp(d.cd(), 0, 1) * 100) + '%';
     d.dotEl.style.display = d.dot && d.dot() ? '' : 'none';
@@ -5597,6 +5617,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Escape' && game.reefView) { toggleReefView(false); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
+  if (e.code === 'Escape' && game.arm) { setArm(null); return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
   if (game.tree.open) return;
   if (!GAME_KEYS.has(e.code)) return;
@@ -5606,8 +5627,8 @@ window.addEventListener('keydown', e => {
   if (e.repeat) return;
   if (e.code === 'Space') pressSpace();
   else if (e.code === 'KeyR') bail();
-  else if (e.code === 'KeyE') doSting();
-  else if (e.code === 'KeyF') pressFrag();
+  else if (e.code === 'KeyE') { setArm(null); doSting(); }
+  else if (e.code === 'KeyF') { setArm(null); pressFrag(); }
   else if (e.code === 'KeyQ') cycleType(e.shiftKey ? -1 : 1);
   else if (game.stage === 'polyp') {
     const d = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' }[e.code];
@@ -5621,6 +5642,7 @@ canvas.addEventListener('mousedown', e => {
   game.mouse.sx = e.clientX; game.mouse.sy = e.clientY;
   if (game.tree.open) return;
   game.slow = null;
+  if (game.arm) { const wasArmed = game.arm; if (e.button === 0) armFire(); else setArm(null); if (wasArmed) return; }
   if (e.shiftKey && e.button === 0) { const q = polypAtMouse(); if (q) { openLinCard(q); return; } }   // Shift+click a polyp: its lineage
   if (e.button === 2 && has('D5') && game.keys.has('KeyG')) { sealPress(); return; }   // G + right mouse seals links (D5) instead of stinging
   if (e.button === 2) { doSting(); return; }
@@ -5691,7 +5713,7 @@ function seasonText() {   // [name, forecast line, class]
   const s = nextStormStart(S.t);
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
   const th = threatLine(); if (th) return [nm, th[0], th[1]];
-  return [nm, 'Calm', ''];
+  return [nm, 'All quiet', ''];
 }
 const seasonEl = document.getElementById('season'), seasonCard = document.getElementById('seasoncard');
 const arcPath = (a0, a1, r) => { const p = a => [22 + r * Math.sin(a), 22 - r * Math.cos(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
@@ -6532,7 +6554,7 @@ function threatOdds(k) {
   return T.n[k] === 0 ? 'certain' : 'possible';
 }
 function banner(h, p, col) {
-  const b = document.getElementById('banner'); b.innerHTML = `<h1>${h}</h1><p>${p}</p>`; b.style.color = col || '';
+  const b = document.getElementById('banner'); b.innerHTML = `<div class="bn"><h1>${h}</h1><p>${p}</p></div>`; b.style.color = col || '';
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
 }
 /* heat wave: the 80 s of a Warm day, checked every 10 s. Shallow coral may bleach; a bleached polyp makes no sun, and recovers (or dies) later */
