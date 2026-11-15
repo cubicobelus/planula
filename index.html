@@ -524,7 +524,7 @@ const TREE = [
     fx: () => `Polyps slowly make calcium. Buds cost ${Math.round((1 - CONFIG.budEnergyFactor) * 100)}% less energy plus ${CONFIG.budCalcium} calcium`, done: 'Polyps now draw calcium from the water',
     ok: () => game.stats.buds >= CONFIG.revealBuds, on: () => { game.calciumOn = true; game.calcium = Math.max(game.calcium, CONFIG.calciumStart); } },
   { id: 'G2', tier: 1, branch: 'Growth', name: 'Guided growth', hint: 'Practise growing by hand, a lot', needs: 'G1',
-    fx: () => 'Hold G and click a spot nearby: the colony grows a path to it by itself, slowly', done: 'Hold G and click to guide growth', ok: () => game.stats.handBuds >= CONFIG.revealHandBuds },
+    fx: () => 'Tap G (or the Guide button) and click a spot nearby: the colony grows a path to it by itself, slowly', done: 'Tap G, then click, to guide growth', ok: () => game.stats.handBuds >= CONFIG.revealHandBuds },
   { id: 'R1', tier: 1, branch: 'Residents', name: 'Anemone', hint: 'A bigger colony might shelter someone',
     fx: () => 'Q picks an anemone as the next bud. A pair of clownfish moves in soon after', done: 'Press Q to bud an anemone', ok: () => game.polyps.length >= CONFIG.revealAnemonePolyps },
   { id: 'D1', tier: 1, branch: 'Defense', name: 'Sting', hint: 'Something may come to nibble',
@@ -653,7 +653,7 @@ function stageUp(n) {
   game.goals.stage = n;
   const s = STAGES[n - 1], a = game.active || game.polyps[0], cc = a ? cellCenter(a.c, a.r) : playerPos();
   track.lit = n - 1; saveSoon(); if (n === 5) atollStart(); if (n === 6) islandStart();
-  const b = document.getElementById('banner'); b.innerHTML = `<h1>${s.name}</h1><p>${s.desc}</p>`;
+  const b = document.getElementById('banner'); b.innerHTML = `<div class="bn"><h1>${s.name}</h1><p>${s.desc}</p></div>`;
   b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
   beat(1.1, 0.35); sfx('stage');
   game.fx.push({ kind: 'pulse', x: cc.x, y: cc.y, t: 0, life: 1.4 }, { kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 1.1 });
@@ -1542,7 +1542,9 @@ function planPath(tc, tr) {
   for (let i = 0; i < q.length; i++) {
     const [c, r, d] = q[i];
     if (d >= CONFIG.guideMaxPath) continue;
-    for (const [dc, dr] of NB_DIRS) {
+    const dirs = NB_DIRS.slice();   // shuffled per cell: among the equally short ways it picks one at random, so the path wanders like coral
+    for (let j = dirs.length - 1; j > 0; j--) { const x = Math.floor(Math.random() * (j + 1)); [dirs[j], dirs[x]] = [dirs[x], dirs[j]]; }
+    for (const [dc, dr] of dirs) {
       const nc = c + dc, nr = r + dr, k = key(nc, nr);
       if (prev.has(k) || !free(nc, nr)) continue;
       prev.set(k, [c, r]);
@@ -1559,9 +1561,19 @@ function planPath(tc, tr) {
 function cancelGuide(msg) { if (game.guide && msg) toast(msg); game.guide = null; }
 function guideClick() {
   if (game.guide) { cancelGuide('Guided growth cancelled'); return; }
-  const a = game.active; if (game.stage !== 'polyp' || !a) return;
-  const w = screenToWorld(game.mouse.sx, game.mouse.sy), c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
-  if (Math.hypot(c - a.c, r - a.r) > CONFIG.guideRange) { toast('Too far for guided growth'); return; }
+  const a = game.active; if (game.stage !== 'polyp' || !a) { toast('Settle first'); return; }
+  const w = screenToWorld(game.mouse.sx, game.mouse.sy);
+  let c = Math.floor(w.x / CELL), r = Math.floor(w.y / CELL);
+  const open = (cc, rr) => inBounds(cc, rr) && rr >= 1 && game.grid[rr * game.cols + cc] === 0 && !cellAt(cc, rr);
+  if (!open(c, r)) {   // a click on coral or rock: aim at the nearest open water cell instead
+    let best = null, bd = 1e9;
+    for (let dr = -3; dr <= 3; dr++) for (let dc = -3; dc <= 3; dc++) {
+      const cx = (c + dc + 0.5) * CELL, cy = (r + dr + 0.5) * CELL, d = Math.hypot(cx - w.x, cy - w.y);
+      if (d < bd && open(c + dc, r + dr)) { bd = d; best = [c + dc, r + dr]; }
+    }
+    if (best) [c, r] = best;
+  }
+  if (Math.hypot(c - a.c, r - a.r) > CONFIG.guideRange) { toast(`Too far for guided growth: stay inside the ring (${CONFIG.guideRange} cells)`); return; }
   const path = planPath(c, r);
   if (!path) { toast('The colony cannot grow there'); return; }
   game.guide = { path, target: { c, r }, t: 0, wait: 0 };
@@ -1580,16 +1592,18 @@ function updateGuide(dt) {
     if (!np || !validBudCell(np[0].c, np[0].r)) { cancelGuide('Guided growth: the way is blocked'); return; }
     g.path = np;
   }
-  const short = budShort(false);
+  const q0 = g.path[0], from = NB_DIRS.map(([dc, dr]) => cellAt(q0.c + dc, q0.r + dr)).find(o => o && o.kind === 'polyp');
+  let tp = game.nextType === 'anemone' ? 'branch' : game.nextType;   // the selected coral type; an anemone is a one-off, so guided growth grows branching instead
+  if (tp !== 'branch' && !validBudCell(q0.c, q0.r, tp, from && from.ref)) tp = 'branch';   // that type cannot sit here: this cell grows branching
+  const short = budShort(tp);
   if (short) {
     g.wait += dt;
     if (g.wait > CONFIG.guideWait) cancelGuide(`Guided growth stopped: ${short.replace(' to bud', '').toLowerCase()}`);
     return;
   }
   const q = g.path.shift();
-  game.energy -= budCost(false); game.calcium -= budCalcium(false);
-  const from = NB_DIRS.map(([dc, dr]) => cellAt(q.c + dc, q.r + dr)).find(o => o && o.kind === 'polyp');
-  const gp = addPolyp(q.c, q.r, false, from && from.ref); game.stats.buds++; afterBud(gp);
+  game.energy -= budCost(tp); game.calcium -= budCalcium(tp);
+  const gp = addPolyp(q.c, q.r, tp, from && from.ref); game.stats.buds++; afterBud(gp);
   if (from) rollSport(gp, from.ref);
   game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
   g.t = 0; g.wait = 0;
@@ -1918,7 +1932,7 @@ function arrived(r) {   // the new species moment, at the new home
   r.mode = 'home';
   spawnParts('spark', p.x, p.y - 8, 12); game.fx.push({ kind: 'ring', x: p.x, y: p.y, t: 0, life: 0.9 });
   if (r.first) {
-    const b = document.getElementById('banner'); b.innerHTML = `<h1 style="font-size:34px;letter-spacing:0.03em">${K.plural} moved in</h1><p>${K.blurb}. Species: ${game.species.length}</p>`;
+    const b = document.getElementById('banner'); b.innerHTML = `<div class="bn"><h1 style="font-size:34px;letter-spacing:0.03em">${K.plural} moved in</h1><p>${K.blurb}. Species: ${game.species.length}</p></div>`;
     b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
     beat(0.6, 0.35); sfx('species');
     const q = worldToScreen(p.x, p.y), v = game.view;
@@ -4497,6 +4511,12 @@ function drawSpots(t) {
   }
 }
 function drawGuide(t) {
+  if (game.arm === 'guide' && game.active) {   // armed: a faint ring shows how far a guided path can reach
+    const ac = cellCenter(game.active.c, game.active.r);
+    ctx.save(); ctx.setLineDash([6, 6]); ctx.lineDashOffset = -t * 10; ctx.lineWidth = 1.6;
+    ctx.strokeStyle = `rgba(255,238,196,${0.35 + 0.15 * Math.sin(t * 3)})`;
+    ctx.beginPath(); ctx.arc(ac.x, ac.y, (CONFIG.guideRange + 0.5) * CELL, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
   const g = game.guide; if (!g) return;
   ctx.save(); ctx.lineCap = 'round';
   g.path.forEach((q, i) => {
@@ -5074,6 +5094,12 @@ function armFire() {   // the armed action fires at the click point
   const k = game.arm; setArm(null);
   if (k === 'sting') doSting(); else if (k === 'frag') pressFrag(); else if (k === 'guide') guideClick();
 }
+function pressG() {   // G toggles guided growth like the bar button, so nothing has to be held while clicking (touchpads drop clicks while a key is down)
+  if (game.guide) { cancelGuide('Guided growth cancelled'); return; }
+  if (!has('G2')) { if (game.tree.state.G2 && !has('D5')) toast('Guided growth: unlock it in the tree (T)'); return; }
+  if (!polypNow()) { toast('Settle first'); return; }
+  toggleArm('guide');
+}
 function armCheck() {   // arm drops when the action is no longer usable
   if (!game.arm) return;
   if (game.stage !== 'polyp' || game.tree.open || game.titleOn) setArm(null);
@@ -5084,7 +5110,7 @@ const BAR = [
     dis: () => !budSpots().length ? 'No free space here' : budShort() || '', tip: () => clickMode() ? 'Hold the mouse on a glowing cell to bud' : spotMode() ? 'Click a glowing cell, or press a direction, then hold Space' : 'Press a direction, then hold Space to bud',
     go: () => {} },
   { id: 'bail', grp: 'act', label: () => 'Bail', key: () => 'R', show: polypNow, dis: () => '', tip: 'Swim free as a larva', go: () => bail() },
-  { id: 'guide', grp: 'act', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide || game.arm === 'guide', dis: () => polypNow() ? '' : 'Settle first', tip: 'Click, then click a cell to grow towards it (or hold G and click)', arm: 'guide',
+  { id: 'guide', grp: 'act', label: () => 'Guide', key: () => 'G', show: () => has('G2'), on: () => !!game.guide || game.arm === 'guide', dis: () => polypNow() ? '' : 'Settle first', tip: 'Click (or tap G), then click a cell to grow towards it. The path wanders a little and grows your selected coral type', arm: 'guide',
     go: () => game.guide ? cancelGuide('Guided growth cancelled') : toggleArm('guide') },
   { id: 'type', grp: 'act', label: () => TYPE_NAME[game.nextType], icon: () => TYPE_ICON[game.nextType], key: () => 'Q', show: () => ownedTypes().length > 1, on: () => game.nextType !== 'branch', dis: () => polypNow() ? '' : 'Settle first', tip: () => `Next bud: ${TYPE_NAME[game.nextType]}, ${Math.ceil(budCost())} energy${budCalcium() ? ' + ' + budCalcium() + ' Ca' : ''}. Click or Q for the next type, right-click or Shift+Q for the last`, go: () => cycleType() },
   { id: 'sting', grp: 'act', label: () => 'Sting', key: () => 'E', show: () => has('D1'), dis: () => polypNow() ? '' : 'Settle first', on: () => game.arm === 'sting', tip: 'Click, then click the reef to lash out there, driving off pests and nudging your residents out of the way (E: towards the cursor)', arm: 'sting', cd: () => game.sting.cd / CONFIG.stingCooldown, go: () => toggleArm('sting') },
@@ -5140,7 +5166,7 @@ function bindBar(box) {
     e.preventDefault(); e.stopPropagation();   // no focus (Space must not press a button) and nothing reaches the canvas
     game.slow = null;
     const b = e.target.closest('button'), d = b && BAR.find(x => x.btn === b);
-    if (d && d.hold && !clickMode() && !d.reason) { game.keys.add('Space'); pressSpace(); d.held = true; }   // keys mode: the button is Space, held
+    if (d && d.hold && !spotMode() && !d.reason) { game.keys.add('Space'); pressSpace(); d.held = true; }   // keys mode only: the button is Space, held
   });
   box.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -5148,7 +5174,7 @@ function bindBar(box) {
     if (b === gear.btn) { gmenuOpen(!gmenu.classList.contains('open')); return; }
     if (b === lookRow.btn) { game.look.list = !game.look.list; updateLookList(); return; }
     const d = BAR.find(x => x.btn === b); if (!d) return;
-    if (d.id === 'bud' && clickMode()) return;   // the Bud button is only a hint
+    if (d.id === 'bud' && spotMode()) return;   // the Bud button is only a hint
     if (d.reason) { toast(d.reason); return; }
     if (d.hold && !clickMode()) return;   // handled on press
     if (d.arm && game.arm && game.arm !== d.arm) setArm(null);
@@ -5181,7 +5207,7 @@ function updateBar() {
     if (d.kb.textContent !== kb) { d.kb.textContent = kb; d.kb.dataset.s = KSHORT(kb); }
     if (d.icon) { const ic = d.icon(); if (d.icEl.innerHTML !== ic) d.icEl.innerHTML = ic; }
     if (b.title !== tip) b.title = tip;
-    b.classList.toggle('hint', d.id === 'bud' && clickMode());
+    b.classList.toggle('hint', d.id === 'bud' && spotMode());
     b.classList.toggle('dis', !!d.reason); b.classList.toggle('on', !!(d.on && d.on()));
     if (d.cd) d.cdEl.style.width = Math.round(clamp(d.cd(), 0, 1) * 100) + '%';
     d.dotEl.style.display = d.dot && d.dot() ? '' : 'none';
@@ -5693,6 +5719,7 @@ window.addEventListener('keydown', e => {
   else if (e.code === 'KeyE') { setArm(null); doSting(); }
   else if (e.code === 'KeyF') { setArm(null); pressFrag(); }
   else if (e.code === 'KeyQ') cycleType(e.shiftKey ? -1 : 1);
+  else if (e.code === 'KeyG') pressG();
   else if (game.stage === 'polyp') {
     const d = { KeyW: 'up', ArrowUp: 'up', KeyS: 'down', ArrowDown: 'down', KeyA: 'left', ArrowLeft: 'left', KeyD: 'right', ArrowRight: 'right' }[e.code];
     if (d) tryHop(d);
@@ -5705,9 +5732,9 @@ canvas.addEventListener('mousedown', e => {
   game.mouse.sx = e.clientX; game.mouse.sy = e.clientY;
   if (game.tree.open) return;
   game.slow = null;
+  if (e.button === 2 && has('D5') && game.keys.has('KeyG')) { setArm(null); sealPress(); return; }   // G + right mouse seals links (D5) instead of stinging (before the arm check: holding G arms guide)
   if (game.arm) { const wasArmed = game.arm; if (e.button === 0) armFire(); else setArm(null); if (wasArmed) return; }
   if (e.shiftKey && e.button === 0) { const q = polypAtMouse(); if (q) { openLinCard(q); return; } }   // Shift+click a polyp: its lineage
-  if (e.button === 2 && has('D5') && game.keys.has('KeyG')) { sealPress(); return; }   // G + right mouse seals links (D5) instead of stinging
   if (e.button === 2) { doSting(); return; }
   if (e.button === 0 && game.keys.has('KeyG') && has('G2')) { guideClick(); return; }   // G + click guides growth instead of catching plankton
   if (e.button === 0) {
