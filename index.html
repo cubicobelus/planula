@@ -270,7 +270,7 @@ const CONFIG = {
   title: 'Planula', showTitle: true,   // the public name (2026-11-17); the title card is skipped with #notitle in the URL
   // reef stages (see STAGES): income boost per stage, and the goal sizes
   // the ending (content.md 9): crest columns and sand for the Atoll, the final cyclone, the island and its life
-  fin: { atollCols: 12, atollSand: 200, crestRows: 3, sandPer: 10, dropEvery: 3, cycDelay: 180, cycLen: 120, cycWaves: 5, cycFirst: 20, cycGap: 15, cycP: 95, cyc2P: 90, pBase: 50, wash: 0.15, winCols: 10, winLand: 4, verdictAfter: 8, sbEvery: 3, riseSecs: 14, birds: 60, grass: 120, palms: 240, turtles: 300, birdsLand: 4, grassLand: 4, palmsLand: 6, turtlesLand: 8, birdPlank: 0.15, birdRange: 15, palmEvery: 60, turtleB: 6, cardAt: 300, skyPx: 190 },
+  fin: { atollCols: 12, atollSand: 100, rubbleSand: 0.5, crestRows: 3, sandPer: 10, dropEvery: 3, cycDelay: 180, cycLen: 120, cycWaves: 5, cycFirst: 20, cycGap: 15, cycP: 95, cyc2P: 90, pBase: 50, wash: 0.15, winCols: 10, winLand: 4, verdictAfter: 8, sbEvery: 3, riseSecs: 14, birds: 60, grass: 120, palms: 240, turtles: 300, birdsLand: 4, grassLand: 4, palmsLand: 6, turtlesLand: 8, birdPlank: 0.15, birdRange: 15, palmEvery: 60, turtleB: 6, cardAt: 300, skyPx: 190 },
   stageBoost: [1, 1.2, 1.5, 1.8, 2.2, 2.5], stageColonyPolyps: 5, stageReefPolyps: 60, stageReefPatches: 3, stageReefSpecies: 3, stageCrestPolyps: 250, stageCrestSpecies: 6, crestLossMax: 0.1,
   // camera
   zoomStart: 1.5, zoomEnd: 1.15, zoomPolypsFull: 16, zoomMax: 2.2, wheelStep: 0.0012, reefMargin: 140, zoomSmooth: 1.6, camSmooth: 4.5, baseViewHeight: 760,
@@ -590,7 +590,7 @@ const TREE = [
   { id: 'G4', tier: 3, branch: 'Growth', name: 'Growth plans', hint: 'Guide growth again and again', needs: 'G2',
     fx: () => `P sets a plan for a colony: Up, Wide, Thicken or Off. While energy is over ${Math.round(CONFIG.unl.g4.frac * 100)}% of the store, each planned colony buds by itself every ${CONFIG.unl.g4.every} s. Plans pause in storm waves`, done: 'Press P to set a growth plan for a colony', ok: () => (game.stats.guideRuns || 0) >= CONFIG.unl.g4.rev },
   { id: 'S4', tier: 2, branch: 'Structure', name: 'Coralline cement', hint: 'Let dead coral pile up',
-    fx: () => `Dead coral touching rock counts as rock for support. After ${CONFIG.unl.s4.secs} s it turns into new rock, and parrotfish leave it alone`, done: 'Dead coral now cements into rock', ok: () => (game.stats.skelN || 0) >= CONFIG.unl.s4.rev },
+    fx: () => `Dead coral touching rock counts as rock for support. After ${CONFIG.unl.s4.secs} s it turns into new rock, except inside a parrotfish patch, where it stays their food`, done: 'Dead coral now cements into rock', ok: () => (game.stats.skelN || 0) >= CONFIG.unl.s4.rev },
   { id: 'S5', tier: 3, branch: 'Structure', name: 'Reef crest form', hint: 'Grow up into the waves',
     fx: () => `Polyps in the top ${CONFIG.unl.s5.rows + 1} rows hold +${CONFIG.unl.s5.str} firmer and take x${CONFIG.unl.s5.storm} storm power`, done: 'The crest now stands up to the waves', ok: () => (game.stats.crestN || 0) >= CONFIG.unl.s5.rev },
   { id: 'C4', tier: 3, branch: 'Climate', name: 'Fluorescent pigments', hint: 'Crowd the bright shallows',
@@ -1117,14 +1117,17 @@ function checkReveals() {
 function costShort(id) {
   return shortOf(CONFIG.cost[id]);
 }
+// what must be learned first: an explicit need, else the tip before it on the same stem of the reef tree (Ethan 2026-11-17: unlock in order, outward from the rock)
+function prereqOf(d) { if (d.needs) return d.needs; const n = treeLayout().nodes[d.id]; return n && n.par ? n.par.id : null; }
+const prereqName = d => { const q = prereqOf(d); return q ? TREE.find(x => x.id === q).name : ''; };
 function canBuy(id) {
   const d = TREE.find(x => x.id === id);
-  return !!d && tierOpen(d.tier) && game.tree.state[id] === 'revealed' && (!d.needs || has(d.needs)) && !costShort(id);
+  return !!d && tierOpen(d.tier) && game.tree.state[id] === 'revealed' && (!prereqOf(d) || has(prereqOf(d))) && !costShort(id);
 }
 function buy(id) {
   const d = TREE.find(x => x.id === id);
   if (!d || game.tree.state[id] !== 'revealed' || !tierOpen(d.tier)) return false;
-  const why = d.needs && !has(d.needs) ? `Needs ${TREE.find(x => x.id === d.needs).name} first` : costShort(id);
+  const why = prereqOf(d) && !has(prereqOf(d)) ? `Needs ${prereqName(d)} first` : costShort(id);
   if (why) { toast(why, true); return false; }
   const c = CONFIG.cost[id];
   game.energy -= c.e || 0; game.calcium -= c.ca || 0; game.bp -= c.bp || 0;
@@ -1203,12 +1206,12 @@ function treeCard() {
   if (s === 'tierlock') h += `<h4>???</h4><span class="st">Tier ${d.tier}</span><div class="fxl">Reach ${TIER_STAGE[d.tier - 1]} to unlock tier ${d.tier}.</div>`;
   else if (s === 'hidden') h += `<h4>???</h4><span class="st">Hidden</span><div class="hint">How to reveal it: ${d.hint}</div>`;
   else {
-    const c = CONFIG.cost[d.id], locked = d.needs && !has(d.needs), can = canBuy(d.id);
+    const c = CONFIG.cost[d.id], locked = prereqOf(d) && !has(prereqOf(d)), can = canBuy(d.id);
     h += `<h4>${d.name}</h4><span class="st ${s === 'owned' ? 'owned' : can ? 'can' : ''}">${s === 'owned' ? 'Learned' : can ? 'Ready to learn' : 'Revealed'}</span><div class="fxl">${d.fx()}</div>`;
     if (s === 'revealed') {
       h += `<div class="cost">${c.e ? chip(c.e + ' energy', game.energy >= c.e) : ''}${c.ca ? chip(c.ca + ' calcium', game.calcium >= c.ca) : ''}${c.bp ? chip(LEAF + c.bp + ' BP', game.bp >= c.bp) : ''}</div>`;
-      if (locked) h += `<div class="need">Needs ${TREE.find(x => x.id === d.needs).name} first</div>`;
-      h += `<button data-buy="${d.id}"${can ? '' : ' disabled'}>${can ? 'Learn it' : locked ? 'Needs ' + TREE.find(x => x.id === d.needs).name : costShort(d.id) || 'Not yet'}</button>`;
+      if (locked) h += `<div class="need">Needs ${prereqName(d)} first: learn the tip nearer the rock</div>`;
+      h += `<button data-buy="${d.id}"${can ? '' : ' disabled'}>${can ? 'Learn it' : locked ? 'Needs ' + prereqName(d) : costShort(d.id) || 'Not yet'}</button>`;
     }
   }
   if (d.branch === 'Residents') h += `<div class="tspecies">${visitors}</div>`;
@@ -6188,7 +6191,14 @@ const mixedSide = p => NB_DIRS.some(([dc, dr]) => { const o = cellAt(p.c + dc, p
 const linOf = q => game.lineages[q && q.lin || 0] || game.lineages[0];
 const skelRooted = (c, r) => { const o = cellAt(c, r); return !!o && o.kind === 'skel' && !o.ref.rival && NB_DIRS.some(([a, b]) => isBed(c + a, r + b)); };   // S4: dead coral touching rock
 const touchesRock = (c, r) => NB_DIRS.some(([a, b]) => isBed(c + a, r + b) || (has('S4') && skelRooted(c + a, r + b)));
-const skelEdible = q => !(has('S4') && skelRooted(q.c, q.r));
+// a skeleton inside a parrotfish patch (their habitat, or within reach of one's home) is their food: coralline cement leaves it be
+function parrotPatch(q) {
+  const x = (q.c + 0.5) * CELL, y = (q.r + 0.5) * CELL, R = CONFIG.res.parrot.reach * CELL;
+  for (const h of game.res.habs) if (h.kind === 'parrot' && Math.hypot((h.c + 0.5) * CELL - x, (h.r + 0.5) * CELL - y) <= R) return true;
+  for (const r of game.res.list) if (r.kind === 'parrot' && resLive(r)) { const hp = homeOf(r); if (hp && Math.hypot(hp.x - x, hp.y - y) <= R) return true; }
+  return false;
+}
+const skelEdible = q => !(has('S4') && skelRooted(q.c, q.r) && !parrotPatch(q));
 const denseP = p => { let n = 0; for (const [dc, dr] of NB_DIRS) if (livePolypAt(p.c + dc, p.r + dr)) n++; return n >= CONFIG.unl.f5.near; };
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
@@ -6897,6 +6907,9 @@ function rootFrag(f, q) {
   return true;
 }
 function crumbleFrag(f, q) {
+  // broken coral that does not take root is rubble, and waves grind rubble into sand (on real reefs, storms and parrotfish make most of it)
+  const rubble = f.polys.length + f.skels.length, sand = Math.round(rubble * CONFIG.fin.rubbleSand);
+  if (sand > 0) { game.sand += sand; game.stats.sandMade += sand; spawnParts('sand', q.x, q.y, 6 + rubble); if (!game.stats.rubbleSand) toast('Broken coral is grinding into sand', true); game.stats.rubbleSand = (game.stats.rubbleSand || 0) + sand; }
   for (const a of f.polys.concat(f.skels).slice(0, 24)) { const w = fragPos(f, a.c, a.r); spawnParts('dust', w.x, w.y, 2); }
   game.fx.push({ kind: 'ring', x: q.x, y: q.y, t: 0, life: 0.7, red: true });
   for (const p of f.polys) p.frag = null;
@@ -8065,7 +8078,7 @@ function updateS4(dt) {   // dead coral touching rock turns into rock after a wh
   game.s4T = (game.s4T || 0) - dt; if (game.s4T > 0) return; game.s4T = 1;
   const C = CONFIG.unl.s4; let any = false;
   for (const q of game.skeletons.slice()) {
-    if (!skelRooted(q.c, q.r)) { q.rt = 0; continue; }
+    if (!skelRooted(q.c, q.r) || parrotPatch(q)) { q.rt = 0; continue; }   // parrotfish food stays dead coral
     q.rt = (q.rt || 0) + 1; if (q.rt < C.secs) continue;
     game.grid[q.r * game.cols + q.c] = 1; game.cells.delete(key(q.c, q.r)); game.newRock.push({ c: q.c, r: q.r });
     game.skeletons = game.skeletons.filter(a => a !== q); any = true;
