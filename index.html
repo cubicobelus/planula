@@ -208,7 +208,9 @@
   #report .pr b { display: block; color: #fff; font-weight: 600; } #report .pr span { color: #9cc5d6; } #report .ok { margin-top: 6px; color: #9cc5d6; }
   #linview { position: fixed; right: 14px; top: 120px; z-index: 34; display: none; width: 250px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.92); border: 1px solid rgba(210, 166, 255, 0.4); color: #d6f2ff; font-size: 12px; pointer-events: none; }
   #linview h4 { margin: 0 0 5px; font-size: 13px; color: #e6caff; } #linview h4 i { font-weight: 400; color: #8aa0b2; font-size: 11px; margin-left: 6px; } #linview .lr { display: flex; gap: 6px; align-items: center; margin: 3px 0; } #linview .lr b { width: 62px; font-weight: 600; } #linview .lr span:not(.sw) { flex: 1; color: #9cc5d6; } #linview .lr em { font-style: normal; color: #bcdbe8; } #linview .sw { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.4); }
-  #xpanel { position: fixed; left: 14px; top: 130px; z-index: 34; display: none; width: 400px; max-height: 70vh; overflow: auto; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(210, 166, 255, 0.45); color: #d6f2ff; font-size: 12px; }
+  #xpanel { position: fixed; left: 50%; transform: translateX(-50%); top: 132px; z-index: 34; display: none; width: 400px; max-height: 70vh; overflow: auto; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(210, 166, 255, 0.45); color: #d6f2ff; font-size: 12px; }
+  body.treeopen #xpanel { display: none !important; }
+  #sportcard .sfx { margin: 6px 0; font-size: 11.5px; line-height: 1.4; color: #c9d6e2; } #sportcard .sfx b { color: #efe0ff; }
   #xpanel h4 { margin: 0 0 6px; font-size: 14px; color: #e6caff; } #xpanel h4 i { font-weight: 400; color: #8aa0b2; font-size: 11px; margin-left: 6px; } #xpanel h5 { margin: 9px 0 3px; font-size: 12px; color: #bda0e8; } #xpanel .xr { margin: 5px 0; } #xpanel .xk { color: #9cc5d6; margin-left: 20px; } #xpanel .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
   #xpanel select, #xpanel button { font: inherit; background: rgba(210, 166, 255, 0.14); color: #efe0ff; border: 1px solid rgba(210, 166, 255, 0.4); border-radius: 5px; padding: 2px 5px; } #xpanel button:disabled { opacity: 0.4; }
   #sportcard { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 36; display: none; width: 380px; max-width: 94vw; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(210, 166, 255, 0.5); color: #d6f2ff; font-size: 13px; }
@@ -1471,7 +1473,6 @@ function tryHop(dir) {
   }
 }
 function pressSpace() {
-  if (game.guide) { cancelGuide('Guided growth cancelled'); return; }
   if (game.riding && game.riding.lv) { letGoRide(); return; }
   if (game.stage === 'larva') { if (!game.settleTarget && rideSpawn()) return; trySettle(); return; }
   if (clickMode()) return;
@@ -5772,6 +5773,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
   if (e.code === 'Escape' && game.arm) { setArm(null); return; }
+  if (e.code === 'Escape' && game.guide) { cancelGuide('Guided growth cancelled'); return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
   if (game.tree.open) return;
   if (!GAME_KEYS.has(e.code)) return;
@@ -6028,7 +6030,8 @@ function supportMap() {
   return SUP;
 }
 const strength = p => supportMap().str.get(key(p.c, p.r)) || 0;
-const structureShown = () => devs.struct || (stormSoon() && !devs.ov2);
+// the structure view shows itself when a storm is near, unless the player switched the overlay off during this storm window (devs.ovOff, cleared once the storm has passed)
+const structureShown = () => devs.struct || (stormSoon() && !devs.ov2 && !devs.ovOff);
 function stormSoon() {
   if (game.goals.stage < 2) return false;
   if (game.storm || cycloneWaiting()) return true;
@@ -6036,8 +6039,8 @@ function stormSoon() {
   return s !== null && s - game.season.t <= CONFIG.forecastSecs;
 }
 const OVS = ['off', 'structure', 'light', 'flow'];   // V cycles through these
-const ovMode = () => devs.struct ? 'structure' : devs.ov2 || 'off';
-function setOv(m) { devs.struct = m === 'structure'; devs.ov2 = m === 'light' || m === 'flow' ? m : null; }
+const ovMode = () => devs.struct ? 'structure' : devs.ov2 || (structureShown() ? 'structure' : 'off');
+function setOv(m) { devs.ovOff = m === 'off' && stormSoon(); devs.struct = m === 'structure'; devs.ov2 = m === 'light' || m === 'flow' ? m : null; }
 const OV_MSG = { off: 'Overlay off', structure: 'Structure view: green holds, red may snap', light: 'Light view: bright is yellow, shaded is dark violet', flow: 'Flow view: blue gets plenty of current, red is starving' };
 function toggleStructure() { const m = OVS[(OVS.indexOf(ovMode()) + 1) % OVS.length]; setOv(m); toast(OV_MSG[m], true); }
 const strCol = s => s >= 7 ? '120,235,150' : s >= 4 ? '255,220,90' : '255,100,85';
@@ -6342,10 +6345,22 @@ function makeSport(p, from, up, dn) {
 // X1 Sport keeping: a small card to choose which trait goes up and which goes down (it keeps the random pick when ignored)
 const sportCard = document.getElementById('sportcard');
 function openSportPick(L, p, par) { game.sportPick = { L, p, par: Object.assign({}, par.traits), up: null, dn: null, t: CONFIG.gen.pickWait }; renderSportPick(); }
+// what one point of each trait does, read from CONFIG so the card never drifts from the game
+function traitFx(k, down) {
+  const G = CONFIG.gen, pc = x => Math.round(x * 100) + '%';
+  if (down) return ({ growth: `buds ${pc(G.growthTime)} slower and ${pc(CONFIG.traitGrowth)} dearer, but holds ${G.growthStr} firmer`,
+    tough: `holds ${CONFIG.traitTough} weaker, but buds cost ${pc(G.toughCost)} less`,
+    heat: `bleaching chance ${pc(CONFIG.threat.heat.heatK)} higher, but ${pc(G.heatSun)} more sunlight income`,
+    feed: `reach ${pc(CONFIG.traitFeed)} shorter and catches ${pc(G.feedCatch)} less, but upkeep ${pc(G.feedUpkeep)} lower` })[k];
+  return ({ growth: `buds ${pc(G.growthTime)} faster and ${pc(CONFIG.traitGrowth)} cheaper, but holds ${G.growthStr} weaker`,
+    tough: `holds ${CONFIG.traitTough} firmer (fewer snaps and sags), but buds cost ${pc(G.toughCost)} more`,
+    heat: `bleaching chance ${pc(CONFIG.threat.heat.heatK)} lower, but ${pc(G.heatSun)} less sunlight income`,
+    feed: `reach ${pc(CONFIG.traitFeed)} longer and catches ${pc(G.feedCatch)} more, but upkeep ${pc(G.feedUpkeep)} higher` })[k];
+}
 function renderSportPick() {
   const S = game.sportPick; if (!S) { sportCard.style.display = 'none'; return; }
   const row = (lab, kind, cur) => `<div class="sr"><span>${lab}</span>` + POWER.map(k => `<button data-k="${kind}:${k}" class="${cur === k ? 'on' : ''}"${(kind === 'up' ? S.par[k] >= 5 || S.dn === k : S.par[k] <= 1 || S.up === k) ? ' disabled' : ''}>${TRAITS[k]}</button>`).join('') + '</div>';
-  sportCard.innerHTML = `<h4>A sport: pick its change</h4><p>One trait up and one down. It keeps the random pick if you do nothing.</p>${row('Up +1', 'up', S.up)}${row('Down -1', 'dn', S.dn)}<div class="sr"><button data-k="ok" ${S.up && S.dn ? '' : 'disabled'}>Apply</button><button data-k="keep">Keep random</button></div>`;
+  sportCard.innerHTML = `<h4>A sport: pick its change</h4><p>One trait up and one down, for the whole lineage. It keeps the random pick if you do nothing.</p>${row('Up +1', 'up', S.up)}${row('Down -1', 'dn', S.dn)}<div class="sfx">${S.up ? `<b>+1 ${TRAITS[S.up]}:</b> ${traitFx(S.up)}` : 'Pick a trait to see what it does.'}${S.dn ? `<br><b>-1 ${TRAITS[S.dn]}:</b> ${traitFx(S.dn, true)}` : ''}</div><div class="sr"><button data-k="ok" ${S.up && S.dn ? '' : 'disabled'}>Apply</button><button data-k="keep">Keep random</button></div>`;
   sportCard.style.display = 'block';
 }
 function sportPickDo(a) {
@@ -7651,7 +7666,7 @@ function childRanges(A, B) {   // each child trait: the rounded average, give or
   return POWER.map(k => { const m = Math.round((A[k] + B[k]) / 2); return `${TRAITS[k]} ${clamp(m - 1, 1, 5)}-${clamp(m + 1, 1, 5)}`; }).join(', ') + `, Form ${Math.min(A.form, B.form)}-${Math.max(A.form, B.form)}`;
 }
 function renderX() {
-  if (!game.xOpen) { xEl.style.display = 'none'; return; }
+  if (!game.xOpen || game.tree.open) { xEl.style.display = 'none'; return; }   // never over the tree screen
   const S = game.sp, list = spawners(); let h = '<h4>Spawning and Genetics <i>X to close</i></h4>';
   if (has('X3')) {
     h += '<h5>Pairs for the next spawning night</h5>';
@@ -7675,7 +7690,10 @@ function renderX() {
   if (xEl.dataset.h !== h) { xEl.innerHTML = h; xEl.dataset.h = h; }
   xEl.style.display = 'block';
 }
-function toggleX() { game.xOpen = !game.xOpen; if (game.xOpen && !has('X3') && !has('X5')) toast('Selective spawning or the Gene bank opens the X panel', true); xEl.dataset.h = ''; renderX(); }
+function toggleX() {
+  if (!game.xOpen && !has('X3') && !has('X5')) { toast('The X panel opens with Selective spawning or the Gene bank (tree, Spawning and Genetics)', true); return; }   // nothing to show yet: a toast, not an empty panel
+  game.xOpen = !game.xOpen; xEl.dataset.h = ''; renderX();
+}
 function bankPlant(i) {
   const S = game.sp, B = CONFIG.sp.bank, g = S.bank[i]; if (!g) return false;
   if (game.time < S.bankNext) { toast(`The bank needs ${Math.ceil(S.bankNext - game.time)} s more`, true); return false; }
@@ -8097,6 +8115,7 @@ function newGame() { SAVE.wiping = true; saveDel(SAVE.key); location.reload(); }
 function step(dt) {
   if (game.tree.open || game.titleOn || askOn || game.fin.cardOpen) return;   // the tree screen, the title card and the New game question pause the game
   game.time += dt;
+  if (devs.ovOff && !stormSoon()) devs.ovOff = false;   // the storm has passed: next storm shows the structure view again
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
   if (game.stage === 'larva' && !game.riding) updateLarva(dt); else game.settleTarget = null;
   if (!devs.noFish) updateFish(dt);
