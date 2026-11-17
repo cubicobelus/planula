@@ -309,7 +309,7 @@ const CONFIG = {
   // reef ratings (content 7): 0 to 100 each, every 5 s. Strength is 0..10 in the game, so x10 gives the spec's 0..100
   ratings: { secs: 5, strK: 1.25, strScale: 10, strShare: 40, lightA: 60, lightB: 40, lightRef: 0.75, healthShare: 150, healthThreat: 5, diversityK: 2.2 },
   // seasons and storms (a year = 4 seasons; the clock runs from the Colony stage on; stormAt = storm starts, s into the storm season)
-  yearSecs: 480, seasonSecs: 120, firstCalmSecs: 360, forecastSecs: 60, stormSecs: 25, stormSeason: 2, stormAt: [35, 85], stormTick: 2, stormSafe: 4, breakK: 0.5, firstStormPower: 0.6, flexMult: 0.5, revealStormLost: 8,
+  yearSecs: 480, seasonSecs: 120, firstCalmSecs: 360, forecastSecs: 60, stormSecs: 25, stormSeason: 2, stormAt: [35, 85], stormTick: 2, sagRun: 8, sagTick: 1, sagWarn: 12, stormSafe: 4, breakK: 0.5, firstStormPower: 0.6, flexMult: 0.5, revealStormLost: 8,
   stormCurrent: 150, stormShake: 7, stormDark: 0.5,
   fragmentRoot: 0.5, fragmentRootMax: 3, fragmentSink: 18, fragmentLife: 50, fragmentAir: 2.5, fragmentPush: 45, minPolyps: 3,
   // structure strength (0..10): rock-touching polyps are 10, the rest is the best path from one
@@ -426,7 +426,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0 },
+  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0 },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
@@ -3808,6 +3808,13 @@ function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue 
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 34, 0, 6.3); ctx.fill();
     ctx.strokeStyle = `rgba(255,255,255,${0.7 + 0.3 * pulse})`; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 6.3); ctx.stroke();
   }
+  if (SAG.warn.has(key(p.c, p.r))) {   // strain: a pulsing red-pale glow and hairline cracks across the limb
+    const sp = 0.5 + 0.5 * Math.sin(t * 6 + p.c * 0.9), g = ctx.createRadialGradient(0, 0, 2, 0, 0, 28);
+    g.addColorStop(0, `rgba(255,70,50,${0.5 + 0.35 * sp})`); g.addColorStop(1, 'rgba(255,70,50,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 28, 0, 6.3); ctx.fill();
+    ctx.strokeStyle = `rgba(255,240,225,${0.7 + 0.3 * sp})`; ctx.lineWidth = 1.6; ctx.beginPath();
+    const a = p.seed * 3; ctx.moveTo(-9 * Math.cos(a), -9 * Math.sin(a)); ctx.lineTo(-2, 1); ctx.lineTo(1, -2); ctx.lineTo(9 * Math.cos(a), 9 * Math.sin(a)); ctx.stroke();
+  }
   if (p.lin) {   // a mutant lineage glows in its own colour
     const hc = mix3(linRgb(game.lineages[p.lin]), [255, 235, 225], 0.35), g = ctx.createRadialGradient(0, 0, 3, 0, 0, 22);
     g.addColorStop(0, rgba(hc, 0.95)); g.addColorStop(0.5, rgba(hc, 0.45)); g.addColorStop(1, rgba(hc, 0));
@@ -6466,6 +6473,54 @@ function stormBreak(power) {
   }
   return broke;
 }
+// sagging overhangs: a long run of polyps with no path to rock and nothing under them strains, then snaps off at its joint (calm water only)
+const SAG = { acc: 0, runs: new Map(), warn: new Set() };
+function sagRuns() {
+  const sup = supportMap(), over = new Map();
+  for (const p of game.polyps) {
+    if (p.frag || touchesRock(p.c, p.r) || sup.base.get(key(p.c, p.r))) continue;
+    if (cellAt(p.c, p.r + 1) || isBed(p.c, p.r + 1)) continue;
+    over.set(key(p.c, p.r), p);
+  }
+  const seen = new Set(), out = [];
+  for (const [k0, p0] of over) {
+    if (seen.has(k0)) continue;
+    const cells = [p0]; seen.add(k0);
+    for (let i = 0; i < cells.length; i++) for (const [dc, dr] of NB_DIRS) {
+      const nk = key(cells[i].c + dc, cells[i].r + dr);
+      if (over.has(nk) && !seen.has(nk)) { seen.add(nk); cells.push(over.get(nk)); }
+    }
+    if (cells.length < CONFIG.sagRun) continue;
+    let joint = null, best = -1;
+    for (const p of cells) for (const [dc, dr] of NB_DIRS) {
+      const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk);
+      if (!o || o.kind !== 'polyp' || over.has(nk)) continue;
+      const b = (sup.base.get(nk) || 0) + (touchesRock(o.ref.c, o.ref.r) ? 100 : 0);
+      if (b > best) { best = b; joint = p; }
+    }
+    if (joint) out.push({ id: key(joint.c, joint.r), joint, cells });
+  }
+  return out;
+}
+function updateSag(dt) {
+  if (game.goals.stage < 2 || game.storm) { if (SAG.runs.size) { SAG.runs.clear(); SAG.warn.clear(); } return; }
+  if ((SAG.acc += dt) < CONFIG.sagTick) return;
+  SAG.acc = 0;
+  const now = game.time, cur = new Map();
+  for (const run of sagRuns()) {
+    const old = SAG.runs.get(run.id);
+    if (!old) { run.t0 = now; toast('An overhang is sagging: brace it from below or it snaps off'); sfx('rumble'); }
+    else run.t0 = old.t0;
+    cur.set(run.id, run);
+  }
+  SAG.runs = cur; SAG.warn = new Set();
+  for (const run of cur.values()) {
+    if (now - run.t0 >= CONFIG.sagWarn) {
+      cur.delete(run.id);
+      if (game.cells.has(key(run.joint.c, run.joint.r)) && breakOff(run.joint)) { game.stats.sagBreaks = (game.stats.sagBreaks || 0) + 1; toast('The overhang snapped off'); }
+    } else for (const p of run.cells) SAG.warn.add(key(p.c, p.r));
+  }
+}
 // p snaps off: it and everything that was only held up through it leave as one fragment (null when that would leave too few polyps)
 function breakOff(p) {
   const pk = key(p.c, p.r), held = new Set(), q = [];
@@ -8010,7 +8065,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSand(dt); updateFin(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSag(dt); updateSand(dt); updateFin(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
