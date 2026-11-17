@@ -332,7 +332,7 @@ const CONFIG = {
   res: {
     tick: 1.2, hapStart: 60, hapBase: 40, hapFood: 30, hapSafe: 15, hapClean: 15, hapCrowd: 15, hapRate: 8, hapHappy: 70, hapContent: 40, hapLeave: 25, hapLeaveSecs: 60, brokenHap: 30,
     jobHappy: 1.25, jobContent: 1, jobUnhappy: 0.6, safeSecs: 30, safeCells: 6, crowdCells: 5, cleanCells: 10, noneSecs: 60, noneMinPolyps: 20,
-    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4, asideSecs: 25, asideSpeed: 110,
+    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4, asideSecs: 15, asideSpeed: 110,
     clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5, leaveSpeed: 120 },
     crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
     shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.35, healDelay: 4, radius: 4, r3Radius: 7, fishCells: 10 },
@@ -1667,7 +1667,6 @@ function cycleType(dir = 1) {
 }
 const toggleAnemone = () => cycleType();
 function clownAnchor(f) {
-  if (f.pin) { const a = anemones().find(p => p.c === f.pin.c && p.r === f.pin.r); if (a) return cellCenter(a.c, a.r); f.pin = null; }
   let best = null, bd = 1e9;
   for (const p of anemones()) { const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - f.x, c.y - f.y); if (d < bd) { bd = d; best = c; } }
   if (best) return best;
@@ -2302,48 +2301,30 @@ function jobTurtle(r, dt) {
 }
 const JOBS = { crab: jobCrab, shrimp: jobShrimp, parrot: jobParrot, urchin: jobUrchin, moray: jobMoray, goby: jobGoby, turtle: jobTurtle };
 /* ---------- a sting repositions residents (never hurts them): to another free habitat of their kind, else aside for a while ---------- */
-function asidePoint(e) {   // the nearest open water 3 to 6 cells away that no bud spot touches
+function asidePoint(e) {   // the nearest open water a step or two away (up to 4 cells) that no bud spot touches
   const spots = budSpots(); let best = null, bd = 1e9;
-  for (let dc = 3; dc <= 6 && !best; dc++) for (let k = 0; k < 24; k++) {
+  for (const dc of [1, 1.5, 2, 2.5, 3, 4]) { if (best) break; for (let k = 0; k < 24; k++) {
     const a = k / 24 * Math.PI * 2, x = e.x + Math.cos(a) * dc * CELL, y = e.y + Math.sin(a) * dc * CELL;
     if (x < 40 || x > LAG - 40 || y < 60 || blockedAt(x, y, 10, '') || !waterCell(Math.floor(x / CELL), Math.floor(y / CELL))) continue;
     if (spots.some(sp => hitsCell({ x, y }, 12, sp.c, sp.r))) continue;
     const d = Math.hypot(x - e.x, y - e.y) + k * 0.01; if (d < bd) { bd = d; best = { x, y }; }
-  }
+  } }
   return best;
 }
-function freeHab(r) {
-  if (!r.hab) return null;
-  const C = CONFIG.res; let best = null, bd = 1e9;
-  for (const h of game.res.habs) {
-    if (h === r.hab || h.kind !== r.kind || h.broken !== null || game.goals.stage < C[h.kind].stage) continue;
-    if (h.res.length >= h.cap * (has('R4') && h.kind !== 'moray' ? C.r4Cap : 1)) continue;
-    const d = Math.hypot(h.c - r.hab.c, h.r - r.hab.r); if (d < bd) { bd = d; best = h; }
-  }
-  return best;
-}
-function stingResidents(x0, y0, x1, y1) {
+function stingResidents(x0, y0, x1, y1) {   // a sting nudges residents a step or two aside for a short while; they keep their home and go back to what they were doing
   const R = CONFIG.stingRadius + 8, C = CONFIG.res; let n = 0, msg = '';
-  for (const r of game.res.list.slice()) {
+  for (const r of game.res.list) {
     if (r.kind === 'clown' || r.kind === 'moray' || !resLive(r) || r.mode === 'arrive' || r.x === undefined || distSeg(r.x, r.y, x0, y0, x1, y1) > R) continue;
-    const nm = RES[r.kind].name.toLowerCase(), h2 = freeHab(r);
+    const pt = asidePoint(r); if (!pt) continue;
     game.fx.push({ kind: 'ring', x: r.x, y: r.y, t: 0, life: 0.6 }); spawnParts('spark', r.x, r.y, 4);
-    if (h2) {
-      r.hab.res = r.hab.res.filter(q => q !== r); r.hab.since = game.time;
-      h2.res.push(r); r.hab = h2; r.home = null; r.aside = null; r.backT = undefined; r.stand = null; r.act = null; r.wp = null; r.first = false; r.mode = 'arrive';
-      msg = msg || `The ${nm} moves to another ${RES[r.kind].home}`; n++;
-    } else {
-      const pt = asidePoint(r); if (!pt) continue;
-      r.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; r.backT = undefined; r.act = null;
-      msg = msg || `The ${nm} moves aside for a while`; n++;
-    }
+    r.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; r.backT = undefined;
+    msg = msg || `The ${RES[r.kind].name.toLowerCase()} steps aside for a moment`; n++;
   }
-  const hurt = game.clown.fish.filter(f => !f.leave && !f.gone && distSeg(f.x, f.y, x0, y0, x1, y1) <= R);
-  if (hurt.length) {
-    const an = clownAnchor(hurt[0]), other = anemones().find(a => anemoneOK(a) && Math.hypot(cellCenter(a.c, a.r).x - an.x, cellCenter(a.c, a.r).y - an.y) > CELL);
-    for (const f of hurt) game.fx.push({ kind: 'ring', x: f.x, y: f.y, t: 0, life: 0.6 });
-    if (other) { for (const f of game.clown.fish) { f.pin = { c: other.c, r: other.r }; f.aside = null; } msg = msg || 'The clownfish move to another anemone'; n++; }
-    else for (const f of hurt) { const pt = asidePoint(f); if (pt) { f.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; msg = msg || 'The clownfish move aside for a while'; n++; } }
+  for (const f of game.clown.fish) {
+    if (f.leave || f.gone || distSeg(f.x, f.y, x0, y0, x1, y1) > R) continue;
+    const pt = asidePoint(f); if (!pt) continue;
+    game.fx.push({ kind: 'ring', x: f.x, y: f.y, t: 0, life: 0.6 });
+    f.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; msg = msg || 'The clownfish step aside for a moment'; n++;
   }
   if (msg) toast(msg);
   return n;
@@ -5517,6 +5498,7 @@ const devGroups = [
   ['Seasons', [
     '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
+  ['Performance', ['<button data-a="perfreset">reset</button> <span style="color:#8aa0b2">frame times per moment: fps, 1% low, sim and draw ms, frames over 33 ms</span>', '<div id="perfread" style="white-space:pre;font:11px/1.45 ui-monospace,monospace;color:#cfe3ee"></div>']],
   ['Day/Night', [
     '<button data-a="tonight">skip to night</button><button data-a="today">skip to day</button><button data-a="showflow">show flow</button><button data-a="showlight">show light</button>',
     '<label><input type="checkbox" data-t="dnFreeze"> freeze time of day</label> <span id="dnread" style="color:#8aa0b2"></span>']],
@@ -5546,6 +5528,7 @@ function devBuild() {
   devPanel.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     const a = b.dataset.a, v = +b.dataset.v, vs = b.dataset.v;
+    if (a === 'perfreset') PERF.tags = {};
     if (a === 'pause') devs.paused = !devs.paused;
     else if (a === 'speed') devs.speed = v;
     else if (a === 'savenow') devSave(); else if (a === 'saveload') devLoad(); else if (a === 'savewipe') devWipe(); else if (a === 'saveround') { const r = saveRoundTrip(); toast('Round trip ' + (r.ok ? 'ok' : 'FAILED') + ': ' + r.counts + ', ' + Math.round(r.bytes / 1024) + ' KB' + (r.bad.length ? ', ' + r.bad[0] : ''), true); }
@@ -5652,6 +5635,8 @@ function devRefresh() {
   if (rd.textContent !== s) rd.textContent = s;
   const sg = document.getElementById('stageread'), s2 = 'stages: ' + (stageTimes().map(r => `${r[0]} ${r[1]} (${r[2]})`).join(' · ') || 'none yet');
   if (sg.textContent !== s2) sg.textContent = s2;
+  const pr = document.getElementById('perfread'), s3 = perfRows().map(r => `${r.tag.padEnd(9)} ${String(r.fps).padStart(3)} fps  1% low ${String(r.low1).padStart(3)}  sim ${r.simMs} ms  draw ${r.drawMs} ms  long ${r.longPct}%  worst ${r.worstMs} ms  (${r.frames} frames)`).join(String.fromCharCode(10)) || 'no frames yet';
+  if (pr && pr.textContent !== s3) pr.textContent = s3;
 }
 function devForecast() {   // jump the clock to 60 s before the next storm
   if (game.goals.stage < 2) devStage(2);
@@ -6619,11 +6604,16 @@ function drawStormSky(t) {
   ctx.fillStyle = `rgba(3,12,28,${Math.min(0.85, CONFIG.stormDark * pw * (1 + 0.5 * cyc))})`; ctx.fillRect(0, 0, v.w, v.h);
   if (cyc) { ctx.fillStyle = `rgba(70,10,26,${0.16 * pw})`; ctx.fillRect(0, 0, v.w, v.h); if (wv > 0) { ctx.fillStyle = `rgba(225,240,255,${0.2 * wv * wv})`; ctx.fillRect(0, 0, v.w, v.h); } }
   ctx.lineCap = 'round';
-  for (let i = 0; i < 70 + 70 * cyc; i++) {
-    const h1 = hash2(i, 1, 91), h2 = hash2(i, 2, 92), h3 = hash2(i, 3, 93), sp = 500 + 900 * h3, len = 30 + 110 * h1;
-    const x = ((h1 * v.w * 1.7 + dir * t * sp) % (v.w + 300) + (v.w + 300)) % (v.w + 300) - 150, y = h2 * v.h + Math.sin(t * 2 + i) * 8;
-    ctx.strokeStyle = `rgba(200,225,235,${0.2 * pw * (0.4 + h3)})`; ctx.lineWidth = 1 + 1.6 * h3;
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - dir * len, y + len * 0.12); ctx.stroke();
+  const NB = 4, n = 70 + 70 * cyc;   // streaks drawn in 4 batches by thickness (one stroke each) rather than one stroke per streak
+  for (let bk = 0; bk < NB; bk++) {
+    const hm = (bk + 0.5) / NB; ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const h3 = hash2(i, 3, 93); if (Math.min(NB - 1, Math.floor(h3 * NB)) !== bk) continue;
+      const h1 = hash2(i, 1, 91), h2 = hash2(i, 2, 92), sp = 500 + 900 * h3, len = 30 + 110 * h1;
+      const x = ((h1 * v.w * 1.7 + dir * t * sp) % (v.w + 300) + (v.w + 300)) % (v.w + 300) - 150, y = h2 * v.h + Math.sin(t * 2 + i) * 8;
+      ctx.moveTo(x, y); ctx.lineTo(x - dir * len, y + len * 0.12);
+    }
+    ctx.strokeStyle = `rgba(200,225,235,${0.2 * pw * (0.4 + hm)})`; ctx.lineWidth = 1 + 1.6 * hm; ctx.stroke();
   }
 }
 
@@ -8008,9 +7998,30 @@ function step(dt) {
   if (game.nudge && (game.nudge.t += dt) >= game.nudge.life) game.nudge = null;
   updateCamera(dt, false);
 }
+/* ---------- performance: frame times kept per moment (calm, storm, cyclone, ...), so a slow storm shows up as numbers; dev tools show it, perfReport() prints it ---------- */
+const PERF = { tags: {}, cur: '' };
+function perfTag() {
+  if (game.storm) return game.storm.cyc ? 'cyclone' : 'storm';
+  if (game.sp && game.sp.on) return 'spawning';
+  if (game.reefView) return 'reef view';
+  return 'calm';
+}
+function perfRec(ms, sim, draw) {
+  if (document.hidden || ms > 1000) return;   // a hidden tab or a stall is not a frame
+  const k = perfTag(), T = PERF.tags[k] || (PERF.tags[k] = { n: 0, ms: 0, sim: 0, draw: 0, long: 0, worst: 0, ring: new Float32Array(900), ri: 0 });
+  T.n++; T.ms += ms; T.sim += sim; T.draw += draw; if (ms > 33.4) T.long++; T.worst = Math.max(T.worst, ms);
+  T.ring[T.ri++ % T.ring.length] = ms; PERF.cur = k;
+}
+function perfRows() {
+  return Object.entries(PERF.tags).map(([k, T]) => {
+    const r = Array.from(T.ring.slice(0, Math.min(T.ri, T.ring.length))).sort((a, b) => b - a), low = r.length ? r[Math.floor(r.length * 0.01)] : 0;
+    return { tag: k, frames: T.n, fps: Math.round(1000 / (T.ms / T.n)), low1: Math.round(1000 / Math.max(low, 1)), simMs: +(T.sim / T.n).toFixed(1), drawMs: +(T.draw / T.n).toFixed(1), longPct: +(100 * T.long / T.n).toFixed(1), worstMs: Math.round(T.worst) };
+  });
+}
+window.perfReport = () => { const r = perfRows(); console.table(r); return r; };
 let last = performance.now();
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const raw = now - last, dt = Math.min(0.05, raw / 1000), t0 = performance.now(); last = now;
   let sc = 1;
   if (game.slow) {   // settle and beats slow the world for a moment; direct calls to step() are never scaled
     game.slow.t -= dt;
@@ -8019,10 +8030,14 @@ function frame(now) {
   if (devs.paused) { if (devs.inf) game.energy = energyCap(); }
   else if (devs.speed === 1 && !devs.inf) step(dt * sc);
   else devStepFor(dt * sc * devs.speed);
+  const t1 = performance.now();
   devFrame(dt);
   audio.update(dt);
+  const t2 = performance.now();
   render();
+  const t3 = performance.now();
   updateHud();
+  perfRec(raw, t1 - t0, t3 - t2);
   requestAnimationFrame(frame);
 }
 resize();
