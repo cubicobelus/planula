@@ -332,7 +332,7 @@ const CONFIG = {
   res: {
     tick: 1.2, hapStart: 60, hapBase: 40, hapFood: 30, hapSafe: 15, hapClean: 15, hapCrowd: 15, hapRate: 8, hapHappy: 70, hapContent: 40, hapLeave: 25, hapLeaveSecs: 60, brokenHap: 30,
     jobHappy: 1.25, jobContent: 1, jobUnhappy: 0.6, safeSecs: 30, safeCells: 6, crowdCells: 5, cleanCells: 10, noneSecs: 60, noneMinPolyps: 20,
-    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4, asideSecs: 15, asideSpeed: 110,
+    r4Cap: 2, r4Job: 1.5, r4Value: 1.5, r5Arrive: 5, r5Leave: 90, fishE: 0.03, fishEMax: 0.09, fishECells: 4, revSecs: 120, revHeal: 60, revSand: 100, revHabs: 3, revSpecies: 6, arriveDist: 520, arriveSpeed: 130, leaveSpeed: 110, leaveRise: 36, leaveSecs: 4, asideSecs: 7.5, asideSecsMax: 10, asideSpeed: 110,
     clown: { stage: 2, max: 1, value: 3, leave: 20, water: 2, hpFood: 0.5, leaveSpeed: 120 },
     crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
     shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.35, healDelay: 4, radius: 4, r3Radius: 7, fishCells: 10 },
@@ -1542,29 +1542,35 @@ function updateBud(dt) {
 
 /* ---------- guided growth: the colony queues a path of attachable cells and grows along it by itself ---------- */
 // breadth-first from every polyp through free water cells, so each cell on the path touches the one before it and never rock
-function planPath(tc, tr) {
+function planPath(tc, tr) {   // a natural-looking route: distances from the target, then a walk from the colony that keeps near the straight line to it (a staircase, not an L), with a little wander
   const free = (c, r) => inBounds(c, r) && r >= 1 && game.grid[r * game.cols + c] === 0 && !cellAt(c, r);
   if (!free(tc, tr)) return null;
-  const prev = new Map(), q = [];
-  for (const p of game.polyps) { prev.set(key(p.c, p.r), null); q.push([p.c, p.r, 0]); }
+  const dist = new Map(), q = [[tc, tr]]; dist.set(key(tc, tr), 0);
   for (let i = 0; i < q.length; i++) {
-    const [c, r, d] = q[i];
+    const [c, r] = q[i], d = dist.get(key(c, r));
     if (d >= CONFIG.guideMaxPath) continue;
-    const dirs = NB_DIRS.slice();   // shuffled per cell: among the equally short ways it picks one at random, so the path wanders like coral
-    for (let j = dirs.length - 1; j > 0; j--) { const x = Math.floor(Math.random() * (j + 1)); [dirs[j], dirs[x]] = [dirs[x], dirs[j]]; }
-    for (const [dc, dr] of dirs) {
-      const nc = c + dc, nr = r + dr, k = key(nc, nr);
-      if (prev.has(k) || !free(nc, nr)) continue;
-      prev.set(k, [c, r]);
-      if (nc === tc && nr === tr) {
-        const path = [];
-        for (let at = [nc, nr]; at; at = prev.get(key(at[0], at[1]))) { if (prev.get(key(at[0], at[1])) === null) break; path.unshift({ c: at[0], r: at[1] }); }
-        return path;
-      }
-      q.push([nc, nr, d + 1]);
-    }
+    for (const [dc, dr] of NB_DIRS) { const nc = c + dc, nr = r + dr, k = key(nc, nr); if (!dist.has(k) && free(nc, nr)) { dist.set(k, d + 1); q.push([nc, nr]); } }
   }
-  return null;
+  let start = null, sd = 1e9;   // the open cell touching the colony that is nearest the target (ties at random)
+  for (const p of game.polyps) for (const [dc, dr] of NB_DIRS) {
+    const d = dist.get(key(p.c + dc, p.r + dr)); if (d === undefined) continue;
+    const sc = d + Math.random() * 0.5; if (sc < sd) { sd = sc; start = [p.c + dc, p.r + dr]; }
+  }
+  if (!start) return null;
+  const path = [{ c: start[0], r: start[1] }], [sx, sy] = start, lx = tc - sx, ly = tr - sy, ll = Math.hypot(lx, ly) || 1;
+  const off = (c, r) => Math.abs((c - sx) * ly - (r - sy) * lx) / ll;   // distance from the straight line start -> target
+  let [c, r] = start;
+  while (c !== tc || r !== tr) {
+    const d = dist.get(key(c, r)); let best = null, bs = 1e9;
+    for (const [dc, dr] of NB_DIRS) {
+      const nc = c + dc, nr = r + dr; if (dist.get(key(nc, nr)) !== d - 1) continue;
+      const sc = off(nc, nr) + Math.random() * 0.8 + (dr < 0 ? -0.15 : 0);   // hug the line, wander a little, lean upward like coral
+      if (sc < bs) { bs = sc; best = [nc, nr]; }
+    }
+    if (!best) return null;
+    [c, r] = best; path.push({ c, r });
+  }
+  return path;
 }
 function cancelGuide(msg) { if (game.guide && msg) toast(msg); game.guide = null; }
 function guideClick() {
@@ -2317,14 +2323,14 @@ function stingResidents(x0, y0, x1, y1) {   // a sting nudges residents a step o
     if (r.kind === 'clown' || r.kind === 'moray' || !resLive(r) || r.mode === 'arrive' || r.x === undefined || distSeg(r.x, r.y, x0, y0, x1, y1) > R) continue;
     const pt = asidePoint(r); if (!pt) continue;
     game.fx.push({ kind: 'ring', x: r.x, y: r.y, t: 0, life: 0.6 }); spawnParts('spark', r.x, r.y, 4);
-    r.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; r.backT = undefined;
+    r.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs + Math.random() * (C.asideSecsMax - C.asideSecs) }; r.backT = undefined;
     msg = msg || `The ${RES[r.kind].name.toLowerCase()} steps aside for a moment`; n++;
   }
   for (const f of game.clown.fish) {
     if (f.leave || f.gone || distSeg(f.x, f.y, x0, y0, x1, y1) > R) continue;
     const pt = asidePoint(f); if (!pt) continue;
     game.fx.push({ kind: 'ring', x: f.x, y: f.y, t: 0, life: 0.6 });
-    f.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs }; msg = msg || 'The clownfish step aside for a moment'; n++;
+    f.aside = { x: pt.x, y: pt.y, until: game.time + C.asideSecs + Math.random() * (C.asideSecsMax - C.asideSecs) }; msg = msg || 'The clownfish step aside for a moment'; n++;
   }
   if (msg) toast(msg);
   return n;
@@ -4506,21 +4512,36 @@ function drawGuide(t) {
     ctx.strokeStyle = `rgba(255,238,196,${0.35 + 0.15 * Math.sin(t * 3)})`;
     ctx.beginPath(); ctx.arc(ac.x, ac.y, (CONFIG.guideRange + 0.5) * CELL, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
   }
-  const g = game.guide; if (!g) return;
-  ctx.save(); ctx.lineCap = 'round';
-  g.path.forEach((q, i) => {
-    const cc = cellCenter(q.c, q.r), a = i === 0 ? 0.6 : 0.3;
-    ctx.setLineDash([4, 4]); ctx.lineDashOffset = -t * 8; ctx.strokeStyle = `rgba(255,238,196,${a})`; ctx.lineWidth = 1.7;
-    roundRectPath(cc.x - 10.5, cc.y - 10.5, 21, 21, 6); ctx.stroke();
-    ctx.setLineDash([]); ctx.fillStyle = `rgba(255,238,196,${a * 0.22})`; roundRectPath(cc.x - 10.5, cc.y - 10.5, 21, 21, 6); ctx.fill();
-  });
-  if (g.path.length) {
-    const n = cellCenter(g.path[0].c, g.path[0].r), e = cellCenter(g.target.c, g.target.r);
-    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, 0, 6.3); ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,238,196,0.85)'; ctx.beginPath(); ctx.arc(n.x, n.y, 15, -Math.PI / 2, -Math.PI / 2 + Math.min(1, g.t / CONFIG.guideInterval) * 6.2832); ctx.stroke();
-    ctx.setLineDash([]); ctx.strokeStyle = `rgba(255,238,196,${0.55 + 0.3 * Math.sin(t * 5)})`; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(e.x, e.y - 15); ctx.lineTo(e.x + 15, e.y); ctx.lineTo(e.x, e.y + 15); ctx.lineTo(e.x - 15, e.y); ctx.closePath(); ctx.stroke();
+  const g = game.guide; if (!g || !g.path.length) return;
+  // a soft ghost of the branch to come: one smooth tapering stroke from the colony through the queued cells, light dots where buds will form
+  const q0 = g.path[0], src = NB_DIRS.map(([dc, dr]) => cellAt(q0.c + dc, q0.r + dr)).find(o => o && o.kind === 'polyp');
+  const wild = game.look.coral === 4, at = (q, pq) => { if (!wild || !pq) return cellCenter(q.c, q.r); const w = wildAt(q.c, q.r, pq.c, pq.r); return { x: w[0], y: w[1] }; };   // where each bud will really be drawn
+  const P = g.path.map((q, i) => at(q, i ? g.path[i - 1] : src && src.ref));
+  if (src) P.unshift(drawPos(src.ref));
+  const curve = () => {
+    ctx.beginPath(); ctx.moveTo(P[0].x, P[0].y);
+    if (P.length === 2) ctx.lineTo(P[1].x, P[1].y);
+    for (let i = 1; i < P.length - 1; i++) { const mx = (P[i].x + P[i + 1].x) / 2, my = (P[i].y + P[i + 1].y) / 2; ctx.quadraticCurveTo(P[i].x, P[i].y, i === P.length - 2 ? P[i + 1].x : mx, i === P.length - 2 ? P[i + 1].y : my); }
+  };
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.globalCompositeOperation = 'lighter';
+  curve(); ctx.strokeStyle = 'rgba(255,214,160,0.13)'; ctx.lineWidth = 14; ctx.stroke();   // soft body
+  curve(); ctx.strokeStyle = 'rgba(255,232,190,0.22)'; ctx.lineWidth = 6; ctx.stroke();
+  curve(); ctx.setLineDash([2, 7]); ctx.lineDashOffset = -t * 14; ctx.strokeStyle = 'rgba(255,244,220,0.55)'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.setLineDash([]);   // a flow running towards the target
+  ctx.globalCompositeOperation = 'source-over';
+  const k0 = src ? 1 : 0;
+  for (let i = k0; i < P.length; i++) {   // where the buds will form; the next one swells as its time comes
+    const nx = i === k0, u = nx ? Math.min(1, g.t / CONFIG.guideInterval) : 0, r = nx ? 2.6 + 2.4 * u : 2.2;
+    ctx.fillStyle = `rgba(255,240,210,${nx ? 0.55 + 0.4 * u : 0.32})`; ctx.beginPath(); ctx.arc(P[i].x, P[i].y, r, 0, Math.PI * 2); ctx.fill();
   }
+  const n = P[k0];
+  ctx.strokeStyle = 'rgba(255,238,196,0.75)'; ctx.lineWidth = 1.6;   // the next bud: a thin ring fills as it grows
+  ctx.beginPath(); ctx.arc(n.x, n.y, 9, -Math.PI / 2, -Math.PI / 2 + Math.min(1, g.t / CONFIG.guideInterval) * Math.PI * 2); ctx.stroke();
+  const e = cellCenter(g.target.c, g.target.r), pu = 0.5 + 0.5 * Math.sin(t * 3);   // the target: a soft pulsing halo
+  const gr = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 16 + 3 * pu);
+  gr.addColorStop(0, 'rgba(255,240,205,0.45)'); gr.addColorStop(0.5, 'rgba(255,220,170,0.16)'); gr.addColorStop(1, 'rgba(255,220,170,0)');
+  ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(e.x, e.y, 19, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = `rgba(255,244,220,${0.35 + 0.3 * pu})`; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(e.x, e.y, 7 + 2 * pu, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
 }
 function drawPlankton(t) {
