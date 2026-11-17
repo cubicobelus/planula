@@ -100,6 +100,8 @@
     text-shadow: 0 0 4px rgba(0, 10, 22, 1), 0 0 8px rgba(0, 10, 22, 0.9), 0 1px 2px #000; }
   .tnode .lbl.r { left: 22px; transform: translateY(-50%); text-align: left; } .tnode .lbl.l { right: 22px; transform: translateY(-50%); text-align: right; }
   .tnode .lbl.u { left: 50%; top: auto; bottom: 22px; transform: translateX(-50%); text-align: center; } .tnode .lbl.d { left: 50%; top: 22px; transform: translateX(-50%); text-align: center; }
+  .tnode .lbl .arm { display: block; margin-top: 2px; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.9; }
+  .tnode .lbl.u .arm { margin: 0 0 2px; }
   .tnode.hidden .lbl, .tnode.tierlock .lbl { color: #6f8ea2; letter-spacing: 0.15em; font-weight: 500; }
   .tnode.tierlock .lbl { opacity: 0.6; }
   .tnode.owned .lbl { color: #c9ffe4; }
@@ -1221,7 +1223,7 @@ function renderTree() {
     const s = tnState(d), n = lay.nodes[d.id], cx = Math.cos(n.a), sy = Math.sin(n.a);
     const side = Math.abs(cx) > 0.38 ? (cx > 0 ? 'r' : 'l') : sy < 0 ? 'u' : 'd';
     const known = s === 'owned' || s === 'revealed', sr = s === 'tierlock' ? `Reach ${TIER_STAGE[d.tier - 1]} to unlock tier ${d.tier}` : s === 'hidden' ? d.hint : '';
-    h += `<div class="tnode ${s}${s === 'revealed' && canBuy(d.id) ? ' can' : ''}${TL.sel === d.id ? ' sel' : ''}" data-id="${d.id}" title="${known ? d.name : '???'}"><span class="lbl ${side}">${known ? d.name : '???'}</span>${sr ? `<span class="sr">${sr}</span>` : ''}</div>`;
+    h += `<div class="tnode ${s}${s === 'revealed' && canBuy(d.id) ? ' can' : ''}${TL.sel === d.id ? ' sel' : ''}" data-id="${d.id}" title="${known ? d.name : '???'}"><span class="lbl ${side}">${known ? d.name : '???'}${n.arm.tip === n ? `<span class="arm" style="color:${n.ac}">${d.branch}</span>` : ''}</span>${sr ? `<span class="sr">${sr}</span>` : ''}</div>`;
   }
   h += `</div></div><aside class="tcard"></aside><div class="tfoot"><span>Click a tip to read it, click again (or Learn it) to learn it. Drag to move, wheel to zoom, double-click to fit</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>`;
   treeEl.innerHTML = h;
@@ -1314,9 +1316,6 @@ function drawTreeFrame(ms) {
     } else { g.fillStyle = rgba(BONE, s === 'hidden' ? 0.4 : 0.18); g.beginPath(); g.arc(n.x, n.y, s === 'hidden' ? 4.5 : 3.5, 0, 6.3); g.fill(); }
     if (sel) { g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.5; g.setLineDash([4, 4]); g.lineDashOffset = -t * 14; g.beginPath(); g.arc(n.x, n.y, 17, 0, 6.3); g.stroke(); g.setLineDash([]); }
   }
-  // branch names out past the end of each arm
-  g.font = '700 11px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-  for (const a of lay.arms) { const d = Math.hypot(a.tip.x, a.tip.y) || 1, x = a.tip.x * (d + 78) / d, y = a.tip.y * (d + 56) / d; g.fillStyle = a.ac; g.globalAlpha = 0.85; g.fillText(a.br.toUpperCase(), x, y); g.globalAlpha = 1; }
   // visitors: the residents you host, drawn with the game's own sprite code
   if (!TL.vis) TL.vis = treeVisitors();
   const old = ctx; ctx = g;
