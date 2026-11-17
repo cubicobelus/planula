@@ -278,7 +278,7 @@ const CONFIG = {
   hitLossFraction: 1 / 3, hitKnockback: 430, invulnerable: 2.0, fishRetreat: 2.5, fishStung: 12, fishStingKnock: 260,
   // polyps
   tentacleReach: 120, tentacleIdleLen: 32, tentacleSpeed: 7, pullRadius: 36, pullSpeed: 230, eatDist: 9,
-  budMode: 'both', budTime: 1.0, budCostBase: 12, budCostPerPolyp: 1.5,
+  budMode: 'both', budTime: 1.0, regrowTime: 0.5, budCostBase: 12, budCostPerPolyp: 1.5,
   polypHp: 12, polypHeal: 0.2, polypHealDelay: 4,
   stingCooldown: 1.2, stingRadius: 20,
   anemoneCostMult: 1.7, anemoneExtra: 3, clownDelay: 20, clownRadius: 170, clownEnergy: 0.05, clownSpeed: 120, clownChaseSpeed: 175, clownFlee: 6,
@@ -337,7 +337,7 @@ const CONFIG = {
     crab: { stage: 2, arrive: 30, max: 4, value: 4, leave: 30, box: 6, apart: 3, flow: 0.4, guard: 3, pushHp: 1, pushEvery: 4, flee: 4, speed: 34, dash: 90, shove: 40 },
     shrimp: { stage: 2, arrive: 30, max: 3, value: 3, leave: 20, heal: 0.35, healDelay: 4, radius: 4, r3Radius: 7, fishCells: 10 },
     parrot: { stage: 3, arrive: 45, max: 4, value: 4, leave: 60, dead: 15, keep: 5, box: 20, per: 15, openW: 6, openH: 4, openLight: 0.35, openRange: 10, bite: 12, bites: 4, sand: 1, sandS6: 1.5, reach: 10, scrape: 30, scrapeHp: 1, food: 10, speed: 70, loafSpeed: 28, sleepSpeed: 40 },
-    urchin: { stage: 3, arrive: 30, max: 6, value: 2, leave: 90, weed: 4, range: 6, per: 4, graze: 8, grazeRange: 4, chew: 20, chewHp: 1, hungry: 30, speed: 16 },
+    urchin: { stage: 3, arrive: 30, max: 6, value: 2, leave: 90, weed: 4, keep: 4, range: 6, per: 4, graze: 8, grazeRange: 4, chew: 20, chewHp: 1, hungry: 30, speed: 16 },
     moray: { stage: 3, arrive: 60, max: 2, value: 5, leave: 20, minLen: 2, scare: 8, eat: 20, seen: 60, idleSpeed: 70, strikeSpeed: 230, peek: 0.7 },
     goby: { stage: 3, arrive: 40, max: 2, value: 2, value2: 2, leave: 30, cols: 4, up: 2, alarm: 8, alarmDmg: 0.5, alarmSecs: 5, alarmRange: 10, sandEvery: 20, sandRange: 6 },
     turtle: { stage: 3, value: 6, stay: 90, cols: 5, light: 0.5, up: 3, graze: 3, grazeRange: 12, speed: 60 },
@@ -1293,6 +1293,7 @@ function gain(a, x, y) {
 
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inherits that lineage)
+  const sk = cellAt(c, r); if (sk && sk.kind === 'skel') { const i = game.skeletons.indexOf(sk.ref); if (i >= 0) game.skeletons.splice(i, 1); game.cells.delete(key(c, r)); }   // regrowing over a skeleton
   const p = { c, r, lin: from && from.lin || 0, pop: 1, cd: 1 + Math.random() * 2, dead: false, seed: Math.random() * 10, fairT: 0, hp: CONFIG.polypHp, hurt: 0, lastHit: -99, anemone: tyN(type) === 'anemone', type: tyN(type), born: game.time };   // born: only for the grow-in drawing
   if (from && from.plan) p.plan = from.plan;   // G4: a bud keeps its colony's plan
   game.polyps.push(p); game.seaweed.delete(key(c, r));
@@ -1427,8 +1428,16 @@ function bail() {
 }
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+// a skeleton of your own coral next to a live polyp can be regrown: live tissue overgrows the dead (rival corals' cells cannot)
+function regrowable(c, r) { const o = cellAt(c, r); return !!(o && o.kind === 'skel' && game.skeletons.includes(o.ref)); }
+const budCaAt = (tp, c, r) => regrowable(c, r) ? 0 : budCalcium(tp);   // regrowing needs no calcium: the skeleton is already there
+function budShortAt(tp, c, r) {
+  if (game.energy < budCost(tp)) return `Need ${Math.ceil(budCost(tp))} energy to bud`;
+  if (game.calcium < budCaAt(tp, c, r)) return `Need ${budCaAt(tp, c, r)} calcium to bud`;
+  return null;
+}
 function validBudCell(c, r, tp, from) {   // tp/from: also check that coral type's placement rule from that parent
-  if (!inBounds(c, r) || r < 1 || game.grid[r * game.cols + c] >= 1 || cellAt(c, r) || game.seaweed.has(key(c, r))) return false;   // no budding into seaweed
+  if (!inBounds(c, r) || r < 1 || game.grid[r * game.cols + c] >= 1 || (cellAt(c, r) && !regrowable(c, r)) || game.seaweed.has(key(c, r))) return false;   // no budding into seaweed
   let ok = false;
   for (const [dc, dr] of Object.values(DIRS)) {
     const o = cellAt(c + dc, r + dr);
@@ -1468,7 +1477,7 @@ function pressSpace() {
   if (clickMode()) return;
   const b = game.bud;
   if (!game.facing) { toast(spotMode() ? 'Press a direction or click a glowing cell first' : 'Press a direction to pick a cell first'); return; }
-  const short = budShort();
+  const short = budShortAt(game.nextType, game.facing.c, game.facing.r);
   if (short) { b.fail = 0.9; b.armed = false; toast(short); return; }
   b.armed = true; b.t = 0; b.src = 'key';
 }
@@ -1496,7 +1505,7 @@ function pressSpot(sp) {
   const b = game.bud;
   if (fishInWay(sp.c, sp.r)) { game.facing = null; b.armed = false; b.fail = 0.9; toast(FISH_MSG); return; }
   game.facing = { c: sp.c, r: sp.r }; b.src = 'mouse'; b.t = 0;
-  const short = budShort();
+  const short = budShortAt(game.nextType, sp.c, sp.r);
   if (short) { b.fail = 0.9; b.armed = false; toast(short); return; }
   b.armed = true;
 }
@@ -1522,14 +1531,16 @@ function updateBud(dt) {
   if ((clickMode() || b.src === 'mouse') && !b.armed && b.fail <= 0) game.facing = null;   // mouse-picked facing only lasts while held
   if (!b.armed || !(b.src === 'mouse' ? game.mouse.bud : game.keys.has('Space')) || !game.facing) { b.t = 0; b.armed = false; return; }
   b.t += dt;
-  if (b.t < CONFIG.budTime * TY(game.nextType).time * (game.active ? 1 - CONFIG.gen.growthTime * (linOf(game.active).traits.growth - 3) : 1)) return;
-  const cost = budCost(), f = game.facing, short = budShort(), fp = spotPos(f.c, f.r);
+  const regrow = regrowable(game.facing.c, game.facing.r);
+  if (b.t < CONFIG.budTime * TY(game.nextType).time * (regrow ? CONFIG.regrowTime : 1) * (game.active ? 1 - CONFIG.gen.growthTime * (linOf(game.active).traits.growth - 3) : 1)) return;
+  const cost = budCost(), f = game.facing, short = budShortAt(game.nextType, f.c, f.r), fp = spotPos(f.c, f.r);
   b.t = 0; b.armed = false;
   if (short) { b.fail = 0.9; toast(short); return; }
   if (fishInWay(f.c, f.r)) { b.fail = 0.9; toast(FISH_MSG); return; }
-  game.energy -= cost; game.calcium -= budCalcium();
+  game.energy -= cost; game.calcium -= budCaAt(game.nextType, f.c, f.r);
   const tp = game.nextType, anem = tp === 'anemone'; if (anem) game.nextType = 'branch';
   const p = addPolyp(f.c, f.r, tp, game.active);
+  if (regrow) { game.stats.regrown = (game.stats.regrown || 0) + 1; spawnParts('spark', fp.x, fp.y, 6); }
   if (game.active) { p.parent = { c: game.active.c, r: game.active.r }; rollSport(p, game.active); }   // parent: drawing only, which polyp it grew from
   setActive(p);
   const first = !game.progress.budded;
@@ -1537,7 +1548,7 @@ function updateBud(dt) {
   game.fx.push({ kind: 'ring', x: fp.x, y: fp.y, t: 0, life: 0.6 });
   sfx('budDone');
   if (first) { beat(CONFIG.moments.budSlow, 0.5); game.fx.push({ kind: 'pulse', x: (f.c + 0.5) * CELL, y: (f.r + 0.5) * CELL, t: 0, life: 0.8, small: true }); spawnParts('spark', (f.c + 0.5) * CELL, (f.r + 0.5) * CELL, 10); }
-  toast(`${tp === 'branch' ? 'New polyp' : 'New ' + TYPE_NAME[tp].toLowerCase()} (${game.polyps.length})`);
+  toast(regrow ? `Regrown over the skeleton (${game.polyps.length})` : `${tp === 'branch' ? 'New polyp' : 'New ' + TYPE_NAME[tp].toLowerCase()} (${game.polyps.length})`);
 }
 
 /* ---------- guided growth: the colony queues a path of attachable cells and grows along it by itself ---------- */
@@ -1755,7 +1766,7 @@ const RES = {
   parrot: { foodYes: 'plenty of dead coral to graze', name: 'Parrotfish', plural: 'Parrotfish', sp: ['Parrotfish'], fish: true, home: 'dead coral patch', shape: '15 dead coral cells in a 20x20 patch, with an open, bright 6x4 pool of water beside them',
     job: 'Grinds dead coral into sand by day, and sleeps at night', blurb: 'They turn dead coral to sand', foodNo: 'too little dead coral or seaweed to graze', fix: 'Leave dead coral standing for the parrotfish to graze.' },
   urchin: { foodYes: 'seaweed to graze', name: 'Sea urchin', plural: 'Sea urchins', sp: ['Sea urchin'], home: 'seaweed patch', shape: '4 seaweed cells within 6 cells of a crevice',
-    job: 'Grazes seaweed, and chews coral when it runs out', blurb: 'They graze the seaweed', foodNo: 'no seaweed within 4 cells', fix: 'Let a small seaweed patch stay, or fill in the crevices near the coral.' },
+    job: 'Crops seaweed (leaving a few cells of its patch), and chews coral if the patch is gone', blurb: 'They graze the seaweed', foodNo: 'no seaweed within 4 cells', fix: 'Let a small seaweed patch stay, or fill in the crevices near the coral.' },
   moray: { foodYes: 'fish pass its tunnel', name: 'Moray eel', plural: 'Moray eels', sp: ['Moray eel'], fish: true, home: 'tunnel', shape: 'a tunnel: 2 or more water cells in a line, roofed and floored (or walled) and open at one end only',
     job: 'Keeps predator fish away, and hunts nibblers at night', blurb: 'It lurks in the tunnel', foodNo: 'no fish have passed its tunnel', fix: 'The eel needs fish passing near its tunnel mouth.' },
   goby: { foodYes: 'the patch is clear of seaweed', name: 'Goby and pistol shrimp', plural: 'Gobies and pistol shrimp', sp: ['Goby', 'Pistol shrimp'], fish: true, home: 'sandy patch', shape: '4 floor columns in a row with sand or rubble on top and 2 free cells of water above',
@@ -2207,14 +2218,19 @@ function jobUrchin(r, dt, m) {
   const C = CONFIG.res.urchin, hp = homeOf(r), now = game.time;
   r.job = Math.max(0, r.job - dt);
   r.eatT = (r.eatT === undefined ? 2 : r.eatT) - dt * m; r.chewT = (r.chewT === undefined ? C.chew : r.chewT) - dt * m;
-  const near = seaweedNear(r, C.grazeRange).sort((a, b) => Math.hypot((a.c + 0.5) * CELL - r.x, (a.r + 0.5) * CELL - r.y) - Math.hypot((b.c + 0.5) * CELL - r.x, (b.r + 0.5) * CELL - r.y))[0];
+  // they crop the patch, never clear it: seaweed touching live coral goes first, and they leave the last few cells of their home (C.keep) standing
+  const touchesCoral = q => NB_DIRS.some(([a, b]) => { const o = cellAt(q.c + a, q.r + b); return o && o.kind === 'polyp'; });
+  const homeD = q => Math.hypot((q.c + 0.5) * CELL - hp.x, (q.r + 0.5) * CELL - hp.y), patch = seaweedNear(hp, C.grazeRange).length;
+  const near = seaweedNear(r, C.grazeRange).filter(q => touchesCoral(q) || homeD(q) > C.grazeRange * CELL || patch > C.keep)
+    .sort((a, b) => (touchesCoral(b) - touchesCoral(a)) || homeD(b) - homeD(a))[0];   // the cells closest to home are the ones left standing
+  const fed = !near && patch > 0;   // nothing to crop but the home patch still stands: content, not hungry
   if (near) {
     r.noWeedT = 0; r.chewing = false;
     const T = cellCenter(near.c, near.r), d = crawl(r, T.x, T.y + 6, C.speed, dt);
     if (d < CELL && r.eatT <= 0) { game.seaweed.delete(key(near.c, near.r)); r.eatT = C.graze; r.job = 0.8; spawnParts('puff', T.x, T.y, 4); sfx('crunch', T.x, T.y); }
     return;
   }
-  r.noWeedT = (r.noWeedT || 0) + dt;
+  if (fed) r.noWeedT = 0; else r.noWeedT = (r.noWeedT || 0) + dt;
   if (r.noWeedT >= C.hungry) {   // out of seaweed: it turns to the live coral
     if (!r.prey || r.prey.dead || !game.polyps.includes(r.prey)) {
       let best = null, bd = 1e9; for (const p of game.polyps) { const d = Math.hypot((p.c + 0.5) * CELL - r.x, (p.r + 0.5) * CELL - r.y); if (d < bd && freeNeighbours(p).length) { bd = d; best = p; } }
