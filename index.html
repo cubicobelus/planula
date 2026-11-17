@@ -3544,7 +3544,7 @@ function paintMound(g, M, layer, pal, kind) {
 function wildAt(c, r, pc, pr) {
   const a = hash2(c, r, 21) * 6.283, d = Math.sqrt(hash2(c, r, 22)) * 0.35 * CELL;
   let x = Math.cos(a) * d, y = Math.sin(a) * d;
-  if (pc !== undefined) { const dx = c - pc, dy = r - pr, m = Math.hypot(dx, dy) || 1; x += dx / m * 3; y += dy / m * 3 - 1.5; }
+  if (pc !== undefined) { const dx = c - pc, dy = r - pr, m = Math.hypot(dx, dy) || 1; x += dx / m * 3; y += dy / m * 3 - (dy === 0 ? 4.5 : 1.5); }   // sideways growth leans up a little more
   const m = Math.hypot(x, y), mx = 0.47 * CELL; if (m > mx) { x *= mx / m; y *= mx / m; }
   return [(c + 0.5) * CELL + x, (r + 0.5) * CELL + y];
 }
@@ -3591,6 +3591,23 @@ function wildBuild(polys, skels) {   // the spanning tree of any group of cells 
     const tp = u.kind === 'skel' ? 'skel' : typeOf(u.q); u.tp = tp;
     if (tp === 'plate') u.w = CONFIG.draw.plateStalk; else if (tp === 'fan') u.w = CONFIG.draw.fanStalk; else if (tp === 'brain') u.w = CONFIG.draw.brainW;
     u.sz = clamp(0.7 + 0.5 * hash2(u.c, u.r, 23) + (u.kids.length ? 0.04 * Math.min(3, Math.sqrt(u.size)) : -0.12), 0.7, 1.2);
+  }
+  // drawing only: the main kid, a gentle upward bow along long sideways runs, and corners pulled toward the inside of the turn (all within the 47% clamp)
+  const sgn = u => u.par && u.par.r === u.r ? Math.sign(u.c - u.par.c) : 0;
+  for (const u of list) { u.main = null; for (const k of u.kids) if (!u.main || k.size > u.main.size) u.main = k; }
+  const lim = u => { const cx = (u.c + 0.5) * CELL, cy = (u.r + 0.5) * CELL, dx = u.x - cx, dy = u.y - cy, m = Math.hypot(dx, dy), mx = 0.47 * CELL; if (m > mx) { u.x = cx + dx * mx / m; u.y = cy + dy * mx / m; } };
+  for (const u of list) {
+    const s = sgn(u); if (!s || u.tp === 'plate' || u.tp === 'brain' || u.tp === 'fan') continue;
+    let i = 0, n = 1; for (let x = u; x.par && sgn(x) === s && i < 40; x = x.par) i++;
+    for (let x = u; x.main && sgn(x.main) === s && n < 80; x = x.main) n++;
+    const len = i + n; if (len >= 4) u.y -= 3.5 * Math.sin(Math.PI * Math.min(i, len) / (len + 1));
+    lim(u);
+  }
+  for (const u of list) {
+    const P = u.par, k = u.main; if (!P || !k || u.tp === 'plate' || u.tp === 'brain' || u.tp === 'fan') continue;
+    const d1 = [u.c - P.c, u.r - P.r], d2 = [k.c - u.c, k.r - u.r];
+    if (d1[0] * d2[0] + d1[1] * d2[1] !== 0) continue;   // only a right-angle turn
+    u.x += (d2[0] - d1[0]) * 0.1 * CELL; u.y += (d2[1] - d1[1]) * 0.1 * CELL; lim(u);   // toward the inside of the turn
   }
   // fusion: touching cells that are not parent and child get a limb between them, so loops close into a lattice
   const dn = u => { if (u.dn === undefined) { let n = 0; for (const [a, b] of NB8) if (nodes.has(key(u.c + a, u.r + b))) n++; u.dn = n >= 3; } return u.dn; };
@@ -3641,10 +3658,19 @@ function paintWild(g, M, layer, pal, kind) {
     if (P) {
       const dx = u.x - P.x, dy = u.y - P.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
       ux = dx / L; uy = dy / L;
-      const b1 = (h(5) - 0.5) * (0.6 * L + 3), b2 = (h(6) - 0.5) * (0.6 * L + 3), pts = [];
-      const c1 = [P.x + dx / 3 + nx * b1 * (1 + 0.3 * fm), P.y + dy / 3 + ny * b1 * (1 + 0.3 * fm) - (0.12 + 0.07 * fm) * L], c2 = [P.x + dx * 2 / 3 + nx * b2 * (1 + 0.3 * fm), P.y + dy * 2 / 3 + ny * b2 * (1 + 0.3 * fm) - (0.05 + 0.04 * fm) * L];
+      const b1 = (h(5) - 0.5) * (0.35 * L + 2), b2 = (h(6) - 0.5) * (0.35 * L + 2), pts = [];
+      const un = (a, b) => { const x = b[0] - a[0], y = b[1] - a[1], m = Math.hypot(x, y) || 1; return [x / m, y / m]; };   // smooth joins: each limb leaves and arrives along the average of the two links at its nodes
+      const bl = (a, b) => { const x = a[0] + b[0], y = a[1] + b[1], m = Math.hypot(x, y); return m < 0.5 ? a : [x / m, y / m]; };
+      const dir = un([P.x, P.y], [u.x, u.y]), G = P.par, K = u.main;
+      const t0 = G ? bl(un([G.x, G.y], [P.x, P.y]), dir) : dir, t1 = K ? bl(dir, un([u.x, u.y], [K.x, K.y])) : dir, hl = L / 3;
+      const c1 = [P.x + t0[0] * hl + nx * b1 * (1 + 0.3 * fm), P.y + t0[1] * hl + ny * b1 * (1 + 0.3 * fm) - (0.06 + 0.04 * fm) * L], c2 = [u.x - t1[0] * hl + nx * b2 * (1 + 0.3 * fm), u.y - t1[1] * hl + ny * b2 * (1 + 0.3 * fm) - (0.03 + 0.02 * fm) * L];
       for (let i = 0; i <= 10; i++) { const t = i / 10, a = (1 - t) ** 3, b = 3 * t * (1 - t) ** 2, c = 3 * t * t * (1 - t), d = t ** 3; pts.push([a * P.x + b * c1[0] + c * c2[0] + d * u.x, a * P.y + b * c1[1] + c * c2[1] + d * u.y]); }
       limb(pts, Math.max(u.w, P.w * 0.9), u.w, colOf(P), col);
+      if (u.tp === 'branch' && u.r === P.r && !isRock(u.c, u.r - 1) && !M.nodes.get(key(u.c, u.r - 1)) && h(41) < 0.4) {   // a short upright finger off a sideways limb (decoration only)
+        const ang = -Math.PI / 2 + (h(42) - 0.5) * 0.7, len = (0.35 + 0.35 * h(43)) * CELL, ex = Math.cos(ang), ey = Math.sin(ang), sd = h(44) < 0.5 ? -1 : 1, e = [u.x + ex * len, u.y + ey * len];
+        limb(quad([u.x, u.y], [u.x + ex * len * 0.5 - ey * sd * 2, u.y + ey * len * 0.5 + ex * sd * 2], e, 5), Math.max(2.4, u.w * 0.7), 1.3, col, mix3(col, pal.lit, 0.45));
+        if (kind === 'poly') buds.push([e[0], e[1], 1.8 + 0.6 * h(45)]);
+      }
       const nt = u.tp === 'branch' || u.tp === 'anemone' ? (h(7) < 0.55 + 0.14 * fm ? 1 : 0) + (h(8) > 0.8 - 0.1 * fm ? 1 : 0) : 0;
       for (let k = 0; k < nt && L > 12; k++) {   // side twigs
         const i = 3 + Math.floor(h(9 + k) * 4), a = pts[i], b = pts[i + 1], side = h(11 + k) < 0.5 ? -1 : 1;
