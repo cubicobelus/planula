@@ -119,13 +119,18 @@
   .tcard .cost { margin-top: 9px; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
   .tcard .cost span { padding: 2px 8px; border-radius: 9px; background: rgba(2, 16, 32, 0.7); color: #8fe8bc; } .tcard .cost span.no { color: #ff9f8c; }
   .tcard .need { margin-top: 6px; font-size: 12px; color: #ffb59a; }
-  body.treeopen #banner { display: none !important; }
+  body.treeopen #banner { visibility: hidden; }   /* not display:none: un-hiding that restarts the banner's animation, so it replayed on every close */
   #tree .tcard button { margin-top: 10px; width: 100%; font: inherit; font-weight: 700; padding: 7px; border-radius: 9px; cursor: pointer; border: 1px solid rgba(255, 205, 170, 0.6); background: rgba(255, 190, 150, 0.2); color: #fff3e6; }
   #tree .tcard button:not(:disabled):hover { background: rgba(255, 190, 150, 0.34); }
   #tree .tcard button:disabled { cursor: not-allowed; opacity: 0.45; }
   .tcard .lg { display: grid; grid-template-columns: 16px 1fr; gap: 4px 8px; align-items: center; margin-top: 8px; font-size: 12px; }
   .tcard .lg i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
   .tcard.shake { animation: tshake 0.28s; }
+  .tcard.beside { right: auto; max-height: 60%; }
+  .tcard .rlh { margin-top: 11px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #ffe3d3; }
+  #tree .tcard button.rl { margin-top: 5px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 6px 10px; font-weight: 400; text-align: left; border-color: rgba(255, 205, 170, 0.35); background: rgba(255, 190, 150, 0.1); }
+  #tree .tcard button.rl span { font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+  #tree .tcard button[data-buy] { padding: 10px; font-size: 15px; }
   .lf { vertical-align: -1px; margin-right: 3px; }
   .tspecies { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(150, 220, 240, 0.12); font-size: 12px; color: #9cc5d6; }
   .tspecies b { color: #ffe3d3; }
@@ -1143,7 +1148,7 @@ const treeEl = document.getElementById('tree');
    each branch is a coral arm, each unlock a polyp tip that shows only its name; a click opens one card with the rest.
    Owned tips are live tissue in the run's own lineage colours, buyable tips pulse, the rest are pale bare skeleton.
    The residents you host swim round it. Drawn on its own canvas; the game is paused while it is open. */
-const TL = { lay: null, view: null, sel: null, hov: null, drag: null, raf: 0, cv: null, cx: null, vis: null, motes: null, t0: 0 };
+const TL = { lay: null, view: null, sel: null, hov: null, drag: null, raf: 0, cv: null, cx: null, vis: null, motes: null, t0: 0, lw: {}, fly: null, burst: null };
 const BONE = [222, 212, 192];
 function treeLayout() {   // positions in tree units (fixed per game version: seeded, so the reef looks the same every time)
   if (TL.lay) return TL.lay;
@@ -1158,7 +1163,7 @@ function treeLayout() {   // positions in tree units (fixed per game version: se
       const nd = d.needs && nodes[d.needs] && nodes[d.needs].br === br ? nodes[d.needs] : null;
       const side = nd ? nd.side : cnt[-1] <= cnt[1] ? -1 : 1;
       const par = nd || stem[side], depth = par ? par.depth + 1 : 1, fork = nd && stem[side] !== nd ? 1 : 0;
-      const r = 112 + 62 * k + (R() - 0.5) * 22;
+      const r = 128 + (i % 2) * 26 + 60 * k + (R() - 0.5) * 18;
       const a = ang + curl * (r / 420) + side * (30 + 13 * depth + fork * 18) / r + (R() - 0.5) * 0.06;   // arms curl a little each their own way; the two stems spread as they grow
       const n = Object.assign(P(a, r), { id: d.id, br, ac, arm, side, depth, par, a, bend: (R() - 0.5) * 0.9, twigs: [R(), R(), R()] });
       nodes[d.id] = n; stem[side] = n; cnt[side]++;
@@ -1184,21 +1189,58 @@ function treeFit() {
   const s = clamp(Math.min((W - card - 30) / (b.x1 - b.x0), (H - 20) / (b.y1 - b.y0)), 0.45, 1.3);
   TL.view = { s, ox: (W - card) / 2 - (b.x0 + b.x1) / 2 * s, oy: H / 2 - (b.y0 + b.y1) / 2 * s };
 }
-function treePlace() {   // the DOM tips follow the view
+function treePlace() {   // the DOM tips follow the view; labels pick a side that does not overlap; the card sits beside the selected tip
   const v = TL.view, lay = treeLayout(); if (!v) return;
-  for (const el of treeEl.querySelectorAll('.tnode')) { const n = lay.nodes[el.dataset.id]; el.style.left = (v.ox + n.x * v.s) + 'px'; el.style.top = (v.oy + n.y * v.s) + 'px'; }
+  const pts = [];
+  for (const el of treeEl.querySelectorAll('.tnode')) { const id = el.dataset.id, n = lay.nodes[id], x = v.ox + n.x * v.s, y = v.oy + n.y * v.s; el.style.left = x + 'px'; el.style.top = y + 'px'; pts.push({ id, el, n, x, y }); }
+  const boxes = pts.map(p => ({ x0: p.x - 11, x1: p.x + 11, y0: p.y - 11, y1: p.y + 11, own: p.id }));
+  const hit = (b, own) => boxes.some(o => o.own !== own && b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+  const rank = p => { const s = game.tree.state[p.id]; return s === 'owned' || s === 'revealed' ? 0 : 1; };
+  for (const p of pts.sort((a, b) => rank(a) - rank(b))) {
+    const lb = p.el.querySelector('.lbl'), [w, h] = TL.lw[p.id] || [80, 16], cx = Math.cos(p.n.a), sy = Math.sin(p.n.a);
+    const pref = Math.abs(cx) > 0.38 ? (cx > 0 ? 'r' : 'l') : sy < 0 ? 'u' : 'd', opp = { r: 'l', l: 'r', u: 'd', d: 'u' };
+    const rect = sd => sd === 'r' ? { x0: p.x + 20, x1: p.x + 20 + w, y0: p.y - h / 2, y1: p.y + h / 2 } : sd === 'l' ? { x0: p.x - 20 - w, x1: p.x - 20, y0: p.y - h / 2, y1: p.y + h / 2 }
+      : sd === 'u' ? { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y - 20 - h, y1: p.y - 20 } : { x0: p.x - w / 2, x1: p.x + w / 2, y0: p.y + 20, y1: p.y + 20 + h };
+    let side = pref; for (const sd of [pref, opp[pref], pref === 'r' || pref === 'l' ? 'u' : 'r', pref === 'r' || pref === 'l' ? 'd' : 'l']) if (!hit(rect(sd), p.id)) { side = sd; break; }
+    const r = rect(side); boxes.push(Object.assign(r, { own: p.id + ':l' }));
+    const cls = 'lbl ' + side; if (lb.className !== cls) lb.className = cls;
+  }
+  treeCardPos();
+}
+function treeCardPos() {   // beside the selected tip (on the side with more room), else docked top right
+  const el = treeEl.querySelector('.tcard'), st = treeEl.querySelector('.tstage'); if (!el || !st) return;
+  if (!TL.sel || !TL.view || window.innerWidth <= 900) { el.style.left = el.style.top = ''; el.classList.remove('beside'); return; }
+  const n = treeLayout().nodes[TL.sel], v = TL.view, x = v.ox + n.x * v.s + st.offsetLeft, y = v.oy + n.y * v.s + st.offsetTop, W = el.offsetWidth || 290, H = el.offsetHeight || 200, PW = st.offsetLeft + st.clientWidth;
+  const lay = treeLayout(), X0 = st.offsetLeft + 4, X1 = PW - W - 4, Y0 = st.offsetTop + 4, Y1 = st.offsetTop + st.clientHeight - H - 4;
+  const pr = el.offsetParent.getBoundingClientRect(), own = treeEl.querySelector(`.tnode[data-id="${TL.sel}"] .lbl`), marks = [];
+  for (const id in lay.nodes) { const m = lay.nodes[id]; marks.push({ x0: v.ox + m.x * v.s + st.offsetLeft - 12, y0: v.oy + m.y * v.s + st.offsetTop - 12, x1: v.ox + m.x * v.s + st.offsetLeft + 12, y1: v.oy + m.y * v.s + st.offsetTop + 12, w: 1 }); }
+  for (const lb of treeEl.querySelectorAll('.tnode .lbl')) { const r = lb.getBoundingClientRect(); marks.push({ x0: r.left - pr.left, y0: r.top - pr.top, x1: r.right - pr.left, y1: r.bottom - pr.top, w: lb === own ? 50 : 1 }); }
+  const covered = (l, tp) => { let k = 0; for (const m of marks) if (m.x0 < l + W && m.x1 > l && m.y0 < tp + H && m.y1 > tp) k += m.w; return k; };   // tips and labels hidden; never its own label
+  const spots = [[x + 34, y - 70], [x - 34 - W, y - 70], [x + 34, y - H + 50], [x - 34 - W, y - H + 50], [x + 34, y - H / 2], [x - 34 - W, y - H / 2],
+    [x - W / 2, y - 34 - H], [x - W / 2, y + 34], [x - 40, y - 34 - H], [x - W + 40, y - 34 - H], [x - 40, y + 34], [x - W + 40, y + 34]].map(([l, tp]) => [clamp(l, X0, X1), clamp(tp, Y0, Y1)])
+    .filter(([l, tp]) => !(l < x + 22 && l + W > x - 22 && tp < y + 22 && tp + H > y - 22));   // never on top of the tip itself
+  let best = spots[0] || [clamp(x + 34, X0, X1), clamp(y - 70, Y0, Y1)], bk = 1e9;
+  for (const sp of spots) { const k = covered(sp[0], sp[1]); if (k < bk) { bk = k; best = sp; } }   // the spot that hides the fewest tips
+  el.classList.add('beside'); el.style.left = best[0] + 'px'; el.style.top = best[1] + 'px';
+}
+function treeFly(id) {   // glide the view so that tip sits near the middle, a little closer
+  const st = treeEl.querySelector('.tstage'), v = TL.view; if (!st || !v) return;
+  const n = treeLayout().nodes[id], s = Math.max(v.s, 1.1);
+  TL.fly = { a: { ...v }, b: { s, ox: st.clientWidth * 0.42 - n.x * s, oy: st.clientHeight / 2 - n.y * s }, t0: performance.now() };
 }
 function treeCard() {
   const el = treeEl.querySelector('.tcard'); if (!el) return;
-  const id = TL.hov || TL.sel, d = id && TREE.find(x => x.id === id), chip = (txt, ok) => `<span class="${ok ? '' : 'no'}">${txt}</span>`;
+  const id = TL.sel, d = id && TREE.find(x => x.id === id), chip = (txt, ok) => `<span class="${ok ? '' : 'no'}">${txt}</span>`;
   const visitors = game.species.length ? `Living on your reef: <b>${game.species.join(', ')}</b>` : 'No one has moved in yet. Animals are never bought: they come when their coral exists.';
   if (!d) {
     const dot = c => `<i style="background:${c}"></i>`;
     el.style.setProperty('--ac', '#9cc5d6');
-    el.innerHTML = `<h4>Your reef's knowledge</h4><div class="fxl">Each arm is one line of learning; each tip is something the reef can learn. Click a tip to read it, then learn it here.</div>
+    const ready = TREE.filter(x => canBuy(x.id));
+    const list = ready.length ? `<div class="rlh">Ready to learn (${ready.length})</div>` + ready.map(x => `<button class="rl" data-go="${x.id}"><b>${x.name}</b><span style="color:${BRANCHES.find(b => b[0] === x.branch)[1]}">${x.branch}</span></button>`).join('') : `<div class="rlh">${TREE.every(x => game.tree.state[x.id] === 'owned') ? 'Everything here is learned' : 'Nothing ready to learn yet'}</div>`;
+    el.innerHTML = `<h4>Your reef's knowledge</h4><div class="fxl">Each arm grows outward from the rock: learn the tip nearer the rock first. Click a tip to read it.</div>${list}
       <div class="lg">${dot('#8ff0c0')}<span>Learned: live, glowing tissue</span>${dot('#ffc9a0')}<span>Ready to learn (pulsing)</span>${dot('rgba(255,205,170,0.45)')}<span>Revealed, not enough yet</span>${dot('rgba(222,212,192,0.35)')}<span>Hidden: bare skeleton</span></div>
       <div class="tspecies">${visitors}</div>`;
-    return;
+    treeCardPos(); return;
   }
   const s = tnState(d), ac = BRANCHES.find(b => b[0] === d.branch)[1];
   el.style.setProperty('--ac', ac);
@@ -1215,7 +1257,7 @@ function treeCard() {
     }
   }
   if (d.branch === 'Residents') h += `<div class="tspecies">${visitors}</div>`;
-  el.innerHTML = h;
+  el.innerHTML = h; treeCardPos();
 }
 function renderTree() {
   const lay = treeLayout();
@@ -1228,10 +1270,11 @@ function renderTree() {
     const known = s === 'owned' || s === 'revealed', sr = s === 'tierlock' ? `Reach ${TIER_STAGE[d.tier - 1]} to unlock tier ${d.tier}` : s === 'hidden' ? d.hint : '';
     h += `<div class="tnode ${s}${s === 'revealed' && canBuy(d.id) ? ' can' : ''}${TL.sel === d.id ? ' sel' : ''}" data-id="${d.id}" title="${known ? d.name : '???'}"><span class="lbl ${side}">${known ? d.name : '???'}${n.arm.tip === n ? `<span class="arm" style="color:${n.ac}">${d.branch}</span>` : ''}</span>${sr ? `<span class="sr">${sr}</span>` : ''}</div>`;
   }
-  h += `</div></div><aside class="tcard"></aside><div class="tfoot"><span>Click a tip to read it, click again (or Learn it) to learn it. Drag to move, wheel to zoom, double-click to fit</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>`;
+  h += `</div></div><aside class="tcard"></aside><div class="tfoot"><span>Click a tip to read it, then Learn it. Drag to move, wheel to zoom, double-click to fit</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>`;
   treeEl.innerHTML = h;
   TL.cv = treeEl.querySelector('.tcv'); TL.cx = TL.cv.getContext('2d');
   if (!TL.view) treeFit();
+  TL.lw = {}; for (const el of treeEl.querySelectorAll('.tnode')) { const lb = el.querySelector('.lbl'); TL.lw[el.dataset.id] = [lb.offsetWidth, lb.offsetHeight]; }
   treePlace(); treeCard();
 }
 function treeVisitors() {   // the residents you host, as stand-ins that swim round the tree (drawn by the game's own sprite code)
@@ -1249,6 +1292,7 @@ function drawTreeFrame(ms) {
   TL.raf = requestAnimationFrame(drawTreeFrame);
   const cv = TL.cv, g = TL.cx, dpr = Math.min(2, window.devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
   if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  if (TL.fly) { const F = TL.fly, u = clamp((performance.now() - F.t0) / 500, 0, 1), e = u * u * (3 - 2 * u); for (const k of ['s', 'ox', 'oy']) TL.view[k] = F.a[k] + (F.b[k] - F.a[k]) * e; treePlace(); if (u >= 1) TL.fly = null; }
   const t = ms / 1000, v = TL.view, lay = treeLayout(), cols = TL.cols || (TL.cols = treeArmColours());
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
   // drifting plankton motes in screen space
@@ -1301,6 +1345,16 @@ function drawTreeFrame(ms) {
       }
     }
   }
+  // the path from the hovered or selected tip back to the rock: what has to be learned on the way
+  for (const id of new Set([TL.sel, TL.hov])) {
+    if (!id) continue;
+    g.setLineDash([6, 6]); g.lineDashOffset = t * 18; g.lineWidth = 2.5 / Math.max(0.6, v.s);
+    for (let n = lay.nodes[id]; n; n = n.par) {
+      const sg = lay.segs.find(x => x.b === n), q = curve(sg), ok = game.tree.state[n.id] === 'owned';
+      g.strokeStyle = ok ? 'rgba(170,255,210,0.75)' : 'rgba(255,240,215,0.85)'; g.beginPath(); g.moveTo(q.a.x, q.a.y); g.quadraticCurveTo(q.qx, q.qy, q.b.x, q.b.y); g.stroke();
+    }
+    g.setLineDash([]);
+  }
   // the tips
   for (const d of TREE) {
     const n = lay.nodes[d.id], s = tnState(d), tis = cols[n.arm.i], ac = hex(n.ac), can = s === 'revealed' && canBuy(d.id), sel = TL.sel === d.id || TL.hov === d.id;
@@ -1317,6 +1371,7 @@ function drawTreeFrame(ms) {
       if (can) { g.strokeStyle = rgba([255, 210, 170], 0.25 * (1 - pu)); g.beginPath(); g.arc(n.x, n.y, 16 + 6 * pu, 0, 6.3); g.stroke(); }
       if (game.tree.fresh[d.id]) for (let k = 0; k < 4; k++) { const a = t * 1.5 + k * 1.57; g.fillStyle = 'rgba(255,245,210,0.85)'; g.beginPath(); g.arc(n.x + Math.cos(a) * 19, n.y + Math.sin(a) * 19, 1.6, 0, 6.3); g.fill(); }
     } else { g.fillStyle = rgba(BONE, s === 'hidden' ? 0.4 : 0.18); g.beginPath(); g.arc(n.x, n.y, s === 'hidden' ? 4.5 : 3.5, 0, 6.3); g.fill(); }
+    if (TL.burst && TL.burst.id === d.id) { const age = (performance.now() - TL.burst.t0) / 900; if (age >= 1) TL.burst = null; else { g.strokeStyle = rgba(mix(tis, [255, 255, 255], 0.5), 1 - age); g.lineWidth = 3 * (1 - age) + 0.5; g.beginPath(); g.arc(n.x, n.y, 10 + 55 * age, 0, 6.3); g.stroke(); } }
     if (sel) { g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.5; g.setLineDash([4, 4]); g.lineDashOffset = -t * 14; g.beginPath(); g.arc(n.x, n.y, 17, 0, 6.3); g.stroke(); g.setLineDash([]); }
   }
   // visitors: the residents you host, drawn with the game's own sprite code
@@ -1338,7 +1393,8 @@ function drawTreeFrame(ms) {
 function openTree() {
   if (game.tree.open) return;
   game.tree.open = true; game.keys.clear(); game.mouse.down = false; game.mouse.bud = false; game.bud.armed = false; game.bud.t = 0;
-  TL.view = null; TL.sel = null; TL.hov = null; TL.vis = null; TL.cols = null;
+  TL.view = null; TL.sel = null; TL.hov = null; TL.vis = null; TL.cols = null; TL.fly = null; TL.burst = null;
+  document.getElementById('banner').classList.remove('show');   // a banner showing as the tree opens is done with
   treeEl.classList.add('open'); document.body.classList.add('treeopen'); renderTree();
   if (!TL.raf) TL.raf = requestAnimationFrame(drawTreeFrame);
   game.tree.fresh = {};
@@ -1353,18 +1409,20 @@ function treeShake(el) { if (!el) return; el.classList.remove('shake'); void el.
 treeEl.addEventListener('click', e => {
   if (TL.drag && TL.drag.moved) return;
   const bb = e.target.closest('[data-buy]');
-  if (bb) { const id = bb.dataset.buy; if (!buy(id)) treeShake(treeEl.querySelector('.tcard')); else treeSelect(id); return; }
+  if (bb) { const id = bb.dataset.buy; if (!buy(id)) treeShake(treeEl.querySelector('.tcard')); else { TL.burst = { id, t0: performance.now() }; treeSelect(id); } return; }
+  const go = e.target.closest('[data-go]');
+  if (go) { treeSelect(go.dataset.go); treeFly(go.dataset.go); return; }
   const n = e.target.closest('.tnode');
   if (n) {
     const id = n.dataset.id;
-    if (TL.sel === id && game.tree.state[id] === 'revealed') { if (!buy(id)) { treeShake(treeEl.querySelector(`.tnode[data-id="${id}"]`)); treeShake(treeEl.querySelector('.tcard')); } else treeSelect(id); return; }
+    if (TL.sel === id && game.tree.state[id] === 'revealed') { if (!buy(id)) { treeShake(treeEl.querySelector(`.tnode[data-id="${id}"]`)); treeShake(treeEl.querySelector('.tcard')); } else { TL.burst = { id, t0: performance.now() }; treeSelect(id); } return; }
     treeSelect(id); return;
   }
   if (e.target.closest('.tstage')) treeSelect(null);
 });
-treeEl.addEventListener('mouseover', e => { const n = e.target.closest('.tnode'); const id = n ? n.dataset.id : null; if (id !== TL.hov) { TL.hov = id; treeCard(); } });
+treeEl.addEventListener('mouseover', e => { const n = e.target.closest('.tnode'); const id = n ? n.dataset.id : null; TL.hov = id; });
 treeEl.addEventListener('dblclick', e => { if (e.target.closest('.tstage') && !e.target.closest('.tnode')) { treeFit(); treePlace(); } });
-treeEl.addEventListener('pointerdown', e => { const st = e.target.closest('.tstage'); if (!st || e.button !== 0 || !TL.view) return; TL.drag = { x: e.clientX, y: e.clientY, ox: TL.view.ox, oy: TL.view.oy, moved: false }; });
+treeEl.addEventListener('pointerdown', e => { const st = e.target.closest('.tstage'); if (!st || e.button !== 0 || !TL.view) return; TL.fly = null; TL.drag = { x: e.clientX, y: e.clientY, ox: TL.view.ox, oy: TL.view.oy, moved: false }; });
 window.addEventListener('pointermove', e => {
   const D = TL.drag; if (!D || !game.tree.open) return;
   const dx = e.clientX - D.x, dy = e.clientY - D.y; if (!D.moved && Math.hypot(dx, dy) < 5) return;
@@ -1373,7 +1431,7 @@ window.addEventListener('pointermove', e => {
 window.addEventListener('pointerup', () => { if (!TL.drag) return; const D = TL.drag; treeEl.querySelector('.tstage')?.classList.remove('drag'); setTimeout(() => { if (TL.drag === D) TL.drag = null; }, 0); });
 treeEl.addEventListener('wheel', e => {
   const st = e.target.closest('.tstage'); if (!st || !TL.view) return; e.preventDefault();
-  const r = st.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, v = TL.view, ns = clamp(v.s * Math.exp(-e.deltaY * 0.0015), 0.4, 2.4);
+  TL.fly = null; const r = st.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, v = TL.view, ns = clamp(v.s * Math.exp(-e.deltaY * 0.0015), 0.4, 2.4);
   v.ox = mx - (mx - v.ox) * ns / v.s; v.oy = my - (my - v.oy) * ns / v.s; v.s = ns; treePlace();
 }, { passive: false });
 for (const ev of ['mousedown', 'wheel', 'contextmenu']) treeEl.addEventListener(ev, e => e.stopPropagation());
@@ -4597,6 +4655,34 @@ function drawSky(t) {
   for (let i = 0; i < 6; i++) { const cx = ((i * 520 + t * (6 + i * 1.5) + c.x * 0.5) % 3200) - 600 + Math.floor(c.x / 3200) * 3200, cy = -130 - (i % 3) * 22; ctx.beginPath(); ctx.ellipse(cx, cy, 70, 11, 0, 0, 6.3); ctx.ellipse(cx + 40, cy - 8, 40, 10, 0, 0, 6.3); ctx.fill(); }
   ctx.globalAlpha = 1;
 }
+// before the island: the strip of sky the view can show above the waterline (CONFIG.topRoom), drawn after the underwater effects so it stays clean.
+// Its bottom edge follows the same wave line as the surface; it greys in storms and darkens at night. The island ending uses drawSky instead.
+const skyTopOn = () => game.fin.sky <= 0.001 && !game.land.length;
+function drawSkyTop(t) {
+  if (!skyTopOn()) return;
+  const c = game.cam, v = game.view, top = c.y - v.h / c.zoom / 2 - 4; if (top > 8) return;   // the surface is off screen
+  const cy = game.storm && game.storm.cyc ? game.stormPw : 0, A = 1 + cy * 3.4, dir = game.storm ? game.storm.dir : 1;
+  const wy = x => 7 + (Math.sin(x * 0.02 + t * 1.3) * 3 + Math.sin(x * 0.05 - t) * 1.5) * A + (cy ? Math.sin(x * 0.011 - dir * t * 2.6) * 7 * cy : 0);
+  const x0 = Math.floor((c.x - v.w / c.zoom / 2 - 40) / 20) * 20, x1 = c.x + v.w / c.zoom / 2 + 40;
+  const night = 1 - daylight(), storm = clamp(game.stormPw || 0, 0, 1);
+  const mixc = (a, b, u) => a.map((x, i) => Math.round(x + (b[i] - x) * u));
+  const tint = col => mixc(mixc(col, [70, 82, 96], storm * 0.75), [10, 18, 42], night * 0.85);
+  const g = ctx.createLinearGradient(0, -170, 0, 8);
+  g.addColorStop(0, `rgb(${tint([74, 160, 226])})`); g.addColorStop(0.65, `rgb(${tint([150, 210, 240])})`); g.addColorStop(1, `rgb(${tint([226, 242, 246])})`);
+  ctx.save(); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x0, top);
+  ctx.lineTo(x1, top); for (let x = x1; x >= x0; x -= 20) ctx.lineTo(x, wy(x)); ctx.closePath(); ctx.fill(); ctx.clip();
+  if (night < 0.7 && storm < 0.6) {   // a soft sun and a few slow clouds
+    const sx = c.x * 0.9 + 300, sg = ctx.createRadialGradient(sx, -70, 3, sx, -70, 70); sg.addColorStop(0, `rgba(255,250,220,${0.9 * (1 - night)})`); sg.addColorStop(1, 'rgba(255,245,200,0)');
+    ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(sx, -70, 70, 0, 6.3); ctx.fill();
+  }
+  ctx.fillStyle = `rgba(${tint([255, 255, 255])},${0.75 - night * 0.4})`;
+  for (let i = 0; i < 9; i++) { const cx = ((i * 430 + t * (5 + i * 1.3) * (1 + storm * 3)) % 3870) + Math.floor(c.x / 3870) * 3870 - 600, cyy = -45 - (i % 3) * 26 - (i % 2) * 9;
+    for (const k of [0, 3870]) { ctx.beginPath(); ctx.ellipse(cx + k, cyy, 52, 9, 0, 0, 6.3); ctx.ellipse(cx + k + 30, cyy - 6, 30, 8, 0, 0, 6.3); ctx.fill(); } }
+  if (night > 0.3) { ctx.fillStyle = `rgba(255,255,240,${(night - 0.3) * 0.9})`; for (let i = 0; i < 60; i++) { const sx = x0 + hash2(i, 3, 17) * (x1 - x0), sy = -10 - hash2(i, 9, 5) * 150; ctx.fillRect(sx, sy, 1.4, 1.4); } }
+  ctx.restore();
+  ctx.strokeStyle = `rgba(255,255,255,${0.75 - night * 0.45})`; ctx.lineWidth = 1.5 + cy * 2; ctx.beginPath();   // the bright waterline on top
+  for (let x = x0; x <= x1; x += 20) { const y = wy(x); x > x0 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+}
 function drawSurface(t) {
   const cy = game.storm && game.storm.cyc ? game.stormPw : 0, A = 1 + cy * 3.4, dir = game.storm ? game.storm.dir : 1;   // a cyclone heaves the surface up into big swells
   const c = game.cam, hw = game.view.w / c.zoom / 2 + 60, xa = cy ? Math.max(0, Math.floor((c.x - hw) / 20) * 20) : 0, xb = cy ? Math.min(W, c.x + hw) : W, st = cy ? 20 : 40;
@@ -5282,10 +5368,10 @@ function render() {
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
     worldTransform(uctx);
     const scene = ctx; ctx = uctx;
-    drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
+    drawSkyTop(t); drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
     ctx = scene;
     present();
-  } else { drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
+  } else { drawSkyTop(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
 }
 
 /* ---------- HUD ---------- */
