@@ -64,7 +64,7 @@
   #devtools button { font: inherit; padding: 2px 7px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: #e8f8ff; cursor: pointer; } #devtools button:hover { background: rgba(255,255,255,0.2); } #devtools button.on { background: #2f7f62; }
   #devtools label { display: inline-flex; gap: 4px; align-items: center; margin-right: 8px; }
   #devtools input[type=text], #devtools input[type=number] { font: inherit; color: #e8f8ff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 1px 4px; }
-  #devtools input[type=text] { width: 100%; box-sizing: border-box; } #devtools #devread, #devtools #stageread, #devtools #devcfg, #devtools #devtree { width: 100%; }
+  #devtools input[type=text] { width: 100%; box-sizing: border-box; } #devtools #devread, #devtools #stageread, #devtools #devcfg, #devtools #devtree { width: 100%; } #devtools #stageread { white-space: pre-line; }
   #devtools .tr { display: flex; gap: 5px; align-items: center; margin-bottom: 2px; } #devtools .tr b { width: 22px; } #devtools .tr .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e8f8ff; } #devtools .tr .s { width: 50px; color: #8aa0b2; } #devtools .tr .s.revealed { color: #ffd9a0; } #devtools .tr .s.owned { color: #8ff0c0; }
   #devtools .cr { display: flex; justify-content: space-between; gap: 6px; margin: 0 0 2px; width: 100%; } #devtools .cr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #devtools .cr input { width: 84px; flex: none; } #devtools .cr.chg span { color: #ffd34d; } #devtools .cr.chg input { border-color: #ffd34d; background: rgba(255,211,77,0.15); }
   #devstats { position: fixed; left: 12px; bottom: 60px; display: none; padding: 4px 9px; background: rgba(2, 16, 32, 0.7); color: #cfeaf6; border-radius: 6px; font-size: 12px; pointer-events: none; font-variant-numeric: tabular-nums; }
@@ -442,7 +442,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0 },
+  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0, waitSecs: 0, waitByStage: [], guideBuds: 0, lost: { storm: 0, nibbler: 0, bleach: 0, disease: 0, starfish: 0, smother: 0, other: 0 } },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
@@ -1076,6 +1076,22 @@ function stageTimes() {
   STAGES.forEach((st, i) => { const t = at[i]; if (typeof t !== 'number') return; out.push([st.name, mmss(t), '+' + mmss(Math.max(0, t - prev))]); prev = t; });
   return out;
 }
+// the run report: where the time went and what was lost, for the ending card, the dev tools and tests
+function runReport() {
+  const S = game.stats, t = game.time, w = S.waitSecs || 0, L = S.lost || {}, by = (S.waitByStage || []).slice();
+  while (by.length < Math.max(1, game.goals.stage)) by.push(0);
+  const hand = S.handBuds || 0, guided = (S.guideBuds || 0) + (S.planBuds || 0);
+  return { time: t, waitSecs: w, waitPct: t > 0 ? w / t * 100 : 0, waitByStage: by.map(x => +x.toFixed(1)),
+    buds: { total: S.buds || 0, hand, guided, other: Math.max(0, (S.buds || 0) - hand - guided) },
+    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, other: L.other || 0 } };
+}
+window.runReport = runReport;
+const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', other: 'Other' };
+function runRows() {
+  const R = runReport(), rows = [['Time played', mmss(R.time)], ['Waiting for energy', `${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%)`], ['Buds by hand / guided', `${R.buds.hand} / ${R.buds.guided}`]];
+  for (const k of Object.keys(LOST_NAMES)) if (R.lost[k]) rows.push([`Polyps lost to ${LOST_NAMES[k].toLowerCase()}`, R.lost[k]]);
+  return rows;
+}
 function openEnding() {
   const F = game.fin, v = calcRatings(), L = F.life || {};
   const ach = game.ach.order.length, achAll = ACH.filter(x => !x.later).length;
@@ -1083,7 +1099,7 @@ function openEnding() {
   const rat = ratingRows().map(([k, nm, col]) => `<div class="rb"><span>${nm}</span><i><u style="width:${Math.round(v[k] || 0)}%;background:${col}"></u></i><em>${Math.round(v[k] || 0)}</em></div>`).join('');
   endEl.innerHTML = `<div class="tp"><h1>An island</h1><p>Your reef has risen out of the sea. Birds circle it, grass is holding the sand, and the turtles have come ashore.</p>` +
     `<div class="sum">${rows.map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>` +
-    (stageTimes().length ? `<h5>Stage reached at</h5><div class="sum">${stageTimes().map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>` : '') + `<h5>Reef ratings</h5><div class="rt">${rat}</div>` +
+    (stageTimes().length ? `<h5>Stage reached at</h5><div class="sum">${stageTimes().map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>` : '') + `<h5>Your run</h5><div class="sum">${runRows().map(r => `<div><span>${r[0]}</span><b>${r[1]}</b></div>`).join('')}</div>` + `<h5>Reef ratings</h5><div class="rt">${rat}</div>` +
     `<div class="btns"><button class="keep">Keep playing</button><button class="new">New game</button></div></div>`;
   endEl.classList.add('open'); F.cardOpen = true; F.carded = true;
 }
@@ -1635,6 +1651,7 @@ function trySettle() {
   sfx('thud');
   return true;
 }
+function lostBy(k, n) { const L = game.stats.lost || (game.stats.lost = {}); L[k] = (L[k] || 0) + n; }   // run report: polyps lost, by cause
 function toSkeleton(p) {
   p.dead = true;
   game.polyps = game.polyps.filter(q => q !== p);
@@ -1676,8 +1693,8 @@ function freeLarva(c0, r0, inv) {
   L.x = best.x; L.y = best.y; L.vx = dx * 14; L.vy = dy * 14 - 6; L.inv = inv;
 }
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
-function killPolyp(p, why) {   // why: the toast for a polyp that was not the active one ('' for none)
-  game.stats.polypsLost++;
+function killPolyp(p, why, cause) {   // why: the toast for a polyp that was not the active one ('' for none); cause: for the run report, one of the keys of stats.lost (default 'other')
+  game.stats.polypsLost++; lostBy(cause || 'other', 1);
   const cc = drawPos(p), was = p === game.active && game.stage === 'polyp';
   toSkeleton(p);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.7, red: true });
@@ -1909,7 +1926,7 @@ function updateGuide(dt) {
   }
   const q = g.path.shift();
   game.energy -= budCost(tp); game.calcium -= budCalcium(tp);
-  const gp = addPolyp(q.c, q.r, tp, from && from.ref); game.stats.buds++; afterBud(gp);
+  const gp = addPolyp(q.c, q.r, tp, from && from.ref); game.stats.buds++; game.stats.guideBuds = (game.stats.guideBuds || 0) + 1; afterBud(gp);
   if (from) rollSport(gp, from.ref);
   game.fx.push({ kind: 'ring', x: (q.c + 0.5) * CELL, y: (q.r + 0.5) * CELL, t: 0, life: 0.6 });
   g.t = 0; g.wait = 0;
@@ -2993,7 +3010,7 @@ function updateNibblers(dt) {
               sfx('bite', cc.x, cc.y);
               game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
               if (game.stats.nibbles++ === 0) toast('A nibbler is eating your polyps');
-              if (p.hp <= 0) { killPolyp(p); n.mode = 'leave'; n.tgt = null; N.timer = Math.max(N.timer || 0, CONFIG.nibblerGrace); }   // a meal buys the colony a quiet spell
+              if (p.hp <= 0) { killPolyp(p, undefined, 'nibbler'); n.mode = 'leave'; n.tgt = null; N.timer = Math.max(N.timer || 0, CONFIG.nibblerGrace); }   // a meal buys the colony a quiet spell
             }
           } else { n.mode = 'seek'; n.bite = 0; }
         }
@@ -6016,7 +6033,8 @@ function devRefresh() {
   const rd = document.getElementById('devread'), s = `energy ${game.energy.toFixed(1)} · calcium ${Math.floor(game.calcium)} · polyps ${game.polyps.length} · time ${game.time.toFixed(1)} s`;
   if (rd.textContent !== s) rd.textContent = s;
   const sg = document.getElementById('stageread'), s2 = 'stages: ' + (stageTimes().map(r => `${r[0]} ${r[1]} (${r[2]})`).join(' · ') || 'none yet');
-  if (sg.textContent !== s2) sg.textContent = s2;
+  const R = runReport(), s2b = s2 + String.fromCharCode(10) + `waiting ${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%) · per stage ${R.waitByStage.map(mmss).join(' ')} · buds hand ${R.buds.hand} guided ${R.buds.guided} · lost: ` + (Object.keys(R.lost).filter(k => R.lost[k]).map(k => `${k} ${R.lost[k]}`).join(', ') || 'none');
+  if (sg.textContent !== s2b) sg.textContent = s2b;
   const pr = document.getElementById('perfread'), s3 = perfRows().map(r => `${r.tag.padEnd(9)} ${String(r.fps).padStart(3)} fps  1% low ${String(r.low1).padStart(3)}  sim ${r.simMs} ms  draw ${r.drawMs} ms  long ${r.longPct}%  worst ${r.worstMs} ms  (${r.frames} frames)`).join(String.fromCharCode(10)) || 'no frames yet';
   if (pr && pr.textContent !== s3) pr.textContent = s3;
 }
@@ -6925,7 +6943,7 @@ function makeFrag(polys, skels) {
   game.polyps = game.polyps.filter(a => !a.frag);
   game.skeletons = game.skeletons.filter(a => !skels.includes(a));
   game.frags.push(f);
-  game.stats.stormLost += polys.length; game.stats.polypsLost += polys.length; if (game.storm) game.storm.lost += polys.length;
+  game.stats.stormLost += polys.length; game.stats.polypsLost += polys.length; lostBy('storm', polys.length); if (game.storm) game.storm.lost += polys.length;
   const a = game.active;
   if (a && a.frag === f && game.stage === 'polyp') {   // the player rides it
     game.riding = { frag: f, p: a }; game.active = null; game.stage = 'larva'; game.facing = null;
@@ -7134,7 +7152,7 @@ function updateBleach(dt) {
     if (!p.bl) continue;
     p.bl.t += dt; if (p.bl.t < need) continue;
     const dieP = (has('C3') ? C.dieC3 : C.die) * (p.bl.n >= C.caught ? C.caughtDie : 1);
-    if (Math.random() < dieP) { game.stats.bleachDied++; killPolyp(p, ''); continue; }
+    if (Math.random() < dieP) { game.stats.bleachDied++; killPolyp(p, '', 'bleach'); continue; }
     p.bl = null; game.stats.recovered++;
     const cc = cellCenter(p.c, p.r); spawnParts('heal', cc.x, cc.y - 4, 3);
     if (has('C3') && Math.random() < C.sportC3) heatSport(p);
@@ -7217,7 +7235,7 @@ function updateWeed(dt) {
     for (const p of game.polyps.slice()) {   // a weak polyp under seaweed is overgrown
       if (!weakPolyp(p) || !weedTouch(p)) continue;
       p.hp -= C.smother * dt; p.lastHit = game.time;
-      if (p.hp <= 0) { game.stats.smothered++; killPolyp(p, game.progress.smother ? '' : 'Seaweed has smothered a weak polyp'); game.progress.smother = true; }
+      if (p.hp <= 0) { game.stats.smothered++; killPolyp(p, game.progress.smother ? '' : 'Seaweed has smothered a weak polyp', 'smother'); game.progress.smother = true; }
     }
   }
 }
@@ -7307,7 +7325,7 @@ function updateDisease(dt) {
       if (p.inf.cure >= C.cure) { p.inf = null; game.stats.diseaseCured = (game.stats.diseaseCured || 0) + 1; spawnParts('heal', px, py - 4, 4); game.fx.push({ kind: 'ring', x: px, y: py, t: 0, life: 0.7 }); continue; }
     } else p.inf.cure = Math.max(0, p.inf.cure - dt);
     p.inf.t += dt;
-    if (p.inf.t >= C.die) { game.stats.diseaseLost++; killPolyp(p, game.progress.diseaseDeath ? '' : 'The white band has killed a polyp'); game.progress.diseaseDeath = true; }
+    if (p.inf.t >= C.die) { game.stats.diseaseLost++; killPolyp(p, game.progress.diseaseDeath ? '' : 'The white band has killed a polyp', 'disease'); game.progress.diseaseDeath = true; }
   }
   if ((D.tick += dt) >= C.every) {
     D.tick -= C.every;
@@ -7450,7 +7468,7 @@ function updateStar(dt) {
         s.x = lerp(s.x, px, k); s.y = lerp(s.y, py, k); s.rot += dt * 0.5;
         s.eat += dt * lerp(C.day, 1, act);
         if (Math.random() < dt * 3) spawnParts('dust', px, py, 1);
-        if (s.eat >= eatNeed) { s.eat = 0; game.stats.starfishEaten = (game.stats.starfishEaten || 0) + 1; killPolyp(p, game.progress.starEat ? '' : 'A starfish has eaten a polyp'); game.progress.starEat = true; s.mode = 'move'; s.tgt = null; s.path = []; s.pathT = 0; }
+        if (s.eat >= eatNeed) { s.eat = 0; game.stats.starfishEaten = (game.stats.starfishEaten || 0) + 1; killPolyp(p, game.progress.starEat ? '' : 'A starfish has eaten a polyp', 'starfish'); game.progress.starEat = true; s.mode = 'move'; s.tgt = null; s.path = []; s.pathT = 0; }
         continue;
       }
     }
@@ -8436,6 +8454,10 @@ function newGame() { SAVE.wiping = true; saveDel(SAVE.key); location.reload(); }
 function step(dt) {
   if (game.tree.open || game.titleOn || askOn || game.fin.cardOpen) return;   // the tree screen, the title card and the New game question pause the game
   game.time += dt;
+  if (game.stage === 'polyp' && game.polyps.length >= 1 && game.energy < budCost() && !game.nibblers.length && !game.starfish.length && !game.storm) {   // run report: time spent waiting for energy with nothing else going on
+    const S = game.stats, i = Math.max(0, game.goals.stage - 1), W = S.waitByStage || (S.waitByStage = []);
+    S.waitSecs = (S.waitSecs || 0) + dt; while (W.length <= i) W.push(0); W[i] += dt;
+  }
   if (devs.ovOff && !stormSoon()) devs.ovOff = false;   // the storm has passed: next storm shows the structure view again
   game.current = currentAt(game.larva.x, game.larva.y, game.time);
   if (game.stage === 'larva' && !game.riding) updateLarva(dt); else game.settleTarget = null;
