@@ -156,9 +156,9 @@
   #track .nd.last .nm { color: #ffd9c9; margin-top: 0; font-weight: 600; }
   #track .nd.lit .dot { animation: nlit 1.4s ease-out; }
   @keyframes nlit { 0% { transform: scale(0.4); box-shadow: 0 0 0 0 rgba(255, 226, 176, 0.9); } 40% { transform: scale(2); } 100% { transform: scale(1); box-shadow: 0 0 10px 2px rgba(255, 226, 176, 0.8); } }
-  #track .goals { display: flex; gap: 14px; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(150, 220, 240, 0.12); align-items: center; }
+  #track .goals { display: flex; flex-wrap: wrap; row-gap: 5px; gap: 14px; margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(150, 220, 240, 0.12); align-items: center; }
   #track .goals .nx { color: #9cc5d6; white-space: nowrap; } #track .goals .nx b { color: #ffe3d3; }
-  .gl { flex: 1 1 0; min-width: 0; } .gl .t > span { overflow: hidden; text-overflow: ellipsis; } .gl .t { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; color: #bcdbe8; } .gl .t b { color: #fff; font-weight: 600; }
+  .gl { flex: 1 0 auto; min-width: 0; } .gl .t > span { overflow: hidden; text-overflow: ellipsis; } .gl .t { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; color: #bcdbe8; } .gl .t b { color: #fff; font-weight: 600; }
   .gl .b { height: 3px; margin-top: 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.16); overflow: hidden; } .gl .b i { display: block; height: 100%; background: #8fc4dc; width: 0; transition: width 0.3s; }
   .gl.met .t, .gl.met .t b { color: #8ff0c0; } .gl.met .b i { background: #7be3b0; }
   #stcard { position: fixed; z-index: 35; display: none; width: 230px; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; background: rgba(4, 22, 40, 0.94); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); pointer-events: none; }
@@ -1185,9 +1185,18 @@ function treeArmColours() {   // each arm takes the colour of one of the run's l
 }
 function treeFit() {
   const st = treeEl.querySelector('.tstage'); if (!st) return;
-  const W = st.clientWidth, H = st.clientHeight, b = treeLayout().box, card = W > 900 ? 300 : 0;
-  const s = clamp(Math.min((W - card - 30) / (b.x1 - b.x0), (H - 20) / (b.y1 - b.y0)), 0.45, 1.3);
-  TL.view = { s, ox: (W - card) / 2 - (b.x0 + b.x1) / 2 * s, oy: H / 2 - (b.y0 + b.y1) / 2 * s };
+  const W = st.clientWidth, H = st.clientHeight, card = W > 900 ? 300 : 0, nodes = Object.values(treeLayout().nodes);
+  // labels are screen px and do not scale, so fit the tips plus their measured labels (arm names included): shrink until it all fits beside the card
+  const ext = s => { let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (const n of nodes) { const [w, h] = TL.lw[n.id] || [80, 16], cx = Math.cos(n.a), sy = Math.sin(n.a), x = n.x * s, y = n.y * s;
+      const side = Math.abs(cx) > 0.38 ? (cx > 0 ? 'r' : 'l') : sy < 0 ? 'u' : 'd';
+      const l = side === 'l' ? w + 16 : side === 'r' ? 14 : w / 2 + 4, r = side === 'r' ? w + 16 : side === 'l' ? 14 : w / 2 + 4;
+      const u = side === 'u' ? h + 16 : side === 'd' ? 14 : h / 2 + 4, d = side === 'd' ? h + 16 : side === 'u' ? 14 : h / 2 + 4;
+      x0 = Math.min(x0, x - l); x1 = Math.max(x1, x + r); y0 = Math.min(y0, y - u); y1 = Math.max(y1, y + d); }
+    return { x0, x1, y0, y1 }; };
+  let s = 1.3, e = ext(s);
+  while (s > 0.3 && (e.x1 - e.x0 > W - card - 24 || e.y1 - e.y0 > H - 12)) { s *= 0.97; e = ext(s); }
+  TL.view = { s, ox: (W - card) / 2 - (e.x0 + e.x1) / 2, oy: H / 2 - (e.y0 + e.y1) / 2 };
 }
 function treePlace() {   // the DOM tips follow the view; labels pick a side that does not overlap; the card sits beside the selected tip
   const v = TL.view, lay = treeLayout(); if (!v) return;
@@ -1213,14 +1222,17 @@ function treeCardPos() {   // beside the selected tip (on the side with more roo
   const n = treeLayout().nodes[TL.sel], v = TL.view, x = v.ox + n.x * v.s + st.offsetLeft, y = v.oy + n.y * v.s + st.offsetTop, W = el.offsetWidth || 290, H = el.offsetHeight || 200, PW = st.offsetLeft + st.clientWidth;
   const lay = treeLayout(), X0 = st.offsetLeft + 4, X1 = PW - W - 4, Y0 = st.offsetTop + 4, Y1 = st.offsetTop + st.clientHeight - H - 4;
   const pr = el.offsetParent.getBoundingClientRect(), own = treeEl.querySelector(`.tnode[data-id="${TL.sel}"] .lbl`), marks = [];
-  for (const id in lay.nodes) { const m = lay.nodes[id]; marks.push({ x0: v.ox + m.x * v.s + st.offsetLeft - 12, y0: v.oy + m.y * v.s + st.offsetTop - 12, x1: v.ox + m.x * v.s + st.offsetLeft + 12, y1: v.oy + m.y * v.s + st.offsetTop + 12, w: 1 }); }
+  const need = prereqOf(TREE.find(d => d.id === TL.sel)), known = id => ['owned', 'revealed'].includes(game.tree.state[id]);
+  for (const id in lay.nodes) { const m = lay.nodes[id]; marks.push({ x0: v.ox + m.x * v.s + st.offsetLeft - 16, y0: v.oy + m.y * v.s + st.offsetTop - 16, x1: v.ox + m.x * v.s + st.offsetLeft + 16, y1: v.oy + m.y * v.s + st.offsetTop + 16, w: id === need ? 40 : known(id) ? 4 : 1 }); }   // never hide the tip it says to learn first; known tips matter more than ??? ones
   for (const lb of treeEl.querySelectorAll('.tnode .lbl')) { const r = lb.getBoundingClientRect(); marks.push({ x0: r.left - pr.left, y0: r.top - pr.top, x1: r.right - pr.left, y1: r.bottom - pr.top, w: lb === own ? 50 : 1 }); }
   const covered = (l, tp) => { let k = 0; for (const m of marks) if (m.x0 < l + W && m.x1 > l && m.y0 < tp + H && m.y1 > tp) k += m.w; return k; };   // tips and labels hidden; never its own label
   const spots = [[x + 34, y - 70], [x - 34 - W, y - 70], [x + 34, y - H + 50], [x - 34 - W, y - H + 50], [x + 34, y - H / 2], [x - 34 - W, y - H / 2],
-    [x - W / 2, y - 34 - H], [x - W / 2, y + 34], [x - 40, y - 34 - H], [x - W + 40, y - 34 - H], [x - 40, y + 34], [x - W + 40, y + 34]].map(([l, tp]) => [clamp(l, X0, X1), clamp(tp, Y0, Y1)])
+    [x - W / 2, y - 34 - H], [x - W / 2, y + 34], [x - 40, y - 34 - H], [x - W + 40, y - 34 - H], [x - 40, y + 34], [x - W + 40, y + 34],
+    ...[-W - 110, -W - 70, 70, 110].flatMap(dx => [-H - 20, -H / 2, 20].map(dy => [x + dx, y + dy, 1]))]   // a ring further out, used only when it hides less
+    .map(([l, tp, far]) => [clamp(l, X0, X1), clamp(tp, Y0, Y1), far ? 0.5 : 0])
     .filter(([l, tp]) => !(l < x + 22 && l + W > x - 22 && tp < y + 22 && tp + H > y - 22));   // never on top of the tip itself
   let best = spots[0] || [clamp(x + 34, X0, X1), clamp(y - 70, Y0, Y1)], bk = 1e9;
-  for (const sp of spots) { const k = covered(sp[0], sp[1]); if (k < bk) { bk = k; best = sp; } }   // the spot that hides the fewest tips
+  for (const sp of spots) { const k = covered(sp[0], sp[1]) + sp[2]; if (k < bk) { bk = k; best = sp; } }   // the spot that hides the fewest tips
   el.classList.add('beside'); el.style.left = best[0] + 'px'; el.style.top = best[1] + 'px';
 }
 function treeFly(id) {   // glide the view so that tip sits near the middle, a little closer
@@ -1273,8 +1285,8 @@ function renderTree() {
   h += `</div></div><aside class="tcard"></aside><div class="tfoot"><span>Click a tip to read it, then Learn it. Drag to move, wheel to zoom, double-click to fit</span><span><kbd>T</kbd> or <kbd>Esc</kbd> to close</span></div></div>`;
   treeEl.innerHTML = h;
   TL.cv = treeEl.querySelector('.tcv'); TL.cx = TL.cv.getContext('2d');
-  if (!TL.view) treeFit();
   TL.lw = {}; for (const el of treeEl.querySelectorAll('.tnode')) { const lb = el.querySelector('.lbl'); TL.lw[el.dataset.id] = [lb.offsetWidth, lb.offsetHeight]; }
+  if (!TL.view) treeFit();   // after measuring, so the fit can make room for the labels
   treePlace(); treeCard();
 }
 function treeVisitors() {   // the residents you host, as stand-ins that swim round the tree (drawn by the game's own sprite code)
@@ -3276,6 +3288,8 @@ function toggleReefView(force) {
 }
 function updateCamera(dt, snap) {
   const c = game.cam, v = game.view, p = playerPos();
+  if (!(v.w > 0 && v.h > 0)) return;   // a hidden tab or embed can start at 0 x 0: wait for a real size instead of dividing by zero
+  if (!Number.isFinite(c.x) || !Number.isFinite(c.y) || !(c.zoom > 0)) { c.x = p.x; c.y = p.y; c.zoom = 1; snap = true; }   // never stay stuck on a bad camera
   const M = CONFIG.moments, kk = game.kick ? Math.sin(Math.PI * clamp(game.kick.t / game.kick.life, 0, 1)) : 0;
   const zt = zoomTarget() * (1 + M.kickZoom * kk);
   c.zoom = snap ? zt : lerp(c.zoom, zt, 1 - Math.exp(-CONFIG.zoomSmooth * dt));
@@ -5395,7 +5409,8 @@ function currentHint() {
 }
 function updateHud() {
   const p = playerPos(), l = game.stage === 'polyp' && game.active ? lightOf(game.active) : light(p.y);
-  hud.stage.textContent = game.riding ? 'Adrift' : game.stage === 'larva' ? 'Larva' : game.polyps.length >= 2 ? 'Colony' : 'Polyp';
+  const cs = STAGES[game.goals.stage - 1];   // the panel title follows the stage bar
+  hud.stage.textContent = game.riding ? 'Adrift' : game.stage === 'larva' ? 'Larva' : !cs ? 'Polyp' : cs.end ? 'Island' : cs.name;
   hud.energy.textContent = Math.round(game.energy);
   hud.bar.style.width = (game.energy / energyCap() * 100) + '%';
   hud.bar.style.background = game.energy < 8 ? '#ff8a7a' : '#7be3b0';
@@ -8464,6 +8479,8 @@ function perfRows() {
 window.perfReport = () => { const r = perfRows(); console.table(r); return r; };
 let last = performance.now();
 function frame(now) {
+  requestAnimationFrame(frame);   // first, so one bad frame cannot stop the game for good
+  if (game.view.w !== window.innerWidth || game.view.h !== window.innerHeight) resize();   // catches a size change with no resize event (an embed that starts hidden)
   const raw = now - last, dt = Math.min(0.05, raw / 1000), t0 = performance.now(); last = now;
   let sc = 1;
   if (game.slow) {   // settle and beats slow the world for a moment; direct calls to step() are never scaled
@@ -8481,7 +8498,6 @@ function frame(now) {
   const t3 = performance.now();
   updateHud();
   perfRec(raw, t1 - t0, t3 - t2);
-  requestAnimationFrame(frame);
 }
 resize();
 updateLookList();
