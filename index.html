@@ -304,6 +304,12 @@ const CONFIG = {
   // nibblers
   nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 60, nibblerGrace: 120, nibblerSpare: 2, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
   nibblerSpeed: 70, nibblerFleeSpeed: 190, nibblerRadius: 8, nibblerBiteEvery: 1.6, nibblerBite: 0.8, nibblerFlee: 8,
+  // the hazard ladder (P-42): pressure rises as the reef grows (clock minutes since Colony x time + polyps x polyps + species x species) and schedules attack waves.
+  // Each tier unlocks at a stage and a pressure; waves come every waveEvery[0] s (at pressure pRange[0]) down to waveEvery[1] s (at pRange[1]) after the last one ended.
+  // Waves never start in a quiet season, in or within stormGap s of a storm wave, during a starfish outbreak or an event calm. A wave eats at most lossCap of the polyps it found (min 1).
+  hz: { tick: 1, base: { time: 0.06, polyps: 1 / 40, species: 0.5 }, pRange: [3, 12], waveEvery: [90, 60], quietSeasons: ['Calm'], stormGap: 10, lossCap: 0.05, warn: 20, newest: 2,
+    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }],   // w: pick weight; the newest unlocked tier gets x newest
+    school: { size: [8, 12], speed: 80, radius: 6, biteEvery: 1.6, bite: 0.8, scatter: 0.4, d2Hits: 1, d2Flee: 5, leaveAfter: 60, flank: 3, spread: 34, reward: { bp: 5 } } },
   automationAt: 5, autoRadius: 75, autoInterval: 5, autoPullTime: 0.4, autoEnergy: 1.5,
   // day and night (starts at Colony): cycle, day length, fade, plankton count multipliers, rising cloud
   dayCycle: 120, dayLen: 80, dayFade: 8, planktonDay: 0.9, planktonNight: 3, nightRise: 55, nightRiseDecay: 0.045, nightSpawnRate: 40, planktonLeave: 0.8, nightToasts: 3,
@@ -341,7 +347,7 @@ const CONFIG = {
   gen: { budget: 12, sportFrom: 1080, sportX1: 0.04, growthTime: 0.07, growthStr: 0.4, toughCost: 0.05, heatSun: 0.05, feedCatch: 0.12, feedUpkeep: 0.04, hues: { growth: 18, tough: 275, heat: 48, feed: 175 }, hueShift: 12, satBase: 0.45, satPer: 0.10, lightBase: 0.45, lightPer: 0.04, glow: 10, pickWait: 25 },
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
-  cost: { X1: { e: 40 }, X2: { e: 300, bp: 25 }, X3: { bp: 60 }, X4: { e: 2000, bp: 40 }, X5: { bp: 120 }, F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S7: { e: 60, ca: 10 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
+  cost: { X1: { e: 40 }, X2: { e: 300, bp: 25 }, X3: { bp: 60 }, X4: { e: 2000, bp: 40 }, X5: { bp: 120 }, F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, D6: { e: 200, bp: 30 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S7: { e: 60, ca: 10 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
   // slice 6b unlocks (content 1): reveal counts and effect numbers. Strength is 0..10 in the game, so the spec's +25 is 2.5 and +5 is 0.5
   unl: { f5: { rev: 80, near: 3, upkeep: 0.7, heal: 2, dis: 1.5 }, f6: { rev: 20, revFlow: 0.8, bonus: 1.25, run: 6 }, g3: { cd: 60, max: 4, range: 12, speed: 420 }, g5: { revSecs: 60, cap: 40, ca: 1.5, str: 0.5 }, g4: { rev: 30, every: 10, frac: 0.5 }, s4: { rev: 25, secs: 60 }, s7: { rev: 6, str: 3 }, s5: { rev: 10, rows: 6, str: 2.5, storm: 0.8 }, c4: { rev: 30, light: 0.65, sun: 1.25, bleach: 0.7 } },
   // biodiversity (content.md 0.1): B = resident species values x happiness factor + coral types + lineages; income x (1 + mult x B); BP per second = B / bpDiv from Colony on
@@ -428,6 +434,7 @@ const game = {
   plankton: [],
   fish: [],
   nibblers: [], nib: { timer: null },
+  hz: { p: 0, next: -1, pend: null, waves: 0, log: [], cur: null, last: -1, sc: null, tickT: 0 },   // the hazard ladder: pressure, the next wave, the one being warned of, the one running (see updateHazards)
   sting: { cd: 0 },
   nextType: 'branch', clown: { t: null, fish: [] },
   guide: null,               // { path, target, t, wait } while the colony grows by itself
@@ -444,7 +451,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0, waitSecs: 0, waitByStage: [], guideBuds: 0, lost: { storm: 0, nibbler: 0, bleach: 0, disease: 0, starfish: 0, smother: 0, other: 0 } },
+  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0, waitSecs: 0, waitByStage: [], guideBuds: 0, lost: { storm: 0, nibbler: 0, bleach: 0, disease: 0, starfish: 0, smother: 0, school: 0, other: 0 } },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
@@ -588,6 +595,8 @@ const TREE = [
     fx: () => 'A sting kills a starfish in one hit, not three. The forecast shows how many are coming, and starfish show through rock', done: 'You can see the crown-of-thorns coming', ok: () => game.stats.starfishKilled >= CONFIG.threat.revStarKilled },
   { id: 'D5', tier: 3, branch: 'Defense', name: 'Firebreak', hint: 'Lose coral to disease',
     fx: () => `Hold G and drag the right mouse across links between corals to seal up to ${CONFIG.threat.d5.max}. A sealed link carries no disease and no support. Drag across a seal to open it`, done: 'Hold G and drag the right mouse to seal links', ok: () => game.stats.diseaseLost >= CONFIG.threat.revDiseaseLost },
+  { id: 'D6', tier: 2, branch: 'Defense', name: 'Stinging volley', hint: 'Scatter a school', needs: 'D2',
+    fx: () => 'Edge stingers fire at a whole shoal: a school that reaches the reef is scattered by sweeper tentacles too', done: 'Sweeper tentacles now scatter whole schools', ok: () => (game.stats.schoolsScattered || 0) >= 2 },
   { id: 'C1', tier: 1, branch: 'Climate', name: 'Deep adaptation', hint: 'Live in the shade',
     fx: () => `Light under ${CONFIG.threat.heat.c1Floor} counts as ${CONFIG.threat.heat.c1Floor} for sun income. Bleaching chance x${CONFIG.threat.heat.c1} for polyps where light is under ${CONFIG.threat.heat.c1Light}`, done: 'Deep coral now makes the most of dim water', ok: () => game.polyps.filter(p => lightOf(p) < CONFIG.threat.heat.c1Floor).length >= CONFIG.threat.revDeep },
   { id: 'C2', tier: 2, branch: 'Climate', name: 'Heat hardening', hint: 'Survive bleaching',
@@ -1094,10 +1103,10 @@ function runReport() {
   return { time: t, waitSecs: w, waitPct: t > 0 ? w / t * 100 : 0, waitByStage: by.map(x => +x.toFixed(1)),
     buds: { total: S.buds || 0, hand, guided, other: Math.max(0, (S.buds || 0) - hand - guided) },
     swarms: { caught: S.swarmCaught || 0, energy: S.swarmEnergy || 0 },
-    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, other: L.other || 0 } };
+    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, other: L.other || 0 } };
 }
 window.runReport = runReport;
-const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', other: 'Other' };
+const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', school: 'Damselfish', other: 'Other' };
 function runRows() {
   const R = runReport(), rows = [['Time played', mmss(R.time)], ['Waiting for energy', `${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%)`], ['Buds by hand / guided', `${R.buds.hand} / ${R.buds.guided}`]];
   if (R.swarms.caught) rows.push(['Swarm plankton caught', `${R.swarms.caught} (+${Math.round(R.swarms.energy)} energy)`]);
@@ -1688,6 +1697,12 @@ window.devSwarm = () => {   // dev: send one now (from the Colony stage)
   if (game.goals.stage < CONFIG.swarm.from) devStage(CONFIG.swarm.from);
   return swarmLaunch(swarmEntry(game.season.t));
 };
+window.devSchool = side => {   // dev: a damselfish school now (from the Reef stage), from 'east' or 'west'; a running wave is replaced
+  if (game.goals.stage < 3) devStage(3);
+  const H = hzState(); if (H.cur) { H.sc = null; H.cur = null; }
+  H.p = Math.max(H.p, hzPressure()); hzStart('school', side);
+  return schoolFish().length;
+};
 
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inherits that lineage)
@@ -2049,6 +2064,7 @@ function doSting() {
   for (const n of game.nibblers) {
     if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
   }
+  if (schoolSting(cc.x, sy, ex, ey)) hit++;   // a damselfish school: enough fish hit scatters the whole shoal
   for (const f of game.fish) {   // the orange hunters: a sting knocks one back and puts it off chasing for fishStung seconds
     if (distSeg(f.x, f.y, cc.x, sy, ex, ey) > CONFIG.stingRadius + CONFIG.fishRadius * 0.7) continue;
     const fx = f.x - cc.x, fy = f.y - cc.y, fm = Math.hypot(fx, fy) || 1;
@@ -2909,6 +2925,7 @@ function fishHitboxes() {   // everything with a body in the water: [entity, rad
   const o = [];
   for (const f of game.fish) o.push([f, CONFIG.fishRadius * 0.7]);
   for (const n of game.nibblers) o.push([n, CONFIG.nibblerRadius]);
+  for (const s of schoolFish()) o.push([s, CONFIG.hz.school.radius]);
   for (const f of game.clown.fish) if (!f.gone) o.push([f, 7]);
   for (const r of game.res.list) if (r.kind !== 'clown' && !r.gone && r.x !== undefined) o.push([r, 8]);
   for (const s of game.starfish) if (!s.dead) o.push([s, 10]);
@@ -3125,6 +3142,271 @@ function updateNibblers(dt) {
     if (n.mode !== 'bite' && Math.hypot(n.vx, n.vy) > 8) n.head = Math.atan2(n.vy, n.vx);
   }
   game.nibblers = game.nibblers.filter(n => !n.gone);
+}
+
+/* ---------- the hazard ladder (P-42): pressure rises as the reef grows and schedules attack waves; tier 2 is the damselfish school ---------- */
+// To add a tier: a row in CONFIG.hz.tiers ({ id, stage, pressure, w }) and one HZ_TIERS entry with its hooks. The scheduler, the forecast line, the run log and the pressure row need nothing else.
+//   name: forecast name; spawn(side): start the wave ('east' or 'west': where it comes from); update(dt): run it each step; done(): true when it is over and gone;
+//   status(): the line shown while it runs; result(): numbers for the log; live(): its creatures that can still be stung
+function hzFresh() { return { p: 0, next: -1, pend: null, waves: 0, log: [], cur: null, last: -1, sc: null, tickT: 0 }; }
+const hzState = () => game.hz || (game.hz = hzFresh());
+function hzPressure() { const B = CONFIG.hz.base; return game.season.t / 60 * B.time + game.polyps.length * B.polyps + game.species.length * B.species; }
+const hzSeverity = p => clamp((p - CONFIG.hz.pRange[0]) / (CONFIG.hz.pRange[1] - CONFIG.hz.pRange[0]), 0, 1);
+const hzInterval = p => lerp(CONFIG.hz.waveEvery[0], CONFIG.hz.waveEvery[1], hzSeverity(p));
+const hzQuiet = t => CONFIG.hz.quietSeasons.includes(SEASONS[seasonIdx(t)].name);
+const hzBlocked = () => !!game.storm || starN() > 0 || game.time < game.ev.calm;   // a storm wave, a starfish outbreak or an event calm keeps waves away
+function hzUnlocked() { const H = hzState(); return CONFIG.hz.tiers.filter(T => HZ_TIERS[T.id] && game.goals.stage >= T.stage && H.p >= T.pressure); }
+function hzFit(x) {   // the first time at or after x that is not in a quiet season and not in or within stormGap s of a storm wave
+  const C = CONFIG.hz;
+  for (let i = 0; i < 60; i++) {
+    if (hzQuiet(x)) { x = seasonStart(seasonAbs(x) + 1) + C.warn + 2; continue; }
+    const s = nextStormStart(x - C.stormGap);
+    if (s !== null && x >= s - C.stormGap && x < s + CONFIG.stormSecs + C.stormGap) { x = s + CONFIG.stormSecs + C.stormGap + 1; continue; }
+    break;
+  }
+  return x;
+}
+function hzCentre() {
+  let cx = 0, cy = 0; const n = game.polyps.length || 1;
+  for (const p of game.polyps) { cx += (p.c + 0.5) * CELL; cy += (p.r + 0.5) * CELL; }
+  return { x: cx / n, y: cy / n };
+}
+function hzSide() {   // the side a wave comes from: one with room for it to swim in, else the roomier
+  const c = hzCentre(), room = { west: c.x, east: LAG - c.x }, ok = Object.keys(room).filter(k => room[k] >= 600);
+  const pool = ok.length ? ok : [room.west > room.east ? 'west' : 'east'];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+function hzPick(open) {   // the newest unlocked tier is CONFIG.hz.newest times as likely as the others
+  const C = CONFIG.hz, top = Math.max(...open.map(T => C.tiers.indexOf(T)));
+  const w = open.map(T => (T.w || 1) * (C.tiers.indexOf(T) === top ? C.newest : 1));
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < open.length; i++) { r -= w[i]; if (r <= 0) return open[i]; }
+  return open[open.length - 1];
+}
+function hzStart(id, side) {
+  const H = hzState(); H.cur = id; H.pend = null; H.waves++; H.start = game.season.t; H.pAt = H.p;
+  HZ_TIERS[id].spawn(side || hzSide());
+}
+function hzEnd(H) {
+  H.log.push(Object.assign({ id: H.cur, at: Math.round(H.start), p: +H.pAt.toFixed(1) }, HZ_TIERS[H.cur].result()));
+  if (H.log.length > 30) H.log.shift();
+  H.cur = null; H.last = game.season.t; H.next = -1;
+}
+function updateHazards(dt) {
+  if (game.goals.stage < 2) return;
+  const H = hzState(), C = CONFIG.hz, t = game.season.t;
+  if ((H.tickT -= dt) <= 0) { H.tickT = C.tick; H.p = hzPressure(); }
+  if (H.cur) { const T = HZ_TIERS[H.cur]; T.update(dt); if (T.done()) hzEnd(H); return; }
+  const open = hzUnlocked();
+  if (!open.length) { H.next = -1; H.pend = null; return; }
+  if (H.pend && !open.some(T => T.id === H.pend.id)) { H.pend = null; H.next = -1; }
+  if (H.next < 0) H.next = hzFit((H.last < 0 ? t : H.last) + hzInterval(H.p));
+  if (!H.pend) {
+    if (t >= H.next - C.warn && !hzBlocked()) {
+      const at = hzFit(Math.max(H.next, t + C.warn));   // a late wave gets the full warning, and is moved again if that lands in a quiet season or a storm
+      if (at <= t + C.warn + 0.01) H.pend = { id: hzPick(open).id, at, side: hzSide() }; else H.next = at;
+    }
+  }
+  else if (t >= H.pend.at) {
+    if (hzBlocked()) { H.pend = null; H.next = hzFit(t + 5); }
+    else hzStart(H.pend.id, H.pend.side);
+  }
+}
+function hzLine() {   // [text, class] for the season widget while a wave is warned of or running, else null
+  const H = hzState(), t = game.season.t;
+  if (H.cur) return [HZ_TIERS[H.cur].status(), 'warn'];
+  if (H.pend && H.pend.at > t && H.pend.at - t <= CONFIG.hz.warn + 0.5) return [`${HZ_TIERS[H.pend.id].name} in ${mmss(H.pend.at - t)}, from the ${H.pend.side}`, 'warn'];
+  return null;
+}
+function pressureHtml() {
+  const p = hzState().p, n = Math.min(5, Math.round(hzSeverity(p) * 5 + (p >= CONFIG.hz.pRange[0] ? 0.5 : 0)));
+  return `<div class="k od"><div class="od"><b>Pressure</b> ${'▮'.repeat(n)}${'▯'.repeat(5 - n)} ${p.toFixed(1)}</div><div class="od">Grows with the reef: polyps, species and time. Hazards come as it rises</div></div>`;
+}
+
+/* ----- tier 2: the damselfish school. A tight shoal of small bright fish swims in at the colony's depth, picks one flank and spreads over the polyps there, and bites like nibblers.
+   One stinger cannot hold them: a hand sting that hits CONFIG.hz.school.scatter of the shoal scatters all of it (they flee and leave, and pay a reward). Sweeper tentacles drive off one fish at a time (D6: scatter the shoal).
+   A school eats at most CONFIG.hz.lossCap of the polyps it found, then leaves; it leaves after leaveAfter s whatever happens. ----- */
+const schoolFish = () => (game.hz && game.hz.sc ? game.hz.sc.fish : []);
+const schoolLive = () => schoolFish().filter(f => f.mode !== 'leave' && !f.gone);
+function schoolAnchor(S, x, y) {   // the exposed polyp nearest (x, y) becomes the flank the shoal works on
+  let best = null, bd = 1e9;
+  for (const p of game.polyps) { if (!freeNeighbours(p).length) continue; const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - x, c.y - y); if (d < bd) { bd = d; best = c; } }
+  if (best) { S.ax = best.x; S.ay = best.y; }
+  return !!best;
+}
+function schoolFlank(S, cx, cy) {
+  const K = CONFIG.hz.school, grab = () => { S.flank = game.polyps.filter(p => { const c = cellCenter(p.c, p.r); return Math.hypot(c.x - S.ax, c.y - S.ay) <= K.flank * CELL && freeNeighbours(p).length; }); };
+  grab();
+  if (!S.flank.length && schoolAnchor(S, cx, cy)) grab();
+  if (!S.flank.length) schoolLeave(S, false);
+}
+function schoolLeave(S, scared) {
+  S.over = true;
+  for (const f of S.fish) { if (f.mode === 'leave') continue; f.mode = 'leave'; f.tgt = null; f.path = null; f.scare = scared ? 2.5 : 0; if (scared) f.stung = 0.7; }
+}
+function schoolSpawn(side) {
+  const H = hzState(), K = CONFIG.hz.school, dir = side === 'east' ? 1 : -1, c = hzCentre(), v = game.view, half = v.w / 2 / game.cam.zoom;
+  const n = Math.round(lerp(K.size[0], K.size[1], hzSeverity(H.p)));
+  let x0 = dir > 0 ? Math.max(c.x + 560, game.cam.x + half + 90) : Math.min(c.x - 560, game.cam.x - half - 90);
+  x0 = clamp(x0, 70, LAG - 70);
+  let y0 = Math.max(90, c.y);
+  for (let i = 0; i < 60 && blockedAt(x0, y0, 14, ''); i++) y0 -= CELL;
+  y0 = Math.max(60, y0);
+  const fish = [];
+  for (let i = 0; i < n; i++) {
+    let x = x0, y = y0;
+    for (let k = 0; k < 12; k++) { const a = Math.random() * 6.283, d = Math.sqrt(Math.random()) * K.spread, px = x0 - dir * Math.abs(Math.cos(a)) * d * 1.3, py = y0 + Math.sin(a) * d * 0.7; if (!blockedAt(px, py, K.radius + 2, '')) { x = px; y = py; break; } }
+    fish.push({ x, y, vx: 0, vy: 0, head: dir > 0 ? Math.PI : 0, mode: 'seek', tgt: null, bite: 0, chomp: 0, age: 0, fleeT: 0, fx: x0, fy: y0, stung: 0, scare: 0, seed: Math.random() * 10, spd: 0.92 + Math.random() * 0.16, school: true, pathT: Math.random(), voice: i % 4 === 0 });
+  }
+  const S = { fish, side, dir, t: 0, n, quota: Math.max(1, Math.floor(CONFIG.hz.lossCap * game.polyps.length)), found: game.polyps.length, killed: 0, over: false, scattered: false, ax: x0, ay: y0, flank: [], fT: 0, x0, y0 };
+  schoolAnchor(S, x0, y0); schoolFlank(S, x0, y0);
+  hzState().sc = S;
+  const st = game.stats; if (!(st.schoolsSeen || 0)) toast('A school of damselfish. Sting into the shoal to scatter it; one stinger cannot hold them');
+  st.schoolsSeen = (st.schoolsSeen || 0) + 1;
+  sfx('forecast');
+}
+function schoolPick(f, S) {
+  let best = null, bd = 1e9;
+  for (const p of S.flank) {
+    if (p.dead || (f.bad && f.bad.get(p) > game.time) || !freeNeighbours(p).length) continue;
+    const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - f.x, c.y - f.y) + 400 * S.fish.filter(o => o !== f && o.tgt === p).length;
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
+function schoolScatter(why) {   // the whole shoal flees and leaves; pays the reward
+  const S = hzState().sc; if (!S || S.over) return false;
+  const K = CONFIG.hz.school, live = S.fish.filter(f => f.mode !== 'leave'), st = game.stats;
+  let cx = 0, cy = 0; for (const f of live) { cx += f.x; cy += f.y; }
+  cx /= Math.max(1, live.length); cy /= Math.max(1, live.length);
+  schoolLeave(S, true); S.scattered = true; S.how = why;
+  game.bp += K.reward.bp; st.bpMade += K.reward.bp; st.schoolsScattered = (st.schoolsScattered || 0) + 1;
+  game.fx.push({ kind: 'text', x: cx, y: cy - 14, t: 0, life: 1.5, text: `Scattered! +${K.reward.bp} BP` });
+  game.fx.push({ kind: 'ring', x: cx, y: cy, t: 0, life: 0.7 });
+  spawnParts('spark', cx, cy, 8); sfx('catch', cx, cy);
+  return true;
+}
+function schoolSting(x0, y0, x1, y1) {   // a hand sting along the segment: the fish it touches flee; enough of them scatter the whole shoal. Returns the number touched
+  const K = CONFIG.hz.school, live = schoolLive(); if (!live.length) return 0;
+  const hit = live.filter(f => distSeg(f.x, f.y, x0, y0, x1, y1) <= CONFIG.stingRadius + K.radius * 0.5);
+  for (const f of hit) { driveOff(f, x0, y0, CONFIG.nibblerFlee); spawnParts('spark', f.x, f.y, 2); }
+  if (hit.length && hit.length >= Math.ceil(K.scatter * live.length - 1e-9)) schoolScatter('hand');
+  return hit.length;
+}
+function schoolUpdate(dt) {
+  const S = hzState().sc, K = CONFIG.hz.school, R = K.radius; if (!S) return;
+  S.t += dt;
+  if (!S.over && (S.t > K.leaveAfter || game.storm || S.killed >= S.quota || game.polyps.length <= CONFIG.nibblerSpare)) schoolLeave(S, false);
+  const live = S.fish.filter(f => f.mode !== 'leave'); let cx = 0, cy = 0;
+  for (const f of live) { cx += f.x; cy += f.y; }
+  if (live.length) { cx /= live.length; cy /= live.length; }
+  if (!S.over && (S.fT -= dt) <= 0) { S.fT = 1; schoolFlank(S, cx, cy); }
+  for (const f of S.fish) {
+    f.age += dt; f.stung = Math.max(0, f.stung - dt); f.chomp = Math.max(0, f.chomp - dt); f.scare = Math.max(0, f.scare - dt);
+    let tx = f.x, ty = f.y, sp = K.speed * f.spd, coh = 0;
+    if (f.mode === 'flee') {
+      f.fleeT -= dt;
+      const dx = f.x - f.fx, dy = f.y - f.fy, m = Math.hypot(dx, dy) || 1;
+      tx = f.x + dx / m * 200; ty = f.y + dy / m * 200 - 25; sp = CONFIG.nibblerFleeSpeed;
+      if (f.fleeT <= 0) { f.mode = 'seek'; f.tgt = null; }
+    } else if (f.mode === 'leave') {
+      f.leaveT = (f.leaveT || 0) + dt;
+      sp = K.speed * 1.4 * f.spd * (f.scare > 0 ? 2.2 : 1);
+      const left = S.dir < 0; if (f.ly === undefined) f.ly = clamp(f.y, 170, 700);
+      tx = left ? -200 : LAG + 200; ty = f.ly;
+      f.pathT -= dt;
+      if (f.x > 70 && f.x < LAG - 70 && (f.pathT <= 0 || f.pickNew)) {
+        f.pathT = 1.5 + Math.random(); f.pickNew = false;
+        f.path = fishPath(f.x, f.y, (c, r) => (left ? c <= 1 : c >= lagCols() - 2) && Math.abs(r * CELL - f.ly) < 4 * CELL, R);
+      }
+      if (f.path && f.x > 70 && f.x < LAG - 70) { while (f.path.length > 1 && Math.hypot(f.path[0].x - f.x, f.path[0].y - f.y) < 10) f.path.shift(); if (f.path.length) { tx = f.path[0].x; ty = f.path[0].y; } }
+      if (f.x < -30 || f.x > LAG + 30 || f.leaveT > 40) f.gone = true;
+    } else {
+      if (!f.tgt || f.tgt.dead) { f.tgt = schoolPick(f, S); f.bite = 0; }
+      if (!f.tgt) { f.mode = 'seek'; tx = S.ax; ty = S.ay; coh = 1; }
+      else {
+        const cc = cellCenter(f.tgt.c, f.tgt.r), free = freeNeighbours(f.tgt);
+        if (!free.length) f.tgt = null;
+        else {
+          let ap = free[0], bd = 1e9;
+          for (const q of free) { const d = Math.hypot(q.x - f.x, q.y - f.y); if (d < bd) { bd = d; ap = q; } }
+          tx = ap.x; ty = ap.y;
+          if (bd >= 12) {   // path round the coral to the nearest bite spot; far from it the shoal holds together
+            coh = bd > 90 ? 1 : 0; f.pathT -= dt;
+            if (f.pathT <= 0 || f.pickNew || !f.path) {
+              f.pathT = 1.2 + Math.random() * 0.4; f.pickNew = false;
+              const fc = new Set(free.map(q => gcell(Math.floor(q.x / CELL), Math.floor(q.y / CELL))));
+              f.path = fishPath(f.x, f.y, (c, r) => fc.has(gcell(c, r)), R);
+              if (!f.path) { (f.bad = f.bad || new Map()).set(f.tgt, game.time + 25); f.tgt = null; }
+            }
+            if (f.path) { while (f.path.length > 1 && Math.hypot(f.path[0].x - f.x, f.path[0].y - f.y) < 10) f.path.shift(); if (f.path.length) { tx = f.path[0].x; ty = f.path[0].y; } }
+          } else f.path = null;
+          if (f.tgt && Math.hypot(ap.x - f.x, ap.y - f.y) < 12) {
+            f.mode = 'bite'; sp = 18; f.head = Math.atan2(cc.y - f.y, cc.x - f.x);
+            f.bite += dt;
+            if (f.bite >= K.biteEvery) {
+              f.bite = 0; f.chomp = 0.3;
+              const p = f.tgt;
+              p.hp -= devs.god ? 0 : K.bite * dmgFactor(p); p.hurt = 0.5; p.lastHit = game.time;
+              if (f.voice) sfx('bite', cc.x, cc.y);
+              game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
+              if (p.hp <= 0) {
+                S.killed++; killPolyp(p, S.killed === 1 ? 'Damselfish are eating your polyps' : '', 'school'); f.tgt = null; f.mode = 'seek';
+                if (S.killed >= S.quota || game.polyps.length <= CONFIG.nibblerSpare) schoolLeave(S, false);
+              }
+            }
+          } else if (f.mode === 'bite') { f.mode = 'seek'; f.bite = 0; }
+        }
+      }
+      if (f.mode === 'bite' && !f.tgt) f.mode = 'seek';
+    }
+    if (f.mode !== 'bite' && !(f.mode === 'leave' && (f.x < 60 || f.x > LAG - 60)) && fishGuard(f, dt, R, Math.hypot(tx - f.x, ty - f.y) > 14)) continue;
+    let ax = tx - f.x, ay = ty - f.y; const dd = Math.hypot(ax, ay) || 1; ax /= dd; ay /= dd;
+    if (coh && live.length > 1) { const dc = Math.hypot(cx - f.x, cy - f.y); if (dc > 14) { const w = 0.45 * Math.min(1, dc / 70); ax += (cx - f.x) / dc * w; ay += (cy - f.y) / dc * w; } }
+    if (f.mode !== 'bite') for (const o of S.fish) {   // keep a little room inside the shoal
+      if (o === f) continue; const ox = f.x - o.x, oy = f.y - o.y, od = Math.hypot(ox, oy);
+      if (od < 12 && od > 0.01) { const w = 0.7 * (1 - od / 12); ax += ox / od * w; ay += oy / od * w; }
+    }
+    const am = Math.hypot(ax, ay) || 1, k = 1 - Math.exp(-3 * dt);
+    f.vx = lerp(f.vx, ax / am * sp, k); f.vy = lerp(f.vy, ay / am * sp, k);
+    const nx = f.x + f.vx * dt, ny = f.y + f.vy * dt;
+    const out = f.mode === 'leave' && (nx < 36 || nx > LAG - 36);
+    if (out || !blockedAt(nx, f.y, R, '')) f.x = nx; else { f.vx *= -0.3; f.vy -= 40; }
+    if (out || !blockedAt(f.x, ny, R, '')) f.y = ny; else { f.vy *= -0.3; f.vy -= 20; }
+    if (f.mode !== 'bite' && Math.hypot(f.vx, f.vy) > 8) f.head = Math.atan2(f.vy, f.vx);
+  }
+  S.fish = S.fish.filter(f => !f.gone);
+}
+const HZ_TIERS = {
+  school: {
+    name: 'Damselfish school', spawn: schoolSpawn, update: schoolUpdate,
+    done: () => { const S = hzState().sc; if (!S) return true; if (S.t > CONFIG.hz.school.leaveAfter + 60) S.fish.length = 0; return !S.fish.length; },
+    status: () => { const S = hzState().sc, n = S ? schoolLive().length : 0; return n ? `Damselfish school: ${n} fish on the reef` : 'The damselfish are leaving'; },
+    result: () => { const S = hzState().sc; return S ? { size: S.n, killed: S.killed, quota: S.quota, scattered: S.scattered, secs: Math.round(S.t) } : {}; },
+    live: schoolLive,
+  },
+};
+function drawDamsel(f, t) {   // a small blue damselfish with a yellow tail: smaller than a nibbler, bright against the reef
+  ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.head);
+  if (Math.cos(f.head) < 0) ctx.scale(1, -1);
+  ctx.scale(1.2, 1.2);
+  const fl = f.mode === 'flee' || f.scare > 0, wag = Math.sin(t * (fl ? 24 : 13) + f.seed) * (fl ? 3.2 : 2), st = f.stung > 0;
+  const blue = st ? '#d8efff' : '#1f7bff', lite = st ? '#ffffff' : '#79d4ff', gold = st ? '#f6fcff' : '#ffd21f', ink = st ? '#46607e' : '#0a2a66';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  const gl = ctx.createRadialGradient(0, 0, 2, 0, 0, 14); gl.addColorStop(0, st ? 'rgba(220,245,255,0.35)' : 'rgba(110,200,255,0.34)'); gl.addColorStop(1, 'rgba(110,200,255,0)');
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(0, 0, 14, 0, 6.3); ctx.fill();
+  ctx.fillStyle = gold; ctx.strokeStyle = ink; ctx.lineWidth = 0.9;   // forked yellow tail
+  ctx.beginPath(); ctx.moveTo(-5.5, -1.4); ctx.lineTo(-12.5, -5.4 + wag); ctx.quadraticCurveTo(-10, 0, -12.5, 5.4 + wag); ctx.lineTo(-5.5, 1.4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = blue; ctx.beginPath(); ctx.moveTo(-4, -4.6); ctx.quadraticCurveTo(0, -9.4, 4, -4.8); ctx.closePath(); ctx.fill(); ctx.stroke();   // dorsal fin
+  const g = ctx.createLinearGradient(0, -5, 0, 5); g.addColorStop(0, lite); g.addColorStop(0.45, blue); g.addColorStop(1, '#0f4fd0');
+  ctx.beginPath(); ctx.ellipse(0, 0, 7.4, 5, 0, 0, 6.3); ctx.fillStyle = g; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = gold; ctx.beginPath(); ctx.ellipse(-3.8, 0.4, 1.6, 4, 0, 0, 6.3); ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;   // a yellow band at the tail root
+  const open = f.chomp > 0 ? 2.2 * Math.sin(f.chomp / 0.3 * Math.PI) : 0;
+  ctx.fillStyle = lite; ctx.beginPath(); ctx.moveTo(6.4, -1.4); ctx.lineTo(9.2 + open * 0.2, -open * 0.8 - 0.4); ctx.lineTo(6.6, 0.2); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(6.4, 1.4); ctx.lineTo(8.8, open + 0.8); ctx.lineTo(6.6, 0.2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(4.4, -1.4, 1.7, 0, 6.3); ctx.fill();
+  ctx.fillStyle = '#06122b'; ctx.beginPath(); ctx.arc(4.8, -1.4, 0.95, 0, 6.3); ctx.fill();
+  ctx.restore();
 }
 
 /* ---------- polyp updates ---------- */
@@ -5488,6 +5770,7 @@ function render() {
   drawThreatPolyps(t); drawDisease(t);
   for (const f of game.fish) fadeDraw(f, () => drawFish(f, t));
   for (const n of game.nibblers) fadeDraw(n, () => drawNibbler(n, t));
+  for (const s of schoolFish()) fadeDraw(s, () => drawDamsel(s, t));
   drawStarfish(t);
   for (const f of game.clown.fish) fadeDraw(f, () => drawClown(f, t));
   drawResidents(t); drawEventWorld(t); drawPlans(t); drawSpawn(t);
@@ -5995,7 +6278,7 @@ const devGroups = [
   ['Ending', ['<button data-a="endatoll">Atoll, crest ready</button><button data-a="endcyc">start cyclone now</button><button data-a="endwin">win the cyclone</button><button data-a="endrise">rise the island</button><button data-a="endlife">skip island life</button><button data-a="endcard">ending card</button> <span id="endread" style="color:#8aa0b2"></span>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
-    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="sport">make sport</button>',
+    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
   ['Performance', ['<button data-a="perfreset">reset</button> <span style="color:#8aa0b2">frame times per moment: fps, 1% low, sim and draw ms, frames over 33 ms</span>', '<div id="perfread" style="white-space:pre;font:11px/1.45 ui-monospace,monospace;color:#cfe3ee"></div>']],
   ['Day/Night', [
@@ -6055,6 +6338,7 @@ function devBuild() {
     else if (a === 'ty') { game.nextType = vs; toast('Next bud: ' + TYPE_NAME[vs].toLowerCase(), true); }
     else if (a === 'ownty') { for (const id of ['R1', 'T1', 'T2', 'T3']) devOwn(id); toast('All coral types owned', true); }
     else if (a === 'swarm') devSwarm();
+    else if (a === 'school') devSchool();
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
@@ -6299,6 +6583,7 @@ function seasonText() {   // [name, forecast line, class]
   const fcl = finForecast(); if (fcl) return [nm, fcl, 'storm'];
   const s = nextStormStart(S.t);
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
+  const hl = hzLine(); if (hl) return [nm, hl[0], hl[1]];
   const th = threatLine(); if (th) return [nm, th[0], th[1]];
   return [nm, 'All quiet', ''];
 }
@@ -6313,7 +6598,7 @@ function updateSeasonUi() {
   if (seasonEl.style.top !== hb + 'px') seasonEl.style.top = hb + 'px';
   const [nm, line, cls] = seasonText(), ang = Math.round(yearPhase() * 180) / 180 * 2 * Math.PI;
   const dl = daylight(), u = game.dn.t % CONFIG.dayCycle, night = dl < 0.5, left = night ? (u >= CONFIG.dayLen ? CONFIG.dayCycle - u : 0) : CONFIG.dayLen - u, dtxt = `${night ? 'Night' : 'Day'}, ${night ? 'dawn' : 'dusk'} in ${mmss(left)}`;
-  const sig = nm + '|' + line + '|' + ang.toFixed(3) + '|' + dtxt + '|' + dl.toFixed(1);
+  const sig = nm + '|' + line + '|' + ang.toFixed(3) + '|' + dtxt + '|' + dl.toFixed(1) + '|' + hzState().p.toFixed(1);
   if (sig !== seasonSig) {
     seasonSig = sig;
     let svg = '<svg width="44" height="44" viewBox="0 0 44 44">';
@@ -6333,7 +6618,7 @@ function oddsHtml() {   // what each threat will do in its next season: certain,
 }
 function renderSeasonCard() {
   const cur = seasonIdx(game.season.t);
-  seasonCard.innerHTML = '<h4>The year</h4>' + SEASONS.map((s, i) => `<div class="sn${i === cur ? ' cur' : ''}"><b style="color:${s.col}">${s.name}</b> <i>${i === 0 ? CONFIG.firstCalmSecs + ' s the first time, then ' + seasonLen() : seasonLen()} s${s.soon ? ', coming soon' : ''}</i><p>${s.info}</p></div>`).join('') +
+  seasonCard.innerHTML = '<h4>The year</h4>' + pressureHtml() + SEASONS.map((s, i) => `<div class="sn${i === cur ? ' cur' : ''}"><b style="color:${s.col}">${s.name}</b> <i>${i === 0 ? CONFIG.firstCalmSecs + ' s the first time, then ' + seasonLen() : seasonLen()} s${s.soon ? ', coming soon' : ''}</i><p>${s.info}</p></div>`).join('') +
     oddsHtml() + `<div class="k">A year is ${CONFIG.yearSecs} s. Each season holds one day and one night. The clock starts when the reef becomes a colony.</div>`;
 }
 seasonEl.addEventListener('click', () => {
@@ -7591,14 +7876,18 @@ function updateStar(dt) {
 // D2 sweeper tentacles: an edge polyp stings a nibbler or starfish within 20 px of its edge every 4 s (1 damage), and clears one seaweed cell it touches every 15 s
 function updateSweepers(dt) {
   if (!has('D2')) return;
-  const C = CONFIG.threat, foes = game.nibblers.concat(game.starfish).filter(n => !n.dead && n.mode !== 'leave');
+  const C = CONFIG.threat, foes = game.nibblers.concat(game.starfish, schoolLive().filter(s => s.mode === 'seek' || s.mode === 'bite')).filter(n => !n.dead && n.mode !== 'leave');
   for (const p of game.polyps) {
     p.d2 = (p.d2 === undefined ? C.d2.every * Math.random() : p.d2) - dt; p.d2w = (p.d2w === undefined ? C.weed.d2 * Math.random() : p.d2w) - dt;
     if (p.d2 <= 0 && foes.length && freeNeighbours(p).length) {
-      const f = foes.find(n => rectDist(n.x, n.y, p.c, p.r) <= C.d2.radius);
+      const f = foes.find(n => rectDist(n.x, n.y, p.c, p.r) <= C.d2.radius && (!n.school || n.mode === 'seek' || n.mode === 'bite'));
       if (f) {
         p.d2 = C.d2.every; const cc = cellCenter(p.c, p.r);
-        if (f.hp !== undefined && game.starfish.includes(f)) { f.hp -= C.star.d2Hp; f.hurt = 0.5; } else driveOff(f, cc.x, cc.y, CONFIG.nibblerFlee);
+        if (f.hp !== undefined && game.starfish.includes(f)) { f.hp -= C.star.d2Hp; f.hurt = 0.5; }
+        else if (f.school) {   // a damselfish: D6 scatters the whole shoal; otherwise only d2Hits fish flee, and they rejoin
+          if (has('D6')) schoolScatter('d2');
+          else for (const q of [f].concat(foes.filter(n => n !== f && n.school && (n.mode === 'seek' || n.mode === 'bite') && rectDist(n.x, n.y, p.c, p.r) <= C.d2.radius)).slice(0, CONFIG.hz.school.d2Hits)) driveOff(q, cc.x, cc.y, CONFIG.hz.school.d2Flee);
+        } else driveOff(f, cc.x, cc.y, CONFIG.nibblerFlee);
         game.fx.push({ kind: 'sting', x: cc.x, y: cc.y, x1: f.x, y1: f.y, t: 0, life: 0.4, hit: true }); sfx('sting', cc.x, cc.y);
       } else p.d2 = 0.3;
     }
@@ -7635,6 +7924,7 @@ function updateThreats(dt) {
   if (game.goals.stage < 2) return;
   planThreats();
   updateHeat(dt); updateWeed(dt); updateDisease(dt); updateStar(dt); updateSweepers(dt);
+  updateHazards(dt);
 }
 function drawThreatPolyps(t) {   // bleached coral (white), seen over the tissue
   for (const p of game.polyps) {
@@ -8446,6 +8736,7 @@ function saveDecode(text) {
 // puts a decoded state into the live game and rebuilds everything derived from it
 function saveApply(st) {
   for (const k of Object.keys(st)) if (!SAVE.skip.has(k)) game[k] = st[k];
+  if (!st.hz) game.hz = hzFresh();   // a save from before the hazard ladder
   for (const q of game.newRock) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 1;   // S4 turned these into rock
   for (let i = 0; i < game.grid.length; i++) if (game.grid[i] === 2) game.grid[i] = 0;   // the island: clear the old sand, then lay the saved sand
   for (const q of game.land) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 2;
