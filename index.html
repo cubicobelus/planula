@@ -283,10 +283,10 @@ const CONFIG = {
   lightPower: 0.75, dimBelow: 0.35, brightAbove: 0.65,
   currentAmp: 22, currentLarvaFactor: 0.8,
   // plankton
-  plankton: 240, planktonEnergy: 3, planktonRadius: 3.2,
+  plankton: 240, planktonEnergy: 3, handCatchBud: 12, treeBuds: [2, 4, 6], planktonRadius: 3.2,
   bloomFirst: 6, bloomInterval: 50, bloomSize: 45, bloomSpread: 70, bloomMinPlayerDist: 800, bloomFloorClear: 350,
   // energy
-  startEnergy: 30, maxEnergy: 100, capBudMult: 2.5, crowdDiv: 75, upkeep: 0.02, upkeepStage: 2, anemoneUpkeep: 1.5, starveEvery: 5, starveHp: 1, swimDrain: 0.35, sunRate: 0.17, emptySpeedFactor: 0.4,
+  startEnergy: 30, maxEnergy: 100, capBudMult: 2.5, crowdDiv: 200, upkeep: 0.02, upkeepStage: 2, anemoneUpkeep: 1.5, starveEvery: 5, starveHp: 1, swimDrain: 0.35, sunRate: 0.17, emptySpeedFactor: 0.4,
   // larva
   larvaRadius: 8, larvaAccel: 430, larvaDrag: 2.4, settleReach: 10, eatPad: 6,
   // predators
@@ -331,12 +331,12 @@ const CONFIG = {
   // structure strength (0..10): rock-touching polyps are 10, the rest is the best path from one
   supBase: 10, supUp: 1, supSide: 2.5, supDown: 3, supSkel: 1, supThick: 0.5, supThickMax: 1.5, supBoth: 0.5, supDiag: 0.5, thickBase: 2,
   // genetics: a bud may be a sport (a new lineage with one trait up and one down)
-  sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.08, traitTough: 0.8, traitFeed: 0.06,
+  sportChance: 0.02, sportHueMin: 80, sportHueMax: 180, traitGrowth: 0.05, traitTough: 0.8, traitFeed: 0.06,
   // the genome (content.md 10): 4 power traits of 1 to 5 with a budget of 12, plus Form (free). Sports start at sportFrom s of play: the first bud after it is always one
   // spawning night (content.md 4.7) and the X unlocks: larvae per colony = base + 1 per perPolyps polyps, at most max; partners within pairRange cells
   sp: { minPolyps: 8, hpMin: 0.5, base: 1, perPolyps: 12, max: 8, pairRange: 40, loneMult: 0.5, drift: 15, root: 0.5, rootX4: 0.85, rootRange: 6, x3Larvae: 1.5, colonyCap: 40, nightSecs: 40, steerSecs: 15, steerPull: 90, childSport: 0.1, jitter: 0.15, formJitter: 0.2,
     brood: { min: 20, near: 10, root: 0.6, drift: 10 }, bank: { max: 3, cd: 120, range: 30, e: 300, ca: 10 }, eggs: 36, ride: { speed: 150 } },
-  gen: { budget: 12, sportFrom: 1080, sportX1: 0.04, growthTime: 0.10, growthStr: 0.4, toughCost: 0.05, heatSun: 0.05, feedCatch: 0.12, feedUpkeep: 0.10, hues: { growth: 18, tough: 275, heat: 48, feed: 175 }, hueShift: 12, satBase: 0.45, satPer: 0.10, lightBase: 0.45, lightPer: 0.04, glow: 10, pickWait: 25 },
+  gen: { budget: 12, sportFrom: 1080, sportX1: 0.04, growthTime: 0.07, growthStr: 0.4, toughCost: 0.05, heatSun: 0.05, feedCatch: 0.12, feedUpkeep: 0.04, hues: { growth: 18, tough: 275, heat: 48, feed: 175 }, hueShift: 12, satBase: 0.45, satPer: 0.10, lightBase: 0.45, lightPer: 0.04, glow: 10, pickWait: 25 },
   // tech tree: what reveals each unlock, what it costs and what it does (tuned with scripted bots: all seven in about 14 min)
   revealHandPlankton: 10, revealFairSeconds: 700, revealBuds: 5, revealHandBuds: 55, revealAnemonePolyps: 30,
   cost: { X1: { e: 40 }, X2: { e: 300, bp: 25 }, X3: { bp: 60 }, X4: { e: 2000, bp: 40 }, X5: { bp: 120 }, F1: { e: 25 }, F4: { e: 70 }, F2: { e: 80 }, F3: { e: 90 }, G1: { e: 40 }, G2: { e: 90, ca: 8 }, D1: { e: 35 }, R1: { e: 85 }, S1: { e: 60 }, S2: { e: 70, ca: 6 }, T1: { e: 120, ca: 10 }, T2: { e: 140, ca: 15 }, T3: { e: 400, bp: 15 }, T4: { e: 250, bp: 40 }, R2: { e: 70 }, R3: { e: 250, bp: 20 }, R4: { e: 250, bp: 30 }, R5: { bp: 150 }, S6: { ca: 40, bp: 80 }, C1: { e: 60 }, C2: { e: 350, ca: 15 }, C3: { e: 250, bp: 30 }, D2: { e: 70 }, D3: { e: 300, ca: 10 }, D4: { bp: 80 }, D5: { bp: 40, ca: 40 }, F5: { e: 300, ca: 20 }, F6: { e: 320 }, G3: { e: 70, ca: 10 }, G5: { e: 350, ca: 25 }, G4: { e: 1500, bp: 60 }, S4: { e: 250, ca: 25 }, S7: { e: 60, ca: 10 }, S5: { ca: 120, bp: 60 }, C4: { ca: 60, bp: 90 } },
@@ -513,6 +513,13 @@ const energyCap = () => Math.max(CONFIG.maxEnergy, CONFIG.capBudMult * budCost(f
 const calciumCap = () => CONFIG.calciumMax + (has('G5') ? CONFIG.unl.g5.cap : 0) + game.polyps.reduce((a, p) => a + TY(typeOf(p)).caCap, 0);
 function budCalcium(tp = game.nextType) { tp = tyN(tp); return has('G1') ? CONFIG.budCalcium * TY(tp).ca : 0; }
 // null when a price {e, ca, bp} can be paid, otherwise what is missing (buds pay energy and calcium, unlocks may also cost BP)
+// P-41: a plankton caught by hand is worth a share of the next bud (never less than the flat amount), so being there pays at any size
+const handCatch = () => Math.max(CONFIG.planktonEnergy, budCost(false) / CONFIG.handCatchBud);
+// P-32: a tip's energy price is a set number of buds' worth for its tier (CONFIG.treeBuds), never below its listed price
+function costOf(id) {
+  const c = CONFIG.cost[id], d = TREE.find(x => x.id === id), m = d ? (CONFIG.treeBuds || [])[d.tier - 1] || 0 : 0;
+  return c.e && m ? Object.assign({}, c, { e: Math.max(c.e, Math.round(m * budCost(false))) }) : c;
+}
 function shortOf(c) {
   if (game.energy < (c.e || 0)) return `Need ${Math.ceil(c.e)} energy`;
   if (game.calcium < (c.ca || 0)) return `Need ${c.ca} calcium`;
@@ -1136,7 +1143,7 @@ function checkReveals() {
   }
 }
 function costShort(id) {
-  return shortOf(CONFIG.cost[id]);
+  return shortOf(costOf(id));
 }
 // what must be learned first: an explicit need, else the tip before it on the same stem of the reef tree (Ethan 2026-11-17: unlock in order, outward from the rock)
 function prereqOf(d) { if (d.needs) return d.needs; const n = treeLayout().nodes[d.id]; return n && n.par ? n.par.id : null; }
@@ -1150,7 +1157,7 @@ function buy(id) {
   if (!d || game.tree.state[id] !== 'revealed' || !tierOpen(d.tier)) return false;
   const why = prereqOf(d) && !has(prereqOf(d)) ? `Needs ${prereqName(d)} first` : costShort(id);
   if (why) { toast(why, true); return false; }
-  const c = CONFIG.cost[id];
+  const c = costOf(id);
   game.energy -= c.e || 0; game.calcium -= c.ca || 0; game.bp -= c.bp || 0;
   game.tree.state[id] = 'owned';
   if (d.on) d.on();
@@ -1276,7 +1283,7 @@ function treeCard() {
   if (s === 'tierlock') h += `<h4>???</h4><span class="st">Tier ${d.tier}</span><div class="fxl">Reach ${TIER_STAGE[d.tier - 1]} to unlock tier ${d.tier}.</div>`;
   else if (s === 'hidden') h += `<h4>???</h4><span class="st">Hidden</span><div class="hint">How to reveal it: ${d.hint}</div>`;
   else {
-    const c = CONFIG.cost[d.id], locked = prereqOf(d) && !has(prereqOf(d)), can = canBuy(d.id);
+    const c = costOf(d.id), locked = prereqOf(d) && !has(prereqOf(d)), can = canBuy(d.id);
     h += `<h4>${d.name}</h4><span class="st ${s === 'owned' ? 'owned' : can ? 'can' : ''}">${s === 'owned' ? 'Learned' : can ? 'Ready to learn' : 'Revealed'}</span><div class="fxl">${d.fx()}</div>`;
     if (s === 'revealed') {
       h += `<div class="cost">${c.e ? chip(c.e + ' energy', game.energy >= c.e) : ''}${c.ca ? chip(c.ca + ' calcium', game.calcium >= c.ca) : ''}${c.bp ? chip(LEAF + c.bp + ' BP', game.bp >= c.bp) : ''}</div>`;
@@ -3061,7 +3068,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(CONFIG.planktonEnergy + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (isNight()) { const A = game.ach, nn = Math.floor(game.dn.t / CONFIG.dayCycle); if (A.nightN !== nn) { A.nightN = nn; A.nightC = 0; } if (++A.nightC >= 30) award('A2'); } if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
+          if (d < CONFIG.eatDist) { p.dead = true; gain(handCatch() + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (isNight()) { const A = game.ach, nn = Math.floor(game.dn.t / CONFIG.dayCycle); if (A.nightN !== nn) { A.nightN = nn; A.nightC = 0; } if (++A.nightC >= 30) award('A2'); } if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
