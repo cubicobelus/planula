@@ -284,6 +284,8 @@ const CONFIG = {
   currentAmp: 22, currentLarvaFactor: 0.8,
   // plankton
   plankton: 240, planktonEnergy: 3, handCatchBud: 12, treeBuds: [2, 4, 6], planktonRadius: 3.2,
+  // plankton swarms (P-41): from stage `from` a few bright swarms drift through each season; hand catches pay `worth` x the next branch bud, polyps `polypShare` of that
+  swarm: { from: 2, perSeason: [2, 2, 3, 3], life: 15, count: 26, worth: 0.032, polypShare: 0.25, warn: 4, speed: 36, spread: 55, first: 120, toasts: 3 },
   bloomFirst: 6, bloomInterval: 50, bloomSize: 45, bloomSpread: 70, bloomMinPlayerDist: 800, bloomFloorClear: 350,
   // energy
   startEnergy: 30, maxEnergy: 100, capBudMult: 2.5, crowdDiv: 200, upkeep: 0.02, upkeepStage: 2, anemoneUpkeep: 1.5, starveEvery: 5, starveHp: 1, swimDrain: 0.35, sunRate: 0.17, emptySpeedFactor: 0.4,
@@ -454,6 +456,7 @@ const game = {
   ach: { got: {}, order: [], t: 1, slowT: 0, thread: false, stormStart: null, nightN: -1, nightC: 0 },   // achievements earned this run (never saved)
   rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1, pop: true },   // reef report
+  swarm: { abs: -1, q: [], pend: null, n: 0 },   // plankton swarms: this season's arrival times, the one being warned of, swarms launched
   season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
   storm: null, stormPw: 0, stormRep: null, frags: [], riding: null,   // storm: { t, len, base }; pw: current power 0..1; riding: { frag, p } while the player drifts on a fragment
   lineages: [{ id: 0, hue: 0, traits: { growth: 3, tough: 3, heat: 3, feed: 3, form: 3 }, parent: -1 }], sportNext: false,
@@ -1090,12 +1093,14 @@ function runReport() {
   const hand = S.handBuds || 0, guided = (S.guideBuds || 0) + (S.planBuds || 0);
   return { time: t, waitSecs: w, waitPct: t > 0 ? w / t * 100 : 0, waitByStage: by.map(x => +x.toFixed(1)),
     buds: { total: S.buds || 0, hand, guided, other: Math.max(0, (S.buds || 0) - hand - guided) },
+    swarms: { caught: S.swarmCaught || 0, energy: S.swarmEnergy || 0 },
     lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, other: L.other || 0 } };
 }
 window.runReport = runReport;
 const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', other: 'Other' };
 function runRows() {
   const R = runReport(), rows = [['Time played', mmss(R.time)], ['Waiting for energy', `${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%)`], ['Buds by hand / guided', `${R.buds.hand} / ${R.buds.guided}`]];
+  if (R.swarms.caught) rows.push(['Swarm plankton caught', `${R.swarms.caught} (+${Math.round(R.swarms.energy)} energy)`]);
   for (const k of Object.keys(LOST_NAMES)) if (R.lost[k]) rows.push([`Polyps lost to ${LOST_NAMES[k].toLowerCase()}`, R.lost[k]]);
   return rows;
 }
@@ -1570,18 +1575,20 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (p.cap.poly.bl) p.cap.poly.bl.n++; gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank * (1 + CONFIG.gen.feedCatch * (linOf(p.cap.poly).traits.feed - 3)), c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
+        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (p.cap.poly.bl) p.cap.poly.bl.n++; if (p.sw) swarmCatch(p, false, p.cap.poly, c.x, c.y - 14); else gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank * (1 + CONFIG.gen.feedCatch * (linOf(p.cap.poly).traits.feed - 3)), c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
         continue;
       }
     }
     const cur = currentAt(p.x, p.y, t);
-    p.x += (cur * 0.9 + Math.sin(t * 0.7 + p.ph) * 6) * dt;
+    if (p.sw) { p.age += dt; if ((p.age > CONFIG.swarm.life || game.storm) && p.leave === undefined) p.leave = 1; }   // gone after its life, or when a storm wave starts
+    p.x += ((p.sw ? p.sw.dir * CONFIG.swarm.speed : cur * 0.9) + Math.sin(t * 0.7 + p.ph) * 6) * dt;
     p.y += (Math.cos(t * 0.5 + p.ph * 1.7) * 5 - 1.5 - (p.rise || 0) * CONFIG.nightRise) * dt;
     if (p.rise) p.rise = Math.max(0, p.rise - dt * CONFIG.nightRiseDecay);
+    if (p.sw && (p.x < 0 || p.x > W)) { p.dead = true; continue; }   // a swarm does not wrap round the world
     if (p.x < 0) p.x += W; if (p.x > W) p.x -= W;
     p.y = clamp(p.y, 6, H - 10);
     if (isRock(Math.floor(p.x / CELL), Math.floor(p.y / CELL))) p.y -= 40 * dt + 2;
-    if (p.b) { bc++; bx += p.x; by += p.y; } else if (p.leave === undefined) { ambient++; free.push(p); }
+    if (p.b) { bc++; bx += p.x; by += p.y; } else if (p.leave === undefined && !p.sw) { ambient++; free.push(p); }
   }
   game.plankton = game.plankton.filter(p => !p.dead);
   game.bloom.count = bc;
@@ -1590,12 +1597,97 @@ function updatePlankton(dt) {
   let n = game.goals.stage < 2 ? Math.min(3, Math.ceil(dt * 20)) : Math.ceil(dt * CONFIG.nightSpawnRate);
   while (ambient < target && n-- > 0) { if (game.goals.stage >= 2 && dl < 1) spawnRising(); else spawnAmbient(); ambient++; }   // the night cloud rises from the floor
   for (let i = 0, k = Math.ceil(dt * CONFIG.nightSpawnRate); ambient > target && i < free.length && k > 0; i++) if (!free[i].cap) { free[i].leave = 1; ambient--; k--; }   // the day thins it out
-  maybeBloom();
+  maybeBloom(); updateSwarms(dt);
 }
 function gain(a, x, y) {
   a *= boost() * bioMult() * evInc(); game.energy = Math.min(energyCap(), game.energy + a);
   game.fx.push({ kind: 'text', x, y, t: 0, life: 0.9, text: '+' + (Math.round(a * 10) / 10) });
+  return a;
 }
+
+/* ---------- plankton swarms (P-41 part 2): a few bright clusters per season drift through at the colony's depth; being there and steering pays ---------- */
+function swarmPlan(ab) {   // this season's arrival times (clock seconds): one per slot, never during a storm
+  const C = CONFIG.swarm, t = game.season.t, a = seasonStart(ab), b = seasonStart(ab + 1), n = C.perSeason[ab % C.perSeason.length];
+  const lo = Math.max(a + (ab ? 8 : C.first), t + C.warn + 1), hi = b - C.life - C.warn - 4, out = [];
+  if (hi <= lo) return out;
+  for (let k = 0; k < n; k++) {
+    const s0 = lo + (hi - lo) * k / n, s1 = lo + (hi - lo) * (k + 1) / n;
+    for (let i = 0; i < 40; i++) {
+      const x = s0 + (s1 - s0) * (0.1 + 0.8 * Math.random()), st = nextStormStart(x);
+      if ((st === null || st > x + 1) && (!out.length || x - out[out.length - 1] >= C.warn * 2)) { out.push(x); break; }   // not in a storm wave, and not on top of the last swarm
+      if (i === 39) out.push(s0 + (s1 - s0) * 0.1);
+    }
+  }
+  return out;
+}
+function swarmEntry(at) {   // the side and depth a swarm will come from
+  const C = CONFIG.swarm, pp = playerPos(), dir = Math.sign(currentAt(pp.x, pp.y, game.time + C.warn)) || 1;
+  let top = pp.y;
+  for (const p of game.polyps) { const c = cellCenter(p.c, p.r); if (c.y < top) top = c.y; }
+  let y = Math.random() < 0.5 && top > 120 ? rr(60, top) : pp.y + rr(-6, 6) * CELL;   // above the colony, or level with the active polyp
+  y = clamp(y, 40, H - 80);
+  return { at, dir, y };
+}
+const swarmState = () => game.swarm || (game.swarm = { abs: -1, q: [], pend: null, n: 0 });
+function swarmLaunch(e) {
+  const C = CONFIG.swarm, S = swarmState(), v = game.view, z = game.cam.zoom, pp = playerPos();
+  const reach = Math.min(v.w / 2 / z + 50, C.speed * C.life * 0.9);   // enters at the upstream edge of the view, never so far that it cannot cross the colony
+  const x0 = clamp(game.cam.x - e.dir * reach, 40, W - 40);
+  let y0 = e.y; for (let i = 0; i < 60 && isRock(Math.floor(x0 / CELL), Math.floor(y0 / CELL)); i++) y0 -= CELL;   // clamp to open water
+  y0 = Math.max(30, y0);
+  let n = 0;
+  for (let i = 0; i < C.count; i++) {
+    const a = Math.random() * 6.28, d = Math.sqrt(Math.random()) * C.spread, px = x0 + Math.cos(a) * d, py = y0 + Math.sin(a) * d * 0.6;
+    if (isRock(Math.floor(px / CELL), Math.floor(py / CELL))) continue;
+    const q = mkPlankton(px, py, false); q.sw = { dir: e.dir, id: S.n }; q.age = 0; game.plankton.push(q); n++;
+  }
+  S.n++; S.last = { x: x0, y: y0, dir: e.dir, t: game.time };
+  if (!game.stats.swarmHint) { game.stats.swarmHint = 1; toast('Hold the mouse near the swarm to catch it by hand'); }
+  return n;
+}
+function updateSwarms(dt) {
+  const C = CONFIG.swarm, S = swarmState(), t = game.season.t;
+  if (game.goals.stage < C.from) return;
+  const ab = seasonAbs(t);
+  if (S.abs !== ab) { S.abs = ab; S.q = swarmPlan(ab); }
+  if (S.pend) {
+    if (t >= S.pend.at && !game.storm) { swarmLaunch(S.pend); S.pend = null; }
+    else if (t >= S.pend.at) S.pend.at += dt;   // a storm wave is running: wait for it to pass
+  } else if (S.q.length && t >= S.q[0] - C.warn) {
+    S.pend = swarmEntry(S.q.shift());
+    const seen = game.stats.swarmSeen || 0; game.stats.swarmSeen = seen + 1;
+    if (seen < C.toasts) toast(`A plankton swarm is drifting in from the ${S.pend.dir > 0 ? 'west' : 'east'}`);
+  }
+}
+function swarmCatch(p, hand, poly, x, y) {   // one swarm plankton caught: by hand it is worth a share of the next bud, by a polyp a fraction of that
+  const C = CONFIG.swarm, lin = linOf(poly);
+  const v = C.worth * budCost(false) * (1 + CONFIG.gen.feedCatch * (lin.traits.feed - 3)) * (hand ? 1 : C.polypShare);
+  const got = gain(v, x, y), S = game.stats;
+  S.swarmCaught = (S.swarmCaught || 0) + 1; S.swarmEnergy = (S.swarmEnergy || 0) + got;
+  if (hand) sfx('catch', x, y);
+}
+// a small glowing chevron at the screen edge: where a swarm is about to enter, or which way a swarm in flight lies when it is off screen
+function drawSwarmMark(t) {
+  const S = swarmState(), C = CONFIG.swarm, v = game.view;
+  let tx = null, ty = 0, a = 1;
+  if (S.pend) { const at = S.pend.at - game.season.t; if (at > 0 && at <= C.warn + 0.5) { const reach = v.w / 2 / game.cam.zoom + 50; tx = game.cam.x - S.pend.dir * reach; ty = S.pend.y; a = 0.6 + 0.4 * Math.sin(t * 6); } }
+  if (tx === null) {
+    let n = 0, sx = 0, sy = 0; for (const p of game.plankton) if (p.sw && !p.dead) { n++; sx += p.x; sy += p.y; }
+    if (n < 4) return; tx = sx / n; ty = sy / n;
+  }
+  const q = worldToScreen(tx, ty), m = 26;
+  if (q.x > 0 && q.x < v.w && q.y > 0 && q.y < v.h) return;   // already in view
+  const x = clamp(q.x, m, v.w - m), y = clamp(q.y, m + 50, v.h - m - 50), ang = Math.atan2(q.y - y, q.x - x);
+  ctx.save(); ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0); ctx.translate(x, y); ctx.rotate(ang);
+  ctx.globalAlpha = a; ctx.strokeStyle = 'rgba(255,170,240,1)'; ctx.shadowColor = 'rgba(255,96,214,1)'; ctx.shadowBlur = 12;
+  ctx.lineWidth = 4.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(-7, -13); ctx.lineTo(7, 0); ctx.lineTo(-7, 13); ctx.stroke();
+  ctx.restore();
+}
+window.devSwarm = () => {   // dev: send one now (from the Colony stage)
+  if (game.goals.stage < CONFIG.swarm.from) devStage(CONFIG.swarm.from);
+  return swarmLaunch(swarmEntry(game.season.t));
+};
 
 /* ---------- cells / polyps ---------- */
 function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inherits that lineage)
@@ -2756,7 +2848,7 @@ function updateLarva(dt) {
   for (const p of game.plankton) {
     if (p.dead || p.cap) continue;
     if (Math.abs(p.x - L.x) < er && Math.abs(p.y - L.y) < er && Math.hypot(p.x - L.x, p.y - L.y) < er) {
-      p.dead = true; gain(CONFIG.planktonEnergy, p.x, p.y - 8);
+      p.dead = true; if (p.sw) swarmCatch(p, true, game.active, p.x, p.y - 8); else gain(CONFIG.planktonEnergy, p.x, p.y - 8);
     }
   }
   game.settleTarget = findSettleTarget();
@@ -3068,7 +3160,7 @@ function updatePolyps(dt) {
         if (p.dead || p.cap) continue;
         const d = Math.hypot(tx - p.x, ty - p.y);
         if (d < CONFIG.pullRadius) {
-          if (d < CONFIG.eatDist) { p.dead = true; gain(handCatch() + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (isNight()) { const A = game.ach, nn = Math.floor(game.dn.t / CONFIG.dayCycle); if (A.nightN !== nn) { A.nightN = nn; A.nightC = 0; } if (++A.nightC >= 30) award('A2'); } if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
+          if (d < CONFIG.eatDist) { p.dead = true; if (p.sw) swarmCatch(p, true, a, tx, ty - 8); else gain(handCatch() + (has('F4') && isNight() ? CONFIG.nightHand : 0), tx, ty - 8); sfx('catch', tx, ty); spawnParts('puff', tx, ty - 4, CONFIG.juice.puffs); game.progress.tentacled = true; game.stats.handPlankton++; if (isNight()) { const A = game.ach, nn = Math.floor(game.dn.t / CONFIG.dayCycle); if (A.nightN !== nn) { A.nightN = nn; A.nightC = 0; } if (++A.nightC >= 30) award('A2'); } if (a.bl) a.bl.n++; if (isNight()) game.stats.nightPlankton++; }
           else { p.x += (tx - p.x) / d * CONFIG.pullSpeed * dt; p.y += (ty - p.y) / d * CONFIG.pullSpeed * dt; }
         }
       }
@@ -4595,7 +4687,7 @@ function drawForeground(t) {
 /* ---------- look test: plankton sprites ---------- */
 let PLANK = null;
 function buildPlankton() {
-  PLANK = [[170, 255, 215], [165, 232, 255], [255, 240, 182], [255, 204, 218], [214, 202, 255]].map(c => {
+  PLANK = [[170, 255, 215], [165, 232, 255], [255, 240, 182], [255, 204, 218], [214, 202, 255], [255, 96, 214], [236, 120, 255]].map(c => {
     const cv = mkCanvas(40, 40), g = cv.getContext('2d');
     let gr = g.createRadialGradient(20, 20, 0, 20, 20, 19);
     gr.addColorStop(0, `rgba(${c},0.5)`); gr.addColorStop(0.4, `rgba(${c},0.2)`); gr.addColorStop(1, `rgba(${c},0)`);
@@ -4611,9 +4703,10 @@ function drawPlanktonOrganic(t) {
   if (!PLANK) buildPlankton();
   ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
   for (const p of game.plankton) {
-    const a = (0.62 + 0.38 * Math.sin(t * 2 + p.ph)) * (p.leave ?? 1);
-    const sp = PLANK[Math.floor(p.ph * 997) % PLANK.length], sc = 0.82 + ((p.ph * 131) % 1) * 0.62;
+    let a = (0.62 + 0.38 * Math.sin(t * 2 + p.ph)) * (p.leave ?? 1);
+    const sw = !!p.sw, sp = sw ? PLANK[5 + Math.floor(p.ph * 997) % 2] : PLANK[Math.floor(p.ph * 997) % 5], sc = (0.82 + ((p.ph * 131) % 1) * 0.62) * (sw ? 1.15 : 1);   // a swarm: hot magenta (stands out against lit coral), bigger, with a wide halo
     const R = CONFIG.planktonRadius * sc, d = R / 6.5 * 20, ang = p.ph * 3 + Math.sin(t * 0.6 + p.ph) * 0.6;
+    if (sw) { a = Math.min(1, a * 1.15) * Math.min(1, p.age / 1.5); ctx.globalAlpha = a * 0.12; ctx.drawImage(sp.cv, p.x - d * 1.9, p.y - d * 1.9, d * 3.8, d * 3.8); }
     ctx.globalAlpha = a;
     ctx.drawImage(sp.cv, p.x - d, p.y - d, d * 2, d * 2);
     const bx = p.x - Math.cos(ang) * R * 0.9, by = p.y - Math.sin(ang) * R * 0.9, w = Math.sin(t * 3.2 + p.ph * 5) * R * 0.7;
@@ -4928,10 +5021,10 @@ function drawPlankton(t) {
   if (game.look.on.organic) return drawPlanktonOrganic(t);
   ctx.globalCompositeOperation = 'lighter';
   for (const p of game.plankton) {
-    const a = (0.55 + 0.35 * Math.sin(t * 2 + p.ph)) * (p.leave ?? 1);
-    ctx.fillStyle = `rgba(150,255,210,${a * 0.10})`;
-    ctx.beginPath(); ctx.arc(p.x, p.y, CONFIG.planktonRadius * 2.6, 0, 6.3); ctx.fill();
-    ctx.fillStyle = `rgba(215,255,235,${a})`;
+    const sw = !!p.sw, a = (0.55 + 0.35 * Math.sin(t * 2 + p.ph)) * (p.leave ?? 1) * (sw ? Math.min(1, p.age / 1.5) : 1);
+    ctx.fillStyle = sw ? `rgba(255,96,214,${a * 0.22})` : `rgba(150,255,210,${a * 0.10})`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, CONFIG.planktonRadius * (sw ? 4.2 : 2.6), 0, 6.3); ctx.fill();
+    ctx.fillStyle = sw ? `rgba(255,200,245,${a})` : `rgba(215,255,235,${a})`;
     ctx.beginPath(); ctx.arc(p.x, p.y, CONFIG.planktonRadius, 0, 6.3); ctx.fill();
   }
   ctx.globalCompositeOperation = 'source-over';
@@ -5406,10 +5499,10 @@ function render() {
     uctx.setTransform(1, 0, 0, 1, 0, 0); uctx.clearRect(0, 0, uiCv.width, uiCv.height);
     worldTransform(uctx);
     const scene = ctx; ctx = uctx;
-    drawSkyTop(t); drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid();
+    drawSkyTop(t); drawSettleHint(t); drawGuide(t); drawSpots(t); drawGhost(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); drawSwarmMark(t); if (devs.grid) drawDevGrid();
     ctx = scene;
     present();
-  } else { drawSkyTop(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); if (devs.grid) drawDevGrid(); }
+  } else { drawSkyTop(t); drawStructure(t); drawFieldOverlay(t); drawLineageView(t); drawReportHi(t); drawFx(); drawOverlay(t); drawSwarmMark(t); if (devs.grid) drawDevGrid(); }
 }
 
 /* ---------- HUD ---------- */
@@ -5902,7 +5995,7 @@ const devGroups = [
   ['Ending', ['<button data-a="endatoll">Atoll, crest ready</button><button data-a="endcyc">start cyclone now</button><button data-a="endwin">win the cyclone</button><button data-a="endrise">rise the island</button><button data-a="endlife">skip island life</button><button data-a="endcard">ending card</button> <span id="endread" style="color:#8aa0b2"></span>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
-    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="sport">make sport</button>',
+    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
   ['Performance', ['<button data-a="perfreset">reset</button> <span style="color:#8aa0b2">frame times per moment: fps, 1% low, sim and draw ms, frames over 33 ms</span>', '<div id="perfread" style="white-space:pre;font:11px/1.45 ui-monospace,monospace;color:#cfe3ee"></div>']],
   ['Day/Night', [
@@ -5961,6 +6054,7 @@ function devBuild() {
     else if (a === 'thrive' || a === 'mixed') devThrive();
     else if (a === 'ty') { game.nextType = vs; toast('Next bud: ' + TYPE_NAME[vs].toLowerCase(), true); }
     else if (a === 'ownty') { for (const id of ['R1', 'T1', 'T2', 'T3']) devOwn(id); toast('All coral types owned', true); }
+    else if (a === 'swarm') devSwarm();
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
@@ -6453,7 +6547,8 @@ function drawNight(t) {
   for (const p of game.plankton) {
     if (p.x < a.x - 30 || p.x > b.x + 30 || p.y < a.y - 30 || p.y > b.y + 30) continue;
     ctx.globalAlpha = n * C.nightGlow * (0.55 + 0.35 * Math.sin(t * 2.2 + p.ph)) * (p.leave ?? 1) * spawnDim;
-    ctx.drawImage(GLOWS.pl, p.x - 17, p.y - 17, 34, 34);
+    const gs = p.sw ? 30 : 17; if (p.sw) ctx.globalAlpha = Math.min(1, ctx.globalAlpha * 1.6);
+    ctx.drawImage(GLOWS.pl, p.x - gs, p.y - gs, gs * 2, gs * 2);
   }
   for (const p of game.polyps) {
     const q = drawPos(p);
