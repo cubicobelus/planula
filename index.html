@@ -284,7 +284,7 @@ const CONFIG = {
   lightPower: 0.75, dimBelow: 0.35, brightAbove: 0.65,
   currentAmp: 22, currentLarvaFactor: 0.8,
   // plankton
-  plankton: 240, planktonEnergy: 3, handCatchBud: 12, treeBuds: [2, 4, 6], planktonRadius: 3.2,
+  plankton: 240, planktonEnergy: 3, handCatchBud: 12, silt: { k: 0.7, low: 2 }, treeBuds: [2, 4, 6], planktonRadius: 3.2,
   // plankton swarms (P-41): from stage `from` a few bright swarms drift through each season; hand catches pay `worth` x the next branch bud, polyps `polypShare` of that
   swarm: { from: 2, perSeason: [2, 2, 3, 3], life: 15, count: 26, worth: 0.032, polypShare: 0.25, warn: 4, speed: 36, spread: 55, first: 120, toasts: 3 },
   bloomFirst: 6, bloomInterval: 50, bloomSize: 45, bloomSpread: 70, bloomMinPlayerDist: 800, bloomFloorClear: 350,
@@ -1502,6 +1502,7 @@ window.addEventListener('resize', () => { if (game.tree.open) { treeFit(); treeP
 /* ---------- world generation ---------- */
 const SHELF = { c0: 31, c1: 43, row: 38 };
 function generateWorld() {
+  FLOOR_MED = null;   // silt reads the median floor of this world
   const cols = game.cols, rows = game.rows;
   game.grid = new Uint8Array(cols * rows);
   game.floorRow = new Int16Array(cols);
@@ -1620,6 +1621,14 @@ function updatePlankton(dt) {
   while (ambient < target && n-- > 0) { if (game.goals.stage >= 2 && dl < 1) spawnRising(); else spawnAmbient(); ambient++; }   // the night cloud rises from the floor
   for (let i = 0, k = Math.ceil(dt * CONFIG.nightSpawnRate); ambient > target && i < free.length && k > 0; i++) if (!free[i].cap) { free[i].leave = 1; ambient--; k--; }   // the day thins it out
   maybeBloom(); updateSwarms(dt);
+}
+// P-45 silt: a polyp sitting right on the low seabed (rock just below it, in a column no higher than the median floor + silt.low rows) feeds less.
+// Sand settles there, so a one-row carpet along the floor is not the best way to earn. Raised rock, the starting pillar and coral on coral are unaffected.
+let FLOOR_MED = null;
+function siltK(p) {
+  if (FLOOR_MED === null) { const f = Array.from(game.floorRow).sort((a, b) => a - b); FLOOR_MED = f[Math.floor(f.length / 2)]; }
+  const fr = game.floorRow[p.c];
+  return p.r === fr - 1 && fr >= FLOOR_MED - CONFIG.silt.low ? CONFIG.silt.k : 1;
 }
 function gain(a, x, y) {
   a *= boost() * bioMult() * evInc(); game.energy = Math.min(energyCap(), game.energy + a);
@@ -3826,7 +3835,7 @@ function updatePolyps(dt) {
   for (const p of game.polyps) {
     p.pop = Math.max(0, p.pop - dt * 3.5);
     const l = lightOf(p);
-    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * (1 - CONFIG.gen.heatSun * (linOf(p).traits.heat - 3)) * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * (c4 && l >= CONFIG.unl.c4.light ? CONFIG.unl.c4.sun : 1) * dl * evs * dt);   // more factors (heat) multiply in here later
+    if (!p.bl) game.energy = Math.min(cap, game.energy + CONFIG.sunRate * (has('C1') ? Math.max(l, CONFIG.threat.heat.c1Floor) : l) * TY(typeOf(p)).light * (1 - CONFIG.gen.heatSun * (linOf(p).traits.heat - 3)) * sunK * boost() * bm * (t4 && mixedSide(p) ? CONFIG.bio.t4Sun : 1) * (c4 && l >= CONFIG.unl.c4.light ? CONFIG.unl.c4.sun : 1) * dl * evs * siltK(p) * dt);   // more factors (heat) multiply in here later
     if (l >= CONFIG.dimBelow && dl > 0.5) p.fairT += dt;
     p.hurt = Math.max(0, p.hurt - dt);
     if (p.hp < CONFIG.polypHp && game.time - p.lastHit > CONFIG.polypHealDelay) p.hp = Math.min(CONFIG.polypHp, p.hp + CONFIG.polypHeal * (f5 && denseP(p) ? CONFIG.unl.f5.heal : 1) * dt);
@@ -3869,7 +3878,7 @@ function updatePolyps(dt) {
         const d = Math.hypot(q.x - cc.x, q.y - cc.y);
         if (d < bd) { bd = d; best = q; }
       }
-      if (best) { if (Math.random() < flowOf(p)) best.cap = { poly: p }; p.cd = CONFIG.autoInterval * (0.8 + Math.random() * 0.4); }   // the catch needs the current to bring plankton
+      if (best) { if (Math.random() < flowOf(p) * siltK(p)) best.cap = { poly: p }; p.cd = CONFIG.autoInterval * (0.8 + Math.random() * 0.4); }   // the catch needs the current to bring plankton
       else p.cd = 0.5;
     }
   }
