@@ -308,8 +308,10 @@ const CONFIG = {
   // Each tier unlocks at a stage and a pressure; waves come every waveEvery[0] s (at pressure pRange[0]) down to waveEvery[1] s (at pRange[1]) after the last one ended.
   // Waves never start in a quiet season, in or within stormGap s of a storm wave, during a starfish outbreak or an event calm. A wave eats at most lossCap of the polyps it found (min 1).
   hz: { tick: 1, base: { time: 0.06, polyps: 1 / 40, species: 0.5 }, pRange: [3, 12], waveEvery: [90, 60], quietSeasons: ['Calm'], stormGap: 10, lossCap: 0.05, warn: 20, newest: 2,
-    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }],   // w: pick weight; the newest unlocked tier gets x newest
-    school: { size: [8, 12], speed: 80, radius: 6, biteEvery: 1.6, bite: 0.8, scatter: 0.4, d2Hits: 1, d2Flee: 5, leaveAfter: 60, flank: 3, spread: 34, reward: { bp: 5 } } },
+    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 3, pressure: 5.5, w: 1 }],   // w: pick weight; the newest unlocked tier gets x newest
+    school: { size: [8, 12], speed: 80, radius: 6, biteEvery: 1.6, bite: 0.8, scatter: 0.4, d2Hits: 1, d2Flee: 5, leaveAfter: 60, flank: 3, spread: 34, reward: { bp: 5 } },
+    // tier 3: the triggerfish. Armoured: stings do nothing. It bites branch tips (chunk polyps per bite), prefers tips no guard crab covers, and is driven off by crab shoves (hp), a moray strike or a Snap. crabWard live guard crabs keep it away altogether
+    trigger: { count: [1, 2], speed: 60, radius: 10, biteEvery: 3, chunk: 1, hp: 3, leaveAfter: 75, fleeSpeed: 150, shoveFlee: 2.5, orbit: 90, snapNear: 2, crabWard: 2, reward: { bp: 8 } } },
   automationAt: 5, autoRadius: 75, autoInterval: 5, autoPullTime: 0.4, autoEnergy: 1.5,
   // day and night (starts at Colony): cycle, day length, fade, plankton count multipliers, rising cloud
   dayCycle: 120, dayLen: 80, dayFade: 8, planktonDay: 0.9, planktonNight: 3, nightRise: 55, nightRiseDecay: 0.045, nightSpawnRate: 40, planktonLeave: 0.8, nightToasts: 3,
@@ -451,7 +453,7 @@ const game = {
   hop: null,
   progress: { settled: false, tentacled: false, budded: false, hopped: false },
   unlocked: false,            // self-feeding owned
-  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0, waitSecs: 0, waitByStage: [], guideBuds: 0, lost: { storm: 0, nibbler: 0, bleach: 0, disease: 0, starfish: 0, smother: 0, school: 0, other: 0 } },
+  stats: { loopBuds: 0, handPlankton: 0, buds: 0, handBuds: 0, nibbles: 0, storms: 0, stormsSurvived: 0, stormLost: 0, sagBreaks: 0, rooted: 0, sports: 0, nightPlankton: 0, edgeCatch: 0, residentSeconds: 0, shrimpHeal: 0, crabFights: 0, triggersSeen: 0, triggersDriven: 0, triggersCrab: 0, triggersMoray: 0, triggersSnap: 0, eelEaten: 0, sandMade: 0, bpMade: 0, stings: 0, bleached: 0, recovered: 0, bleachDied: 0, starfishKilled: 0, diseaseLost: 0, smothered: 0, weedPeak: 0, starfishSeen: 0, polypsLost: 0, starfishEaten: 0, events: 0, bigColony: 0, flowHigh: 0, skelN: 0, crestN: 0, litN: 0, caCapT: 0, guideRuns: 0, planBuds: 0, frags: 0, sportsSeen: 0, fragSettled: 0, spawnNights: 0, larvaRides: 0, larvaeMade: 0, colonyPeak: 0, waitSecs: 0, waitByStage: [], guideBuds: 0, lost: { storm: 0, nibbler: 0, bleach: 0, disease: 0, starfish: 0, smother: 0, school: 0, trigger: 0, other: 0 } },
   dn: { t: 0, dusk: false, nights: 0 },   // day and night clock (runs from Colony on)
   ev: { card: null, pend: null, last: {}, rolled: -1, plank: [], noAuto: 0, calm: 0, inc: null, sun: null, cold: null, weedM: null, net: null, manta: null, school: null, fired: 0, log: [], choices: [] },   // choice events and their running effects
   g3: { next: 0 }, plans: { t: 0, lt: 0, labels: [] },   // G3 fragment cooldown; G4 plan timer
@@ -1103,10 +1105,10 @@ function runReport() {
   return { time: t, waitSecs: w, waitPct: t > 0 ? w / t * 100 : 0, waitByStage: by.map(x => +x.toFixed(1)),
     buds: { total: S.buds || 0, hand, guided, other: Math.max(0, (S.buds || 0) - hand - guided) },
     swarms: { caught: S.swarmCaught || 0, energy: S.swarmEnergy || 0 },
-    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, other: L.other || 0 } };
+    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, trigger: L.trigger || 0, other: L.other || 0 } };
 }
 window.runReport = runReport;
-const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', school: 'Damselfish', other: 'Other' };
+const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', school: 'Damselfish', trigger: 'Triggerfish', other: 'Other' };
 function runRows() {
   const R = runReport(), rows = [['Time played', mmss(R.time)], ['Waiting for energy', `${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%)`], ['Buds by hand / guided', `${R.buds.hand} / ${R.buds.guided}`]];
   if (R.swarms.caught) rows.push(['Swarm plankton caught', `${R.swarms.caught} (+${Math.round(R.swarms.energy)} energy)`]);
@@ -1697,9 +1699,15 @@ window.devSwarm = () => {   // dev: send one now (from the Colony stage)
   if (game.goals.stage < CONFIG.swarm.from) devStage(CONFIG.swarm.from);
   return swarmLaunch(swarmEntry(game.season.t));
 };
+window.devTrigger = side => {   // dev: a triggerfish now (from the Reef stage), from 'east' or 'west'; a running wave is replaced
+  if (game.goals.stage < 3) devStage(3);
+  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.cur = null; }
+  H.p = Math.max(H.p, hzPressure()); hzStart('trigger', side);
+  return trigFish().length;
+};
 window.devSchool = side => {   // dev: a damselfish school now (from the Reef stage), from 'east' or 'west'; a running wave is replaced
   if (game.goals.stage < 3) devStage(3);
-  const H = hzState(); if (H.cur) { H.sc = null; H.cur = null; }
+  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.cur = null; }
   H.p = Math.max(H.p, hzPressure()); hzStart('school', side);
   return schoolFish().length;
 };
@@ -2064,6 +2072,7 @@ function doSting() {
   for (const n of game.nibblers) {
     if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
   }
+  trigSting(cc.x, sy, ex, ey);   // armoured: clinks and does nothing
   if (schoolSting(cc.x, sy, ex, ey)) hit++;   // a damselfish school: enough fish hit scatters the whole shoal
   for (const f of game.fish) {   // the orange hunters: a sting knocks one back and puts it off chasing for fishStung seconds
     if (distSeg(f.x, f.y, cc.x, sy, ex, ey) > CONFIG.stingRadius + CONFIG.fishRadius * 0.7) continue;
@@ -2535,11 +2544,11 @@ function jobCrab(r, dt, m) {
   if (!r.stand) r.stand = crabStand(r, hc);
   const R = C.guard * CELL * m;
   let tgt = null, bd = 1e9;
-  for (const n of game.nibblers) { if (n.mode === 'leave' || n.mode === 'flee') continue; const d = Math.hypot(n.x - hc.x, n.y - hc.y); if (d < R && d < bd) { bd = d; tgt = n; } }
+  for (const n of game.nibblers.concat(trigLive())) { if (n.mode === 'leave' || n.mode === 'flee') continue; const d = Math.hypot(n.x - hc.x, n.y - hc.y); if (d < R && d < bd) { bd = d; tgt = n; } }
   if (tgt) {
     r.fight = true;
     const d = crawl(r, tgt.x, tgt.y + 8, C.dash * m, dt);
-    if (d < 28) { driveOff(tgt, r.x, r.y, C.flee, true); r.job = 0.7; game.stats.crabFights++; sfx('snap', r.x, r.y); game.fx.push({ kind: 'bite', x: tgt.x, y: tgt.y, t: 0, life: 0.5 }); spawnParts('spark', tgt.x, tgt.y, 5); }
+    if (d < 28) { if (tgt.trig) trigShove(tgt, r.x, r.y, C.pushHp); else driveOff(tgt, r.x, r.y, C.flee, true); r.job = 0.7; game.stats.crabFights++; sfx('snap', r.x, r.y); game.fx.push({ kind: 'bite', x: tgt.x, y: tgt.y, t: 0, life: 0.5 }); spawnParts('spark', tgt.x, tgt.y, 5); }
   } else {
     r.fight = false;
     if ((r.tm -= dt) <= 0) { r.tm = 1.5 + Math.random() * 3; r.act = r.stand[Math.floor(Math.random() * r.stand.length)]; }
@@ -2681,7 +2690,12 @@ function jobMoray(r, dt, m) {
   for (const n of game.nibblers) { const d = Math.hypot(n.x - M.x, n.y - M.y); if (d < R) { r.seen = now; if (d < bd && n.mode !== 'leave') { bd = d; prey = n; } } }
   r.eatT = (r.eatT === undefined ? C.eat : r.eatT) - dt * m;
   let tx, ty, sp = C.idleSpeed;
-  if (night && prey && r.eatT <= 0) {
+  const trig = trigLive().filter(f => Math.hypot(f.x - M.x, f.y - M.y) < R).sort((a, b) => Math.hypot(a.x - M.x, a.y - M.y) - Math.hypot(b.x - M.x, b.y - M.y))[0];   // a triggerfish passing the tunnel is struck at any hour
+  if (trig) r.seen = now;
+  if (trig && r.eatT <= 0) {
+    tx = trig.x; ty = trig.y; sp = C.strikeSpeed; r.hunting = true;
+    if (Math.hypot(trig.x - r.x, trig.y - r.y) < 16) { r.eatT = C.eat; r.job = 0.8; trigDrive(trig, 'moray'); game.fx.push({ kind: 'bite', x: trig.x, y: trig.y, t: 0, life: 0.55 }); sfx('crunch', trig.x, trig.y); }
+  } else if (night && prey && r.eatT <= 0) {
     tx = prey.x; ty = prey.y; sp = C.strikeSpeed; r.hunting = true;
     if (Math.hypot(prey.x - r.x, prey.y - r.y) < 16) { prey.gone = true; r.eatT = C.eat; r.job = 0.8; game.stats.eelEaten++; game.fx.push({ kind: 'bite', x: prey.x, y: prey.y, t: 0, life: 0.55 }); spawnParts('puff', prey.x, prey.y, 6); sfx('crunch', prey.x, prey.y); }
   } else {
@@ -2926,6 +2940,7 @@ function fishHitboxes() {   // everything with a body in the water: [entity, rad
   for (const f of game.fish) o.push([f, CONFIG.fishRadius * 0.7]);
   for (const n of game.nibblers) o.push([n, CONFIG.nibblerRadius]);
   for (const s of schoolFish()) o.push([s, CONFIG.hz.school.radius]);
+  for (const s of trigFish()) o.push([s, CONFIG.hz.trigger.radius]);
   for (const f of game.clown.fish) if (!f.gone) o.push([f, 7]);
   for (const r of game.res.list) if (r.kind !== 'clown' && !r.gone && r.x !== undefined) o.push([r, 8]);
   for (const s of game.starfish) if (!s.dead) o.push([s, 10]);
@@ -3148,7 +3163,7 @@ function updateNibblers(dt) {
 // To add a tier: a row in CONFIG.hz.tiers ({ id, stage, pressure, w }) and one HZ_TIERS entry with its hooks. The scheduler, the forecast line, the run log and the pressure row need nothing else.
 //   name: forecast name; spawn(side): start the wave ('east' or 'west': where it comes from); update(dt): run it each step; done(): true when it is over and gone;
 //   status(): the line shown while it runs; result(): numbers for the log; live(): its creatures that can still be stung
-function hzFresh() { return { p: 0, next: -1, pend: null, waves: 0, log: [], cur: null, last: -1, sc: null, tickT: 0 }; }
+function hzFresh() { return { p: 0, next: -1, pend: null, waves: 0, log: [], cur: null, last: -1, sc: null, tf: null, tickT: 0 }; }
 const hzState = () => game.hz || (game.hz = hzFresh());
 function hzPressure() { const B = CONFIG.hz.base; return game.season.t / 60 * B.time + game.polyps.length * B.polyps + game.species.length * B.species; }
 const hzSeverity = p => clamp((p - CONFIG.hz.pRange[0]) / (CONFIG.hz.pRange[1] - CONFIG.hz.pRange[0]), 0, 1);
@@ -3192,6 +3207,17 @@ function hzEnd(H) {
   if (H.log.length > 30) H.log.shift();
   H.cur = null; H.last = game.season.t; H.next = -1;
 }
+function hzKeptNote(T) {   // a kept-away tier: the first time, say why nothing came
+  const st = game.stats, H = HZ_TIERS[T.id]; st.hzKept = (st.hzKept || 0) + 1;
+  if (st.hzKept === 1 && H.keptToast) toast(H.keptToast);
+}
+const hzKept = T => !!(HZ_TIERS[T.id].kept && HZ_TIERS[T.id].kept());
+function hzPickOpen(open) {   // pick as usual; a tier that automation keeps away is skipped and another is tried, null if none is left
+  let pool = open.slice();
+  while (pool.length) { const T = hzPick(pool); if (!hzKept(T)) return T; hzKeptNote(T); pool = pool.filter(x => x !== T); }
+  return null;
+}
+function hzKeptLine() { const T = hzUnlocked().find(hzKept); return T && HZ_TIERS[T.id].keptLine ? HZ_TIERS[T.id].keptLine() : null; }
 function updateHazards(dt) {
   if (game.goals.stage < 2) return;
   const H = hzState(), C = CONFIG.hz, t = game.season.t;
@@ -3204,11 +3230,12 @@ function updateHazards(dt) {
   if (!H.pend) {
     if (t >= H.next - C.warn && !hzBlocked()) {
       const at = hzFit(Math.max(H.next, t + C.warn));   // a late wave gets the full warning, and is moved again if that lands in a quiet season or a storm
-      if (at <= t + C.warn + 0.01) H.pend = { id: hzPick(open).id, at, side: hzSide() }; else H.next = at;
+      if (at <= t + C.warn + 0.01) { const T = hzPickOpen(open); if (T) H.pend = { id: T.id, at, side: hzSide() }; else H.next = hzFit(t + C.warn + 15); } else H.next = at;
     }
   }
   else if (t >= H.pend.at) {
     if (hzBlocked()) { H.pend = null; H.next = hzFit(t + 5); }
+    else if (hzKept(H.pend)) { hzKeptNote(H.pend); H.pend = null; H.next = hzFit(t + 5); }   // the guards arrived while it was on its way
     else hzStart(H.pend.id, H.pend.side);
   }
 }
@@ -3385,6 +3412,16 @@ const HZ_TIERS = {
     result: () => { const S = hzState().sc; return S ? { size: S.n, killed: S.killed, quota: S.quota, scattered: S.scattered, secs: Math.round(S.t) } : {}; },
     live: schoolLive,
   },
+  trigger: {
+    name: 'Triggerfish', spawn: trigSpawn, update: trigUpdate,
+    done: () => { const T = hzState().tf; if (!T) return true; if (T.t > CONFIG.hz.trigger.leaveAfter + 60) T.fish.length = 0; return !T.fish.length; },
+    status: () => { const T = hzState().tf, n = T ? trigLive().length : 0; return n ? `Triggerfish: ${n} on the reef` : 'The triggerfish is leaving'; },
+    result: () => { const T = hzState().tf; return T ? { size: T.n, killed: T.killed, quota: T.quota, driven: T.driven, how: Object.assign({}, T.how), secs: Math.round(T.t) } : {}; },
+    live: () => [],   // armoured: nothing here can be stung
+    kept: trigKept,   // optional: true while automation keeps the tier away (the scheduler skips it)
+    keptToast: 'Your guard crabs keep the triggerfish away',
+    keptLine: () => `Triggerfish: kept away by ${crabCount()} crabs`,
+  },
 };
 function drawDamsel(f, t) {   // a small blue damselfish with a yellow tail: smaller than a nibbler, bright against the reef
   ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.head);
@@ -3407,6 +3444,210 @@ function drawDamsel(f, t) {   // a small blue damselfish with a yellow tail: sma
   ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(4.4, -1.4, 1.7, 0, 6.3); ctx.fill();
   ctx.fillStyle = '#06122b'; ctx.beginPath(); ctx.arc(4.8, -1.4, 0.95, 0, 6.3); ctx.fill();
   ctx.restore();
+}
+
+/* ----- tier 3: the triggerfish. A stocky armoured fish swims in alone (or two of them), picks a branch tip no guard crab covers and bites it off, a polyp per bite.
+   Stings do nothing to it. It needs a different answer: guard crabs shove it (CONFIG.hz.trigger.hp shoves and it is done), a moray strikes it as it passes the tunnel, or a Snap cuts the branch it is on.
+   With crabWard live guard crabs the wave never starts. A wave eats at most CONFIG.hz.lossCap of the polyps it found, then leaves; it leaves after leaveAfter s whatever happens. ----- */
+function trigFish() { return game.hz && game.hz.tf ? game.hz.tf.fish : []; }
+function trigLive() { return trigFish().filter(f => f.mode !== 'leave' && !f.gone); }
+function crabCount() { return game.res.list.filter(r => r.kind === 'crab' && resLive(r)).length; }
+function trigKept() { return crabCount() >= CONFIG.hz.trigger.crabWard; }
+function trigTips() {   // branch tips (a polyp with at most one live neighbour and open water beside it); if the reef has none, any exposed polyp
+  const tips = [], any = [];
+  for (const p of game.polyps) {
+    if (p.dead || !freeNeighbours(p).length) continue;
+    any.push(p);
+    if (NB_DIRS.filter(([dc, dr]) => livePolypAt(p.c + dc, p.r + dr)).length <= 1) tips.push(p);
+  }
+  return tips.length ? tips : any;
+}
+function trigPick(f, T) {   // the nearest tip no home crab guards; null if every tip is guarded
+  let best = null, bd = 1e9;
+  for (const p of T.tips) {
+    if (p.dead || (f.bad && f.bad.get(p) > game.time) || guarded(p) || !freeNeighbours(p).length) continue;
+    const c = cellCenter(p.c, p.r), d = Math.hypot(c.x - f.x, c.y - f.y) + 400 * T.fish.filter(o => o !== f && o.tgt === p).length;
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
+function trigDrive(f, how) {   // driven off for good: it flees and leaves, and pays a reward
+  const T = hzState().tf; if (!T || f.mode === 'leave') return false;
+  const K = CONFIG.hz.trigger, st = game.stats;
+  f.mode = 'leave'; f.tgt = null; f.path = null; f.scare = 2.5; f.driven = how; T.driven++; T.how[how] = (T.how[how] || 0) + 1;
+  game.bp += K.reward.bp; st.bpMade += K.reward.bp; st.triggersDriven = (st.triggersDriven || 0) + 1;
+  const key = 'triggers' + how[0].toUpperCase() + how.slice(1); st[key] = (st[key] || 0) + 1;
+  game.fx.push({ kind: 'text', x: f.x, y: f.y - 18, t: 0, life: 1.5, text: `Driven off! +${K.reward.bp} BP` });
+  game.fx.push({ kind: 'ring', x: f.x, y: f.y, t: 0, life: 0.7 });
+  spawnParts('spark', f.x, f.y, 8); sfx('catch', f.x, f.y);
+  return true;
+}
+function trigShove(f, x, y, dmg) {   // a guard crab pushes it: it loses hp, is knocked back, and returns unless that was the last shove
+  f.hp -= dmg; f.shove = 0.5;
+  if (f.hp <= 0) return trigDrive(f, 'crab');
+  f.mode = 'flee'; f.fleeT = CONFIG.hz.trigger.shoveFlee; f.fx = x; f.fy = y; f.tgt = null; f.bite = 0; f.path = null;
+  return false;
+}
+function trigSting(x0, y0, x1, y1) {   // armoured: a sting only clinks off it
+  const K = CONFIG.hz.trigger, st = game.stats;
+  for (const f of trigLive()) {
+    if (distSeg(f.x, f.y, x0, y0, x1, y1) > CONFIG.stingRadius + K.radius * 0.7) continue;
+    f.clink = 0.35; spawnParts('spark', f.x, f.y, 3);
+    game.fx.push({ kind: 'text', x: f.x, y: f.y - 16, t: 0, life: 0.7, text: 'clink' });
+    if (!st.triggerShrug) { st.triggerShrug = 1; toast('The triggerfish shrugs off stings. Guard crabs, a moray or a Snap will drive it off'); }
+  }
+}
+function trigSnap(polys) {   // a Snap that cuts the branch the fish bites, or lands within snapNear cells of it, drives it off
+  const K = CONFIG.hz.trigger;
+  for (const f of trigLive()) {
+    if ((f.tgt && polys.includes(f.tgt)) || polys.some(p => Math.hypot((p.c + 0.5) * CELL - f.x, (p.r + 0.5) * CELL - f.y) <= K.snapNear * CELL)) trigDrive(f, 'snap');
+  }
+}
+function trigLeaveAll(T) { T.over = true; for (const f of T.fish) { if (f.mode === 'leave') continue; f.mode = 'leave'; f.tgt = null; f.path = null; f.scare = 0; } }
+function trigSpawn(side) {
+  const H = hzState(), K = CONFIG.hz.trigger, dir = side === 'east' ? 1 : -1, c = hzCentre(), v = game.view, half = v.w / 2 / game.cam.zoom;
+  const n = Math.round(lerp(K.count[0], K.count[1], hzSeverity(H.p)));
+  let x0 = dir > 0 ? Math.max(c.x + 560, game.cam.x + half + 90) : Math.min(c.x - 560, game.cam.x - half - 90);
+  x0 = clamp(x0, 70, LAG - 70);
+  let y0 = Math.max(90, c.y);
+  for (let i = 0; i < 60 && blockedAt(x0, y0, K.radius + 4, ''); i++) y0 -= CELL;
+  y0 = Math.max(60, y0);
+  const fish = [];
+  for (let i = 0; i < n; i++) {
+    let x = x0 - dir * i * 50, y = y0 + (i % 2 ? 30 : 0);
+    if (blockedAt(x, y, K.radius + 2, '')) { x = x0; y = y0; }
+    fish.push({ x, y, vx: 0, vy: 0, head: dir > 0 ? Math.PI : 0, mode: 'seek', tgt: null, bite: 0, chomp: 0, age: 0, fleeT: 0, fx: x, fy: y, stung: 0, scare: 0, clink: 0, shove: 0, hp: K.hp, seed: Math.random() * 10, spd: 0.95 + Math.random() * 0.1, trig: true, pathT: Math.random(), orb: Math.atan2(y - c.y, x - c.x) });
+  }
+  const T = { fish, side, dir, t: 0, n, quota: Math.max(1, Math.floor(CONFIG.hz.lossCap * game.polyps.length)), found: game.polyps.length, killed: 0, over: false, driven: 0, how: { crab: 0, moray: 0, snap: 0 }, tips: trigTips(), tT: 0, c, ext: 100, x0, y0 };
+  hzState().tf = T;
+  const st = game.stats; if (!(st.triggersSeen || 0)) toast('A triggerfish. Stings do nothing to its armour; guard crabs, a moray or a Snap will drive it off');
+  st.triggersSeen = (st.triggersSeen || 0) + n;
+  sfx('forecast');
+}
+function trigUpdate(dt) {
+  const T = hzState().tf, K = CONFIG.hz.trigger, R = K.radius; if (!T) return;
+  T.t += dt;
+  if (!T.over && (T.t > K.leaveAfter || game.storm || T.killed >= T.quota || game.polyps.length <= CONFIG.nibblerSpare)) trigLeaveAll(T);
+  if ((T.tT -= dt) <= 0) {
+    T.tT = 0.5; T.tips = trigTips(); T.c = hzCentre(); T.ext = 100;
+    for (const p of game.polyps) T.ext = Math.max(T.ext, Math.hypot((p.c + 0.5) * CELL - T.c.x, (p.r + 0.5) * CELL - T.c.y));
+  }
+  for (const f of T.fish) {
+    f.age += dt; f.chomp = Math.max(0, f.chomp - dt); f.scare = Math.max(0, f.scare - dt); f.clink = Math.max(0, f.clink - dt); f.shove = Math.max(0, (f.shove || 0) - dt);
+    let tx = f.x, ty = f.y, sp = K.speed * f.spd;
+    if (f.mode === 'flee') {
+      f.fleeT -= dt;
+      const dx = f.x - f.fx, dy = f.y - f.fy, m = Math.hypot(dx, dy) || 1;
+      tx = f.x + dx / m * 200; ty = f.y + dy / m * 200 - 25; sp = K.fleeSpeed;
+      if (f.fleeT <= 0) { f.mode = 'seek'; f.tgt = null; }
+    } else if (f.mode === 'leave') {
+      f.leaveT = (f.leaveT || 0) + dt;
+      sp = K.speed * 1.4 * f.spd * (f.scare > 0 ? 2.5 : 1);
+      const left = T.dir < 0; if (f.ly === undefined) f.ly = clamp(f.y, 170, 700);
+      tx = left ? -200 : LAG + 200; ty = f.ly;
+      f.pathT -= dt;
+      if (f.x > 70 && f.x < LAG - 70 && (f.pathT <= 0 || f.pickNew)) {
+        f.pathT = 1.5 + Math.random(); f.pickNew = false;
+        f.path = fishPath(f.x, f.y, (c, r) => (left ? c <= 1 : c >= lagCols() - 2) && Math.abs(r * CELL - f.ly) < 4 * CELL, R);
+      }
+      if (f.path && f.x > 70 && f.x < LAG - 70) { while (f.path.length > 1 && Math.hypot(f.path[0].x - f.x, f.path[0].y - f.y) < 10) f.path.shift(); if (f.path.length) { tx = f.path[0].x; ty = f.path[0].y; } }
+      if (f.x < -30 || f.x > LAG + 30 || f.leaveT > 40) f.gone = true;
+    } else {
+      if (f.tgt && (f.tgt.dead || livePolypAt(f.tgt.c, f.tgt.r) !== f.tgt || guarded(f.tgt))) { f.tgt = null; f.bite = 0; f.path = null; }
+      if (!f.tgt && (f.pickT = (f.pickT || 0) - dt) <= 0) { f.pickT = 0.4; f.tgt = trigPick(f, T); f.bite = 0; }
+      if (!f.tgt) {   // every tip is guarded: circle the reef
+        f.mode = 'seek'; f.orb += dt * 0.18 * T.dir;
+        tx = clamp(T.c.x + Math.cos(f.orb) * (T.ext + K.orbit * 2.5), 80, LAG - 80); ty = Math.max(90, T.c.y + Math.sin(f.orb) * (T.ext * 0.5 + K.orbit));
+      } else {
+        const cc = cellCenter(f.tgt.c, f.tgt.r), free = freeNeighbours(f.tgt);
+        if (!free.length) f.tgt = null;
+        else {
+          let ap = free[0], bd = 1e9;
+          for (const q of free) { const d = Math.hypot(q.x - f.x, q.y - f.y); if (d < bd) { bd = d; ap = q; } }
+          tx = ap.x; ty = ap.y;
+          if (bd >= 12) {
+            f.pathT -= dt;
+            if (f.pathT <= 0 || f.pickNew || !f.path) {
+              f.pathT = 1.2 + Math.random() * 0.4; f.pickNew = false;
+              const fc = new Set(free.map(q => gcell(Math.floor(q.x / CELL), Math.floor(q.y / CELL))));
+              f.path = fishPath(f.x, f.y, (c, r) => fc.has(gcell(c, r)), R);
+              if (!f.path) { (f.bad = f.bad || new Map()).set(f.tgt, game.time + 25); f.tgt = null; }
+            }
+            if (f.path) { while (f.path.length > 1 && Math.hypot(f.path[0].x - f.x, f.path[0].y - f.y) < 10) f.path.shift(); if (f.path.length) { tx = f.path[0].x; ty = f.path[0].y; } }
+          } else f.path = null;
+          if (f.tgt && Math.hypot(ap.x - f.x, ap.y - f.y) < 12) {
+            f.mode = 'bite'; sp = 18; f.head = Math.atan2(cc.y - f.y, cc.x - f.x);
+            f.bite += dt;
+            if (f.bite >= K.biteEvery - 0.4 && f.chomp <= 0) f.chomp = 0.4;
+            if (f.bite >= K.biteEvery) {
+              f.bite = 0;
+              game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 }); sfx('bite', cc.x, cc.y);
+              const tip = f.tgt; let eaten = 0;
+              for (let k = 0; k < K.chunk && tip; k++) {   // the tip first, then the polyps behind it if a bigger chunk is set
+                const p = k ? game.polyps.find(q => !q.dead && Math.abs(q.c - tip.c) + Math.abs(q.r - tip.r) === k) : tip;
+                if (!p) break;
+                if (devs.god) { p.hurt = 0.5; continue; }
+                T.killed++; eaten++; killPolyp(p, T.killed === 1 ? 'A triggerfish is biting your branch tips' : '', 'trigger');
+                if (T.killed >= T.quota) break;
+              }
+              if (eaten) { f.tgt = null; f.mode = 'seek'; }
+              if (T.killed >= T.quota || game.polyps.length <= CONFIG.nibblerSpare) trigLeaveAll(T);
+            }
+          } else if (f.mode === 'bite') { f.mode = 'seek'; f.bite = 0; }
+        }
+      }
+      if (f.mode === 'bite' && !f.tgt) f.mode = 'seek';
+    }
+    if (f.mode !== 'bite' && !(f.mode === 'leave' && (f.x < 60 || f.x > LAG - 60)) && fishGuard(f, dt, R, Math.hypot(tx - f.x, ty - f.y) > 14)) continue;
+    let ax = tx - f.x, ay = ty - f.y; const dd = Math.hypot(ax, ay) || 1; ax /= dd; ay /= dd;
+    const k = 1 - Math.exp(-3 * dt);
+    f.vx = lerp(f.vx, ax * sp, k); f.vy = lerp(f.vy, ay * sp, k);
+    const nx = f.x + f.vx * dt, ny = f.y + f.vy * dt;
+    const out = f.mode === 'leave' && (nx < 36 || nx > LAG - 36);
+    if (out || !blockedAt(nx, f.y, R, '')) f.x = nx; else { f.vx *= -0.3; f.vy -= 40; }
+    if (out || !blockedAt(f.x, ny, R, '')) f.y = ny; else { f.vy *= -0.3; f.vy -= 20; }
+    if (f.mode !== 'bite' && Math.hypot(f.vx, f.vy) > 8) f.head = Math.atan2(f.vy, f.vx);
+  }
+  T.fish = T.fish.filter(f => !f.gone);
+}
+function drawTrigger(f, t) {   // a big armoured fish, twice a nibbler: dark slate body, yellow and teal face mask, a raised first dorsal spine and a beaky mouth
+  ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.head);
+  if (Math.cos(f.head) < 0) ctx.scale(1, -1);
+  ctx.scale(1.6, 1.6);
+  const fl = f.mode === 'flee' || f.scare > 0, wag = Math.sin(t * (fl ? 18 : 8) + f.seed) * (fl ? 3 : 1.8), hit = f.shove > 0 || f.clink > 0;
+  const body = hit ? '#8fa6c4' : '#2b3a52', deep = hit ? '#6f86a6' : '#18212f', ink = '#0b1018', gold = '#ffd23a', teal = '#2ee6d2';
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = 1;
+  ctx.strokeStyle = ink;
+  ctx.fillStyle = deep;   // rounded tail
+  ctx.beginPath(); ctx.moveTo(-9, -3); ctx.quadraticCurveTo(-15, -9 + wag, -19, -5 + wag); ctx.quadraticCurveTo(-16, 0, -19, 5 + wag); ctx.quadraticCurveTo(-15, 9 + wag, -9, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = teal; ctx.lineWidth = 0.7; ctx.beginPath(); ctx.moveTo(-12, -2.5); ctx.lineTo(-18, -4 + wag); ctx.moveTo(-12, 2.5); ctx.lineTo(-18, 4 + wag); ctx.stroke();
+  ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.fillStyle = deep;
+  ctx.beginPath(); ctx.moveTo(-9, -6.5); ctx.quadraticCurveTo(-5, -12 + wag * 0.3, 0, -7); ctx.closePath(); ctx.fill(); ctx.stroke();   // soft dorsal
+  ctx.beginPath(); ctx.moveTo(-8, 6.5); ctx.quadraticCurveTo(-4, 12 - wag * 0.3, 0, 7); ctx.closePath(); ctx.fill(); ctx.stroke();      // belly fin
+  const g = ctx.createLinearGradient(0, -9, 0, 9); g.addColorStop(0, '#3d5272'); g.addColorStop(0.5, body); g.addColorStop(1, deep);
+  ctx.beginPath(); ctx.ellipse(0, 0, 12.5, 8.8, 0, 0, 6.3); ctx.fillStyle = g; ctx.fill(); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.ellipse(0, 0, 12.5, 8.8, 0, 0, 6.3); ctx.clip();   // armour: rows of pale scale arcs, a yellow band near the tail
+  ctx.strokeStyle = 'rgba(160,190,225,0.35)'; ctx.lineWidth = 0.6;
+  for (let r = -2; r <= 2; r++) for (let c = -2; c <= 1; c++) { const x = c * 4.4 + (r % 2 ? 2.2 : 0) - 3, y = r * 3.4; ctx.beginPath(); ctx.arc(x, y, 2.1, 0.2, 2.9); ctx.stroke(); }
+  ctx.fillStyle = gold; ctx.globalAlpha = 0.85; ctx.fillRect(-9.4, -9, 2.2, 18); ctx.globalAlpha = 1;
+  ctx.restore();
+  ctx.fillStyle = gold; ctx.strokeStyle = ink; ctx.lineWidth = 0.9;   // yellow face mask with teal stripes
+  ctx.beginPath(); ctx.moveTo(1.5, -6.6); ctx.quadraticCurveTo(9, -7, 12.2, -1.5); ctx.quadraticCurveTo(10.5, 6.5, 2.5, 7.4); ctx.quadraticCurveTo(5.5, 0, 1.5, -6.6); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = teal; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(5.2, -3.6); ctx.lineTo(10.6, -1); ctx.moveTo(4.6, 3.6); ctx.lineTo(9.8, 3.2); ctx.moveTo(5.6, 6.2); ctx.lineTo(8.6, 5.4); ctx.stroke();
+  const open = f.chomp > 0 ? 2.4 * Math.sin(f.chomp / 0.4 * Math.PI) : 0;
+  ctx.fillStyle = '#f3ead0'; ctx.strokeStyle = ink; ctx.lineWidth = 0.8;   // beaky teeth
+  ctx.beginPath(); ctx.moveTo(11.4, -1.6); ctx.lineTo(14.6, -open - 0.4); ctx.lineTo(12.2, 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(11.4, 1.8); ctx.lineTo(14.2, open + 1.2); ctx.lineTo(12.2, 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = ink; ctx.beginPath(); ctx.arc(5.4, -2.8, 2.2, 0, 6.3); ctx.fill(); ctx.stroke();   // eye
+  ctx.fillStyle = '#05080e'; ctx.beginPath(); ctx.arc(5.9, -2.8, 1.2, 0, 6.3); ctx.fill();
+  ctx.fillStyle = hit ? '#ffffff' : '#ffe9a0'; ctx.strokeStyle = ink; ctx.lineWidth = 1;   // the raised trigger spine
+  ctx.beginPath(); ctx.moveTo(-1, -7.6); ctx.lineTo(1.6, -18.5); ctx.lineTo(4.4, -7.4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  if (f.hp < CONFIG.hz.trigger.hp && f.mode !== 'leave') {   // shoves taken: one pip per hp left
+    ctx.save(); ctx.translate(f.x, f.y - 30);
+    for (let i = 0; i < CONFIG.hz.trigger.hp; i++) { ctx.fillStyle = i < f.hp ? '#ffd23a' : 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.arc((i - (CONFIG.hz.trigger.hp - 1) / 2) * 6, 0, 2.2, 0, 6.3); ctx.fill(); }
+    ctx.restore();
+  }
 }
 
 /* ---------- polyp updates ---------- */
@@ -5771,6 +6012,7 @@ function render() {
   for (const f of game.fish) fadeDraw(f, () => drawFish(f, t));
   for (const n of game.nibblers) fadeDraw(n, () => drawNibbler(n, t));
   for (const s of schoolFish()) fadeDraw(s, () => drawDamsel(s, t));
+  for (const s of trigFish()) fadeDraw(s, () => drawTrigger(s, t));
   drawStarfish(t);
   for (const f of game.clown.fish) fadeDraw(f, () => drawClown(f, t));
   drawResidents(t); drawEventWorld(t); drawPlans(t); drawSpawn(t);
@@ -6278,7 +6520,7 @@ const devGroups = [
   ['Ending', ['<button data-a="endatoll">Atoll, crest ready</button><button data-a="endcyc">start cyclone now</button><button data-a="endwin">win the cyclone</button><button data-a="endrise">rise the island</button><button data-a="endlife">skip island life</button><button data-a="endcard">ending card</button> <span id="endread" style="color:#8aa0b2"></span>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
-    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="sport">make sport</button>',
+    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="trigger">triggerfish now</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
   ['Performance', ['<button data-a="perfreset">reset</button> <span style="color:#8aa0b2">frame times per moment: fps, 1% low, sim and draw ms, frames over 33 ms</span>', '<div id="perfread" style="white-space:pre;font:11px/1.45 ui-monospace,monospace;color:#cfe3ee"></div>']],
   ['Day/Night', [
@@ -6339,6 +6581,7 @@ function devBuild() {
     else if (a === 'ownty') { for (const id of ['R1', 'T1', 'T2', 'T3']) devOwn(id); toast('All coral types owned', true); }
     else if (a === 'swarm') devSwarm();
     else if (a === 'school') devSchool();
+    else if (a === 'trigger') devTrigger();
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
@@ -6585,7 +6828,7 @@ function seasonText() {   // [name, forecast line, class]
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
   const hl = hzLine(); if (hl) return [nm, hl[0], hl[1]];
   const th = threatLine(); if (th) return [nm, th[0], th[1]];
-  return [nm, 'All quiet', ''];
+  return [nm, hzKeptLine() || 'All quiet', ''];
 }
 const seasonEl = document.getElementById('season'), seasonCard = document.getElementById('seasoncard');
 const arcPath = (a0, a1, r) => { const p = a => [22 + r * Math.sin(a), 22 - r * Math.cos(a)]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0.toFixed(1)} ${y0.toFixed(1)}A${r} ${r} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`; };
@@ -8620,6 +8863,7 @@ function pressFrag() {
   const was = [game.stats.stormLost, game.stats.polypsLost];
   const f = makeFrag(pick, []); game.stats.stormLost = was[0]; game.stats.polypsLost = was[1];
   f.throw = { x: ax + dx, y: ay + dy }; f.storm = null; game.g3.next = game.time + G.cd; game.stats.frags++;
+  trigSnap(pick);   // a triggerfish on or near the cut branch is driven off
   toast(`${pick.length} polyp${pick.length > 1 ? 's' : ''} snap off and fly`);
 }
 const PLAN_NAME = { off: 'Off', up: 'Up', wide: 'Wide', thick: 'Thicken' }, PLAN_ORDER = ['off', 'up', 'wide', 'thick'];
