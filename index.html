@@ -308,10 +308,14 @@ const CONFIG = {
   // Each tier unlocks at a stage and a pressure; waves come every waveEvery[0] s (at pressure pRange[0]) down to waveEvery[1] s (at pRange[1]) after the last one ended.
   // Waves never start in a quiet season, in or within stormGap s of a storm wave, during a starfish outbreak or an event calm. A wave eats at most lossCap of the polyps it found (min 1).
   hz: { tick: 1, base: { time: 0.06, polyps: 1 / 40, species: 0.5 }, pRange: [3, 12], waveEvery: [90, 60], quietSeasons: ['Calm'], stormGap: 10, lossCap: 0.05, warn: 20, newest: 2,
-    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 3, pressure: 5.5, w: 1 }],   // w: pick weight; the newest unlocked tier gets x newest
+    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 3, pressure: 5.5, w: 1 }, { id: 'worms', stage: 4, pressure: 7, w: 1 }],   // w: pick weight; the newest unlocked tier gets x newest
     school: { size: [8, 12], speed: 80, radius: 6, biteEvery: 1.6, bite: 0.8, scatter: 0.4, d2Hits: 1, d2Flee: 5, leaveAfter: 60, flank: 3, spread: 34, reward: { bp: 5 } },
     // tier 3: the triggerfish. Armoured: stings do nothing. It bites branch tips (chunk polyps per bite), prefers tips no guard crab covers, and is driven off by crab shoves (hp), a moray strike or a Snap. crabWard live guard crabs keep it away altogether
-    trigger: { count: [1, 2], speed: 60, radius: 10, biteEvery: 3, chunk: 1, hp: 3, leaveAfter: 75, fleeSpeed: 150, shoveFlee: 2.5, orbit: 90, snapNear: 2, crabWard: 2, reward: { bp: 8 } } },
+    trigger: { count: [1, 2], speed: 60, radius: 10, biteEvery: 3, chunk: 1, hp: 3, leaveAfter: 75, fleeSpeed: 150, shoveFlee: 2.5, orbit: 90, snapNear: 2, crabWard: 2, reward: { bp: 8 } },
+    // tier 4: boring worms. They live INSIDE thick old coral: a wave bores `cells` cells (scaled by pressure) of the oldest polyps (alive minAge s or more) with at least `thick` live neighbours, off the rock.
+    // A bored cell holds strCut x as firm, so the next storm or a long overhang snaps it. Every `spread` s an unanswered wave bores one neighbouring thick cell (up to the lossCap quota of cells); the worms die off after `life` s.
+    // Answers: a Snap that cuts bored cells, or a home cleaner shrimp (one bored cell in its reach every shrimpEvery s). With S4 cemented cells (a polyp touching rock or a rooted skeleton) are never chosen.
+    worms: { cells: [3, 6], minAge: 90, thick: 2, strCut: 0.5, spread: 20, life: 120, shrimpEvery: 6, reward: { bp: 4 } } },
   automationAt: 5, autoRadius: 75, autoInterval: 5, autoPullTime: 0.4, autoEnergy: 1.5,
   // day and night (starts at Colony): cycle, day length, fade, plankton count multipliers, rising cloud
   dayCycle: 120, dayLen: 80, dayFade: 8, planktonDay: 0.9, planktonNight: 3, nightRise: 55, nightRiseDecay: 0.045, nightSpawnRate: 40, planktonLeave: 0.8, nightToasts: 3,
@@ -616,7 +620,7 @@ const TREE = [
   { id: 'G4', tier: 3, branch: 'Growth', name: 'Growth plans', hint: 'Guide growth again and again', needs: 'G2',
     fx: () => `P sets a plan for a colony: Up, Wide, Thicken or Off. While energy is over ${Math.round(CONFIG.unl.g4.frac * 100)}% of the store, each planned colony buds by itself every ${CONFIG.unl.g4.every} s. Plans pause in storm waves`, done: 'Press P to set a growth plan for a colony', ok: () => (game.stats.guideRuns || 0) >= CONFIG.unl.g4.rev },
   { id: 'S4', tier: 2, branch: 'Structure', name: 'Coralline cement', hint: 'Let dead coral pile up',
-    fx: () => `Dead coral touching rock counts as rock for support. After ${CONFIG.unl.s4.secs} s it turns into new rock, except inside a parrotfish patch, where it stays their food`, done: 'Dead coral now cements into rock', ok: () => (game.stats.skelN || 0) >= CONFIG.unl.s4.rev },
+    fx: () => `Dead coral touching rock counts as rock for support. After ${CONFIG.unl.s4.secs} s it turns into new rock, except inside a parrotfish patch, where it stays their food. Cemented coral (a polyp beside rock or rooted dead coral, corners included) resists boring worms`, done: 'Dead coral now cements into rock', ok: () => (game.stats.skelN || 0) >= CONFIG.unl.s4.rev },
   { id: 'S5', tier: 3, branch: 'Structure', name: 'Reef crest form', hint: 'Grow up into the waves',
     fx: () => `Polyps in the top ${CONFIG.unl.s5.rows + 1} rows hold +${CONFIG.unl.s5.str} firmer and take x${CONFIG.unl.s5.storm} storm power`, done: 'The crest now stands up to the waves', ok: () => (game.stats.crestN || 0) >= CONFIG.unl.s5.rev },
   { id: 'C4', tier: 3, branch: 'Climate', name: 'Fluorescent pigments', hint: 'Crowd the bright shallows',
@@ -1105,10 +1109,10 @@ function runReport() {
   return { time: t, waitSecs: w, waitPct: t > 0 ? w / t * 100 : 0, waitByStage: by.map(x => +x.toFixed(1)),
     buds: { total: S.buds || 0, hand, guided, other: Math.max(0, (S.buds || 0) - hand - guided) },
     swarms: { caught: S.swarmCaught || 0, energy: S.swarmEnergy || 0 },
-    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, trigger: L.trigger || 0, other: L.other || 0 } };
+    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, trigger: L.trigger || 0, worms: L.worms || 0, other: L.other || 0 } };
 }
 window.runReport = runReport;
-const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', school: 'Damselfish', trigger: 'Triggerfish', other: 'Other' };
+const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', school: 'Damselfish', trigger: 'Triggerfish', worms: 'Boring worms', other: 'Other' };
 function runRows() {
   const R = runReport(), rows = [['Time played', mmss(R.time)], ['Waiting for energy', `${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%)`], ['Buds by hand / guided', `${R.buds.hand} / ${R.buds.guided}`]];
   if (R.swarms.caught) rows.push(['Swarm plankton caught', `${R.swarms.caught} (+${Math.round(R.swarms.energy)} energy)`]);
@@ -1701,13 +1705,19 @@ window.devSwarm = () => {   // dev: send one now (from the Colony stage)
 };
 window.devTrigger = side => {   // dev: a triggerfish now (from the Reef stage), from 'east' or 'west'; a running wave is replaced
   if (game.goals.stage < 3) devStage(3);
-  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.cur = null; }
+  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.wm = null; H.cur = null; }
   H.p = Math.max(H.p, hzPressure()); hzStart('trigger', side);
   return trigFish().length;
 };
+window.devWorms = () => {   // dev: boring worms now (from the Reef crest stage); a running wave is replaced. Returns the number of bored cells
+  if (game.goals.stage < 4) devStage(4);
+  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.wm = null; H.cur = null; }
+  H.p = Math.max(H.p, hzPressure()); hzStart('worms');
+  return wormCells().length;
+};
 window.devSchool = side => {   // dev: a damselfish school now (from the Reef stage), from 'east' or 'west'; a running wave is replaced
   if (game.goals.stage < 3) devStage(3);
-  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.cur = null; }
+  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.wm = null; H.cur = null; }
   H.p = Math.max(H.p, hzPressure()); hzStart('school', side);
   return schoolFish().length;
 };
@@ -2573,6 +2583,7 @@ function jobShrimp(r, dt, m) {
     if ((px - hp.x) ** 2 + (py - hp.y) ** 2 > rad * rad) continue;
     const add = Math.min(CONFIG.polypHp - p.hp, C.heal * m * dt); p.hp += add; p.shrimpBy = r; p.shrimpT = game.time; game.stats.shrimpHeal += add; healing = p;
   }
+  if ((r.wt = (r.wt || 0) + dt) >= CONFIG.hz.worms.shrimpEvery / m) { r.wt = 0; wormShrimp(r, hp, rad); }   // cleaners pick boring worms out
   r.job = healing ? Math.min(1, r.job + dt * 4) : Math.max(0, r.job - dt * 2);
   if (healing) { r.target = { x: (healing.c + 0.5) * CELL, y: (healing.r + 0.5) * CELL }; if ((r.tm -= dt) <= 0) { r.tm = 0.3; spawnParts('heal', r.target.x, r.target.y - 4, 2); } }
 }
@@ -3160,6 +3171,7 @@ function updateNibblers(dt) {
 }
 
 /* ---------- the hazard ladder (P-42): pressure rises as the reef grows and schedules attack waves; tier 2 is the damselfish school ---------- */
+// A tier may also have can(): false while it has nothing to work on (it is then not offered). inside: true means it comes from within, not from a side.
 // To add a tier: a row in CONFIG.hz.tiers ({ id, stage, pressure, w }) and one HZ_TIERS entry with its hooks. The scheduler, the forecast line, the run log and the pressure row need nothing else.
 //   name: forecast name; spawn(side): start the wave ('east' or 'west': where it comes from); update(dt): run it each step; done(): true when it is over and gone;
 //   status(): the line shown while it runs; result(): numbers for the log; live(): its creatures that can still be stung
@@ -3170,7 +3182,7 @@ const hzSeverity = p => clamp((p - CONFIG.hz.pRange[0]) / (CONFIG.hz.pRange[1] -
 const hzInterval = p => lerp(CONFIG.hz.waveEvery[0], CONFIG.hz.waveEvery[1], hzSeverity(p));
 const hzQuiet = t => CONFIG.hz.quietSeasons.includes(SEASONS[seasonIdx(t)].name);
 const hzBlocked = () => !!game.storm || starN() > 0 || game.time < game.ev.calm;   // a storm wave, a starfish outbreak or an event calm keeps waves away
-function hzUnlocked() { const H = hzState(); return CONFIG.hz.tiers.filter(T => HZ_TIERS[T.id] && game.goals.stage >= T.stage && H.p >= T.pressure); }
+function hzUnlocked() { const H = hzState(); return CONFIG.hz.tiers.filter(T => HZ_TIERS[T.id] && game.goals.stage >= T.stage && H.p >= T.pressure && (!HZ_TIERS[T.id].can || HZ_TIERS[T.id].can())); }
 function hzFit(x) {   // the first time at or after x that is not in a quiet season and not in or within stormGap s of a storm wave
   const C = CONFIG.hz;
   for (let i = 0; i < 60; i++) {
@@ -3242,7 +3254,7 @@ function updateHazards(dt) {
 function hzLine() {   // [text, class] for the season widget while a wave is warned of or running, else null
   const H = hzState(), t = game.season.t;
   if (H.cur) return [HZ_TIERS[H.cur].status(), 'warn'];
-  if (H.pend && H.pend.at > t && H.pend.at - t <= CONFIG.hz.warn + 0.5) return [`${HZ_TIERS[H.pend.id].name} in ${mmss(H.pend.at - t)}, from the ${H.pend.side}`, 'warn'];
+  if (H.pend && H.pend.at > t && H.pend.at - t <= CONFIG.hz.warn + 0.5) { const Z = HZ_TIERS[H.pend.id]; return [Z.inside ? `${Z.name} are stirring in ${mmss(H.pend.at - t)}` : `${Z.name} in ${mmss(H.pend.at - t)}, from the ${H.pend.side}`, 'warn']; }
   return null;
 }
 function pressureHtml() {
@@ -3422,7 +3434,85 @@ const HZ_TIERS = {
     keptToast: 'Your guard crabs keep the triggerfish away',
     keptLine: () => `Triggerfish: kept away by ${crabCount()} crabs`,
   },
+  worms: {
+    name: 'Boring worms', inside: true, can: wormCan, spawn: wormSpawn, update: wormUpdate,
+    done: () => !wormCells().length,
+    status: () => `Boring worms: ${wormCells().length} cell${wormCells().length === 1 ? '' : 's'}`,
+    result: () => { const W = hzState().wm; return W ? { size: W.n, bored: W.bored, quota: W.quota, cleared: W.cleared, how: Object.assign({}, W.how), died: W.died, secs: Math.round(W.t) } : {}; },
+    live: () => [],   // nothing to sting: they are inside the coral
+  },
 };
+/* ----- tier 4: boring worms. They live INSIDE thick old coral. A wave marks the oldest, thickest polyps (off the bare rock) as bored: they hold CONFIG.hz.worms.strCut x as firm, so the next storm snaps them,
+   and a bored cell counts extra toward a sagging overhang. Every `spread` s an unanswered wave bores one more neighbouring cell, up to the lossCap quota of cells; the worms die off after `life` s.
+   Answers: a Snap that cuts bored cells off, or a home cleaner shrimp (one bored cell in its reach every shrimpEvery s). With S4 cemented cells (beside rock or rooted dead coral, corners included) are never bored.
+   The worms kill nothing themselves: the losses are the breaks they cause (counted as 'worms'). ----- */
+function wormCells() { return game.polyps.filter(p => p.worm && !p.frag); }
+function wormSig() { let n = 0, h = 0; for (const p of game.polyps) if (p.worm) { n++; h = (h * 31 + p.c * 977 + p.r) % 1000000007; } return n ? n + ':' + h : ''; }   // part of the support cache signature
+function wormAge(p) { return p.born === undefined ? 1e9 : game.time - p.born; }   // a polyp from before ages counts as old
+function wormNb(p) { return NB_DIRS.reduce((a, [dc, dr]) => a + (livePolypAt(p.c + dc, p.r + dr) ? 1 : 0), 0); }
+function wormCement(p) { return has('S4') && NB8.some(([a, b]) => isBed(p.c + a, p.r + b) || skelRooted(p.c + a, p.r + b)); }   // S4: cemented coral resists boring
+function wormOk(p) {   // can the worms bore this polyp: alive, old, thick, not held by bare rock, not cemented
+  const K = CONFIG.hz.worms;
+  if (p.worm || p.dead || p.frag || wormAge(p) < K.minAge || wormNb(p) < K.thick) return false;
+  if (NB_DIRS.some(([a, b]) => isBed(p.c + a, p.r + b)) || wormCement(p)) return false;
+  return true;
+}
+function wormCan() { return game.polyps.some(wormOk); }
+function wormScore(p) { return Math.min(wormAge(p), 3600) + 60 * wormNb(p) + (strength(p) * CONFIG.hz.worms.strCut < CONFIG.stormSafe ? 1e5 : 0); }   // the oldest, in the thickest part; first the cells a storm could actually snap once bored (a cell of 8+ would stay above stormSafe)
+function wormBore(p) {
+  p.worm = Math.max(game.time, 0.001);
+  const q = drawPos(p); game.fx.push({ kind: 'ring', x: q.x, y: q.y, t: 0, life: 0.8 });
+  spawnParts('dust', q.x, q.y, 3);
+  const st = game.stats; st.wormCells = (st.wormCells || 0) + 1;
+}
+function wormClear(p, how, quiet) {   // the worms in p are gone: pays the reward
+  const K = CONFIG.hz.worms, st = game.stats, W = hzState().wm;
+  p.worm = null;
+  game.bp += K.reward.bp; st.bpMade += K.reward.bp; st.wormsCleared = (st.wormsCleared || 0) + 1;
+  const sk = 'worms' + how[0].toUpperCase() + how.slice(1); st[sk] = (st[sk] || 0) + 1;
+  if (W) { W.cleared++; W.how[how] = (W.how[how] || 0) + 1; }
+  const q = drawPos(p);
+  if (!quiet) game.fx.push({ kind: 'text', x: q.x, y: q.y - 16, t: 0, life: 1.4, text: `Worms gone! +${K.reward.bp} BP` });
+  game.fx.push({ kind: 'ring', x: q.x, y: q.y, t: 0, life: 0.6 });
+  spawnParts('spark', q.x, q.y, 4);
+}
+function wormSnap(polys) {   // a Snap that cuts bored cells takes the worms with them
+  const hit = polys.filter(p => p.worm); if (!hit.length) return;
+  const q = drawPos(hit[0]);
+  for (const p of hit) wormClear(p, 'snap', true);
+  game.fx.push({ kind: 'text', x: q.x, y: q.y - 18, t: 0, life: 1.6, text: `Worms gone! +${hit.length * CONFIG.hz.worms.reward.bp} BP` });
+  sfx('catch', q.x, q.y);
+}
+function wormShrimp(r, hp, rad) {   // a cleaner shrimp picks the worms out of the nearest bored cell in its reach
+  let best = null, bd = rad * rad;
+  for (const p of game.polyps) { if (!p.worm || p.frag) continue; const d = ((p.c + 0.5) * CELL - hp.x) ** 2 + ((p.r + 0.5) * CELL - hp.y) ** 2; if (d <= bd) { bd = d; best = p; } }
+  if (!best) return false;
+  r.target = { x: (best.c + 0.5) * CELL, y: (best.r + 0.5) * CELL }; r.job = 1;
+  wormClear(best, 'shrimp');
+  return true;
+}
+function wormSpawn() {
+  const H = hzState(), K = CONFIG.hz.worms, st = game.stats, quota = Math.max(1, Math.floor(CONFIG.hz.lossCap * game.polyps.length));
+  const n = Math.min(quota, Math.round(lerp(K.cells[0], K.cells[1], hzSeverity(H.p))));
+  const pick = game.polyps.filter(wormOk).sort((a, b) => wormScore(b) - wormScore(a)).slice(0, n);
+  for (const p of pick) wormBore(p);
+  H.wm = { n, quota, bored: pick.length, t: 0, sT: 0, cleared: 0, how: { snap: 0, shrimp: 0 }, died: false };
+  if (!(st.wormWaves || 0)) toast('Boring worms are hollowing your oldest coral. Snap the bored branch off, or host cleaner shrimp');
+  st.wormWaves = (st.wormWaves || 0) + 1;
+  sfx('forecast');
+}
+function wormUpdate(dt) {
+  const W = hzState().wm, K = CONFIG.hz.worms; if (!W) return;
+  W.t += dt;
+  const live = wormCells();
+  if (W.t >= K.life) { for (const p of live) p.worm = null; W.died = true; if (live.length) toast('The boring worms have died off'); return; }
+  if (live.length && live.length < W.quota && (W.sT += dt) >= K.spread) {   // an unanswered wave bores a neighbouring thick cell
+    W.sT = 0;
+    const bs = new Set(live.map(p => key(p.c, p.r)));
+    const nx = game.polyps.filter(p => wormOk(p) && NB_DIRS.some(([a, b]) => bs.has(key(p.c + a, p.r + b)))).sort((a, b) => wormScore(b) - wormScore(a))[0];
+    if (nx) { wormBore(nx); W.bored++; }
+  }
+}
 function drawDamsel(f, t) {   // a small blue damselfish with a yellow tail: smaller than a nibbler, bright against the reef
   ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.head);
   if (Math.cos(f.head) < 0) ctx.scale(1, -1);
@@ -4780,6 +4870,17 @@ function drawPolypStyled(p, t, active) {   // mouth, glow and rings; the tissue 
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 28, 0, 6.3); ctx.fill();
     ctx.strokeStyle = `rgba(255,240,225,${0.7 + 0.3 * sp})`; ctx.lineWidth = 1.6; ctx.beginPath();
     const a = p.seed * 3; ctx.moveTo(-9 * Math.cos(a), -9 * Math.sin(a)); ctx.lineTo(-2, 1); ctx.lineTo(1, -2); ctx.lineTo(9 * Math.cos(a), 9 * Math.sin(a)); ctx.stroke();
+  }
+  if (p.worm) {   // boring worms: a faint pulsing outline, dark bore holes and pale cracks
+    const wp = 0.5 + 0.5 * Math.sin(t * 2.4 + p.seed), a = p.seed * 5;
+    ctx.strokeStyle = `rgba(230,170,90,${0.28 + 0.2 * wp})`; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, 0, 15, 0, 6.3); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,240,215,0.8)'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(-8 * Math.cos(a), -8 * Math.sin(a)); ctx.lineTo(-2, 3); ctx.lineTo(3, -1); ctx.lineTo(8 * Math.cos(a + 0.6), 8 * Math.sin(a + 0.6)); ctx.stroke();
+    for (let i = 0; i < 3; i++) {
+      const b = a + i * 2.1, hx = 8 * Math.cos(b), hy = 8 * Math.sin(b);
+      ctx.fillStyle = 'rgba(40,18,12,0.85)'; ctx.beginPath(); ctx.arc(hx, hy, 2.2, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,225,190,0.7)'; ctx.lineWidth = 0.8; ctx.stroke();
+    }
   }
   if (p.lin) {   // a mutant lineage glows in its own colour
     const hc = mix3(linRgb(game.lineages[p.lin]), [255, 235, 225], 0.35), g = ctx.createRadialGradient(0, 0, 3, 0, 0, 22);
@@ -6520,7 +6621,7 @@ const devGroups = [
   ['Ending', ['<button data-a="endatoll">Atoll, crest ready</button><button data-a="endcyc">start cyclone now</button><button data-a="endwin">win the cyclone</button><button data-a="endrise">rise the island</button><button data-a="endlife">skip island life</button><button data-a="endcard">ending card</button> <span id="endread" style="color:#8aa0b2"></span>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
-    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="trigger">triggerfish now</button><button data-a="sport">make sport</button>',
+    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="trigger">triggerfish now</button><button data-a="worms">boring worms now</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
   ['Performance', ['<button data-a="perfreset">reset</button> <span style="color:#8aa0b2">frame times per moment: fps, 1% low, sim and draw ms, frames over 33 ms</span>', '<div id="perfread" style="white-space:pre;font:11px/1.45 ui-monospace,monospace;color:#cfe3ee"></div>']],
   ['Day/Night', [
@@ -6582,6 +6683,7 @@ function devBuild() {
     else if (a === 'swarm') devSwarm();
     else if (a === 'school') devSchool();
     else if (a === 'trigger') devTrigger();
+    else if (a === 'worms') devWorms();
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
@@ -6950,7 +7052,7 @@ const skelEdible = q => !(has('S4') && skelRooted(q.c, q.r) && !parrotPatch(q));
 const denseP = p => { let n = 0; for (const [dc, dr] of NB_DIRS) if (livePolypAt(p.c + dc, p.r + dr)) n++; return n >= CONFIG.unl.f5.near; };
 const SUP = { sig: null, str: new Map(), base: new Map(), anch: new Set() };
 function supportMap() {
-  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S4') ? 1 : 0, has('S7') ? 1 : 0, has('S5') ? 1 : 0, has('G5') ? 1 : 0, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size].join(',');
+  const sig = [cellSig(game.polyps), cellSig(game.skeletons), game.polyps.length, game.skeletons.length, game.rivals.length, has('S4') ? 1 : 0, has('S7') ? 1 : 0, has('S5') ? 1 : 0, has('G5') ? 1 : 0, has('S1') ? 1 : 0, has('T4') ? 1 : 0, game.lineages.length, typeSig(), game.thr.dis.ver, game.thr.dis.seals.size, wormSig()].join(',');
   if (SUP.sig === sig) return SUP;
   SUP.sig = sig;
   const val = new Map(), pred = new Map(), q = [], anch = new Set(), loopSet = has('S7') ? wildSync().loopCells : null;
@@ -6970,7 +7072,7 @@ function supportMap() {
   for (const p of game.polyps) {
     const k = key(p.c, p.r), base = val.get(k) || 0;
     SUP.base.set(k, base);
-    if (anch.has(k)) { SUP.str.set(k, 10); continue; }
+    if (anch.has(k)) { SUP.str.set(k, p.worm ? 10 * CONFIG.hz.worms.strCut : 10); continue; }
     let second = 0, n = 0, nearAnchor = false;
     for (const [dc, dr] of NB_DIRS) {
       const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk); if (!o || sealed(p.c, p.r, p.c + dc, p.r + dr)) continue;
@@ -6990,7 +7092,8 @@ function supportMap() {
     if (has('G5')) s += CONFIG.unl.g5.str;
     if (has('S7') && loopSet.has(k)) s += CONFIG.unl.s7.str;   // Bracing: polyps on a fused loop
     if (has('T4') && mixedSide(p)) s += CONFIG.bio.t4Str;
-    SUP.str.set(k, clamp(s, 0, CONFIG.supBase));
+    s = clamp(s, 0, CONFIG.supBase);
+    SUP.str.set(k, p.worm ? s * CONFIG.hz.worms.strCut : s);   // boring worms hollow the cell
   }
   return SUP;
 }
@@ -7102,6 +7205,7 @@ function drawStructure(t) {
     const q = drawPos(p), s = M.str.get(key(p.c, p.r)) || 0, c = strCol(s);
     ctx.fillStyle = `rgba(${c},0.26)`; ctx.strokeStyle = `rgba(${c},0.85)`;
     ctx.beginPath(); ctx.arc(q.x, q.y, 15, 0, 6.3); ctx.fill(); ctx.stroke();
+    if (p.worm) { ctx.fillStyle = 'rgba(30,12,8,0.9)'; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(q.x + 6 * Math.cos(p.seed * 5 + i * 2.1), q.y + 6 * Math.sin(p.seed * 5 + i * 2.1), 2, 0, 6.3); ctx.fill(); } }   // boring worms
     const d = (q.x - w.x) ** 2 + (q.y - w.y) ** 2; if (d < hd && !game.mouse.ui) { hd = d; hov = [p, q, s]; }
   }
   if (hov) {
@@ -7513,7 +7617,7 @@ function sagRuns() {
       const nk = key(cells[i].c + dc, cells[i].r + dr);
       if (over.has(nk) && !seen.has(nk)) { seen.add(nk); cells.push(over.get(nk)); }
     }
-    if (cells.length < CONFIG.sagRun) continue;
+    if (cells.reduce((a, p) => a + (p.worm ? 1 / CONFIG.hz.worms.strCut : 1), 0) < CONFIG.sagRun) continue;   // boring worms: a bored cell counts extra
     let joint = null, best = -1;
     for (const p of cells) for (const [dc, dr] of NB_DIRS) {
       const nk = key(p.c + dc, p.r + dr), o = game.cells.get(nk);
@@ -7573,7 +7677,7 @@ function makeFrag(polys, skels) {
   game.polyps = game.polyps.filter(a => !a.frag);
   game.skeletons = game.skeletons.filter(a => !skels.includes(a));
   game.frags.push(f);
-  game.stats.stormLost += polys.length; game.stats.polypsLost += polys.length; lostBy('storm', polys.length); if (game.storm) game.storm.lost += polys.length;
+  game.stats.stormLost += polys.length; game.stats.polypsLost += polys.length; lostBy(polys.some(a => a.worm) ? 'worms' : 'storm', polys.length); if (game.storm) game.storm.lost += polys.length;
   const a = game.active;
   if (a && a.frag === f && game.stage === 'polyp') {   // the player rides it
     game.riding = { frag: f, p: a }; game.active = null; game.stage = 'larva'; game.facing = null;
@@ -7634,7 +7738,7 @@ function rootFrag(f, q) {
   for (const k of rest) { if (pick.length >= n) break; if (Math.hypot(k[0] - cand[0][0], k[1] - cand[0][1]) <= 4) pick.push(k); }
   const placed = [];
   pick.forEach((k, i) => {
-    const p = order[i]; p.c = k[0]; p.r = k[1]; p.frag = null; p.dead = false; p.born = game.time; p.pop = 1; p.hp = CONFIG.polypHp; p.parent = i ? { c: pick[0][0], r: pick[0][1] } : null;
+    const p = order[i]; p.c = k[0]; p.r = k[1]; p.frag = null; p.dead = false; p.worm = null; p.born = game.time; p.pop = 1; p.hp = CONFIG.polypHp; p.parent = i ? { c: pick[0][0], r: pick[0][1] } : null;
     game.polyps.push(p); game.cells.set(key(p.c, p.r), { kind: 'polyp', ref: p }); placed.push(p);
     game.fx.push({ kind: 'ring', x: (p.c + 0.5) * CELL, y: (p.r + 0.5) * CELL, t: 0, life: 0.7 });
   });
@@ -8860,6 +8964,7 @@ function pressFrag() {
   const w = screenToWorld(game.mouse.sx, game.mouse.sy), ax = (a.c + 0.5) * CELL, ay = (a.r + 0.5) * CELL;
   let dx = w.x - ax, dy = w.y - ay; const m = Math.hypot(dx, dy), lim = G.range * CELL;
   if (m > lim) { dx *= lim / m; dy *= lim / m; }
+  wormSnap(pick);   // bored cells on the cut branch are cleared (and are a Snap, not worms, in the loss count)
   const was = [game.stats.stormLost, game.stats.polypsLost];
   const f = makeFrag(pick, []); game.stats.stormLost = was[0]; game.stats.polypsLost = was[1];
   f.throw = { x: ax + dx, y: ay + dy }; f.storm = null; game.g3.next = game.time + G.cd; game.stats.frags++;
