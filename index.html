@@ -326,7 +326,7 @@ const CONFIG = {
   dayCycle: 120, dayLen: 80, dayFade: 8, planktonDay: 0.9, planktonNight: 3, nightRise: 55, nightRiseDecay: 0.045, nightSpawnRate: 40, planktonLeave: 0.8, nightToasts: 3,
   nightDark: 0.62, nightGlow: 1.0, nightAutoRadius: 1.3, nightAutoEnergy: 2.4, nightHand: 1, revealNightPlankton: 40,
   // flow (current along each row from the upstream edge) and shading
-  flowDir: 1, flowRegain: 0.08, flowFloor: 0.25, flowBlock: { branch: 0.15, anemone: 0.10, plate: 0.25, brain: 0.60, fan: 0.30, skel: 0.30, rock: 1.0 }, flowStreaks: 220,
+  flowDir: 1, flowTurn: { from: 3, chance: 0.5, warn: 30 }, flowRegain: 0.08, flowFloor: 0.25, flowBlock: { branch: 0.15, anemone: 0.10, plate: 0.25, brain: 0.60, fan: 0.30, skel: 0.30, rock: 1.0 }, flowStreaks: 220,
   shadeRows: 8, shade: { branch: 0.12, anemone: 0.05, plate: 0.45, brain: 0.20, fan: 0.05, skel: 0.10 }, plateSideShade: 0.5, shadeLowLight: 0.25,
   // reef report
   reportAutoSecs: 7, reportHiSecs: 5, reportTop: [[0, 3], [100, 4], [200, 5]], reportFlowLow: 0.3, reportFlowN: 8, reportWeakN: 10, reportArmN: 8, reportShadeN: 10, reportHotN: 15, reportFullSecs: 30, reportTreeSecs: 60,
@@ -475,6 +475,7 @@ const game = {
   rivals: [],               // CE2: rival polyps (kept in cells as dead-coral-like blockers)
   rep: { open: false, list: [], hi: null, hiT: 0, auto: 0, shown: -1, pop: true },   // reef report
   swarm: { abs: -1, q: [], pend: null, n: 0 },   // plankton swarms: this season's arrival times, the one being warned of, swarms launched
+  flow: { dir: 1, next: null },   // L-15: the main current's direction (1 west to east, -1 east to west); next: a turn planned for the coming Storm season
   season: { t: 0, fc: -1, fired: -1 },   // t: seconds on the clock (runs from Colony on); fc/fired: start time of the last forecast / last started storm
   storm: null, stormPw: 0, stormRep: null, frags: [], riding: null,   // storm: { t, len, base }; pw: current power 0..1; riding: { frag, p } while the player drifts on a fragment
   lineages: [{ id: 0, hue: 0, traits: { growth: 3, tough: 3, heat: 3, feed: 3, form: 3 }, parent: -1 }], sportNext: false,
@@ -6989,7 +6990,7 @@ function updateSeason(dt) {
   if (game.goals.stage < 2) return;   // paused until the reef is a colony
   const S = game.season; S.t += dt;
   const ab = seasonAbs(S.t);
-  if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { const prev = S.abs; S.abs = ab; achSeason(prev, ab); reportAuto(); }
+  if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { const prev = S.abs; S.abs = ab; achSeason(prev, ab); reportAuto(); flowSeason(ab); }
   if (cycloneWaiting()) return;   // the final cyclone takes the place of the storms until it has come
   const s = nextStormStart(S.t); if (s === null) return;
   if (S.t < s && s - S.t <= CONFIG.forecastSecs && S.fc !== s) {
@@ -6997,6 +6998,21 @@ function updateSeason(dt) {
     S.fc = s; toast(`${cy ? 'Cyclone' : 'Storm'} warning: a ${cy ? 'cyclone' : 'storm'} will hit in ${mmss(s - S.t)}`); sfx('forecast');
   }
   if (S.t >= s && S.fired !== s) { S.fired = s; const P = game.storm ? 0 : cyclonePlan(s, true); P ? startCyclone(P) : startStorm(); }
+}
+// L-15: the main current can turn at the start of a Storm season (from the Reef stage). It is decided a season ahead and shown on the season card,
+// so a reef built only on one side has time to get ready. The flow field, starving report and fan lean all read CONFIG.flowDir.
+const flowName = d => d >= 0 ? 'west to east' : 'east to west';
+function flowSet(d) { game.flow.dir = d; CONFIG.flowDir = d; FLD.sig = null; }
+function flowSeason(ab) {
+  const F = game.flow || (game.flow = { dir: CONFIG.flowDir, next: null }), K = CONFIG.flowTurn;
+  if (F.next && F.next.ab === ab) { flowSet(F.next.dir); F.next = null; toast(`The main current has turned: it now runs ${flowName(F.dir)}`); sfx('forecast'); return; }
+  if (game.goals.stage < K.from || SEASONS[(ab + 1) % SEASONS.length].name !== 'Storm season' || F.next) return;   // decide during the season before a Storm season
+  if (Math.random() < K.chance) { F.next = { ab: ab + 1, dir: -F.dir }; toast(`Next season the main current turns: it will run ${flowName(-F.dir)}`); }
+}
+function flowLine() {   // the last warn s before a planned turn
+  const F = game.flow, K = CONFIG.flowTurn; if (!F || !F.next) return null;
+  const left = seasonStart(F.next.ab) - game.season.t;
+  return left > 0 && left <= K.warn ? `Current turns in ${mmss(left)}` : null;
 }
 function threatLine() {   // [text, class] for a threat that is running or 60 s away, else null
   const T = game.thr, C = CONFIG.threat;
@@ -7019,6 +7035,7 @@ function seasonText() {   // [name, forecast line, class]
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
   const hl = hzLine(); if (hl) return [nm, hl[0], hl[1]];
   const th = threatLine(); if (th) return [nm, th[0], th[1]];
+  const fl = flowLine(); if (fl) return [nm, fl, 'warn'];
   return [nm, hzKeptLine() || 'All quiet', ''];
 }
 const seasonEl = document.getElementById('season'), seasonCard = document.getElementById('seasoncard');
@@ -7052,7 +7069,8 @@ function oddsHtml() {   // what each threat will do in its next season: certain,
 }
 function renderSeasonCard() {
   const cur = seasonIdx(game.season.t);
-  seasonCard.innerHTML = '<h4>The year</h4>' + pressureHtml() + SEASONS.map((s, i) => `<div class="sn${i === cur ? ' cur' : ''}"><b style="color:${s.col}">${s.name}</b> <i>${i === 0 ? CONFIG.firstCalmSecs + ' s the first time, then ' + seasonLen() : seasonLen()} s${s.soon ? ', coming soon' : ''}</i><p>${s.info}</p></div>`).join('') +
+  const F = game.flow || { dir: CONFIG.flowDir, next: null };
+  seasonCard.innerHTML = '<h4>The year</h4>' + pressureHtml() + `<div class="k">Main current: <b>${flowName(F.dir)}</b>${F.next ? `. It turns ${flowName(F.next.dir)} at the start of next season` : ''}</div>` + SEASONS.map((s, i) => `<div class="sn${i === cur ? ' cur' : ''}"><b style="color:${s.col}">${s.name}</b> <i>${i === 0 ? CONFIG.firstCalmSecs + ' s the first time, then ' + seasonLen() : seasonLen()} s${s.soon ? ', coming soon' : ''}</i><p>${s.info}</p></div>`).join('') +
     oddsHtml() + `<div class="k">A year is ${CONFIG.yearSecs} s. Each season holds one day and one night. The clock starts when the reef becomes a colony.</div>`;
 }
 seasonEl.addEventListener('click', () => {
@@ -9176,6 +9194,8 @@ function saveDecode(text) {
 function saveApply(st) {
   for (const k of Object.keys(st)) if (!SAVE.skip.has(k)) game[k] = st[k];
   if (!st.hz) game.hz = hzFresh();   // a save from before the hazard ladder
+  if (!st.flow) game.flow = { dir: 1, next: null };   // a save from before the current could turn
+  CONFIG.flowDir = game.flow.dir;
   for (const q of game.newRock) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 1;   // S4 turned these into rock
   for (let i = 0; i < game.grid.length; i++) if (game.grid[i] === 2) game.grid[i] = 0;   // the island: clear the old sand, then lay the saved sand
   for (const q of game.land) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 2;
