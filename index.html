@@ -197,6 +197,7 @@
   #title .go { font-size: 13px; color: #ffe2b0; letter-spacing: 0.04em; animation: tnote 2.4s ease-in-out infinite; }
   #season { position: fixed; left: 12px; top: 250px; z-index: 11; display: none; align-items: center; gap: 9px; box-sizing: border-box; min-width: 174px; padding: 6px 12px 6px 8px; border-radius: 12px; background: rgba(2, 16, 32, 0.55); border: 1px solid rgba(150, 220, 240, 0.14); color: #d6f2ff; font-size: 12px; line-height: 1.3; cursor: pointer; user-select: none; }
   #season:hover { background: rgba(8, 36, 58, 0.7); }
+  #season.front { background: rgba(78, 10, 14, 0.7); border-color: rgba(255, 110, 90, 0.55); } #season.front:hover { background: rgba(98, 14, 18, 0.8); } #season.front span { color: #ff9f8c; } #season.front b { color: #ffd9d0; }
   #season b { display: block; color: #fff; font-size: 13px; font-weight: 600; } #season span { color: #9cc5d6; } #season.warn span { color: #ffd9a0; } #season.storm span { color: #ff9f8c; }
   #seasoncard, #lincard, #rescard { position: fixed; z-index: 35; display: none; width: 250px; box-sizing: border-box; padding: 10px 13px; border-radius: 10px; background: rgba(4, 22, 40, 0.95); border: 1px solid rgba(150, 220, 240, 0.25); color: #d6f2ff; font-size: 12px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); }
   #season .dnl { display: block; margin-top: 1px; color: #8fb0c8; font-size: 11px; }
@@ -308,14 +309,18 @@ const CONFIG = {
   // Each tier unlocks at a stage and a pressure; waves come every waveEvery[0] s (at pressure pRange[0]) down to waveEvery[1] s (at pRange[1]) after the last one ended.
   // Waves never start in a quiet season, in or within stormGap s of a storm wave, during a starfish outbreak or an event calm. A wave eats at most lossCap of the polyps it found (min 1).
   hz: { tick: 1, base: { time: 0.06, polyps: 1 / 40, species: 0.5 }, pRange: [3, 12], waveEvery: [90, 60], quietSeasons: ['Calm'], stormGap: 10, lossCap: 0.05, warn: 20, newest: 2,
-    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 3, pressure: 5.5, w: 1 }, { id: 'worms', stage: 4, pressure: 7, w: 1 }],   // w: pick weight; the newest unlocked tier gets x newest
+    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 3, pressure: 5.5, w: 1 }, { id: 'worms', stage: 4, pressure: 7, w: 1 }, { id: 'front', stage: 5, pressure: 9, w: 1.5 }],   // w: pick weight; the newest unlocked tier gets x newest
     school: { size: [8, 12], speed: 80, radius: 6, biteEvery: 1.6, bite: 0.8, scatter: 0.4, d2Hits: 1, d2Flee: 5, leaveAfter: 60, flank: 3, spread: 34, reward: { bp: 5 } },
     // tier 3: the triggerfish. Armoured: stings do nothing. It bites branch tips (chunk polyps per bite), prefers tips no guard crab covers, and is driven off by crab shoves (hp), a moray strike or a Snap. crabWard live guard crabs keep it away altogether
     trigger: { count: [1, 2], speed: 60, radius: 10, biteEvery: 3, chunk: 1, hp: 3, leaveAfter: 75, fleeSpeed: 150, shoveFlee: 2.5, orbit: 90, snapNear: 2, crabWard: 2, reward: { bp: 8 } },
     // tier 4: boring worms. They live INSIDE thick old coral: a wave bores `cells` cells (scaled by pressure) of the oldest polyps (alive minAge s or more) with at least `thick` live neighbours, off the rock.
     // A bored cell holds strCut x as firm, so the next storm or a long overhang snaps it. Every `spread` s an unanswered wave bores one neighbouring thick cell (up to the lossCap quota of cells); the worms die off after `life` s.
     // Answers: a Snap that cuts bored cells, or a home cleaner shrimp (one bored cell in its reach every shrimpEvery s). With S4 cemented cells (a polyp touching rock or a rooted skeleton) are never chosen.
-    worms: { cells: [3, 6], minAge: 90, thick: 2, strCut: 0.5, spread: 20, life: 120, shrimpEvery: 6, reward: { bp: 4 } } },
+    worms: { cells: [3, 6], minAge: 90, thick: 2, strCut: 0.5, spread: 20, life: 120, shrimpEvery: 6, reward: { bp: 4 } },
+    // tier 5: the outbreak front (Atoll). Starfish from BOTH edges at once (star[0] at pressure pRange[0] up to star[1] at pRange[1]), schoolAfter s later a damselfish school from the side with fewer starfish, and from pressure triggerAt a
+    // triggerfish (trigger: count below / above that) from the other side. The parts keep their own answers (stings and D4, crabs, a scatter, a drive-off) and share ONE loss quota (cap x the polyps at the start); when it is spent, or after
+    // leaveAfter s, every attacker left leaves. Answer every part before that and it pays reward. near: starfish start this far (px) from the reef edge, and work at full pace by day
+    front: { star: [3, 6], school: true, schoolAfter: 10, trigger: [0, 1], triggerAt: 11, leaveAfter: 90, cap: 0.08, near: 450, reward: { bp: 15 } } },
   automationAt: 5, autoRadius: 75, autoInterval: 5, autoPullTime: 0.4, autoEnergy: 1.5,
   // day and night (starts at Colony): cycle, day length, fade, plankton count multipliers, rising cloud
   dayCycle: 120, dayLen: 80, dayFade: 8, planktonDay: 0.9, planktonNight: 3, nightRise: 55, nightRiseDecay: 0.045, nightSpawnRate: 40, planktonLeave: 0.8, nightToasts: 3,
@@ -1109,7 +1114,8 @@ function runReport() {
   return { time: t, waitSecs: w, waitPct: t > 0 ? w / t * 100 : 0, waitByStage: by.map(x => +x.toFixed(1)),
     buds: { total: S.buds || 0, hand, guided, other: Math.max(0, (S.buds || 0) - hand - guided) },
     swarms: { caught: S.swarmCaught || 0, energy: S.swarmEnergy || 0 },
-    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, trigger: L.trigger || 0, worms: L.worms || 0, other: L.other || 0 } };
+    lost: { storm: L.storm || 0, nibbler: L.nibbler || 0, bleach: L.bleach || 0, disease: L.disease || 0, starfish: L.starfish || 0, smother: L.smother || 0, school: L.school || 0, trigger: L.trigger || 0, worms: L.worms || 0, other: L.other || 0 },
+    front: { waves: S.frontWaves || 0, answered: S.frontAnswered || 0, lost: S.frontLost || 0 } };
 }
 window.runReport = runReport;
 const LOST_NAMES = { storm: 'Storms', nibbler: 'Nibblers', bleach: 'Bleaching', disease: 'Disease', starfish: 'Starfish', smother: 'Seaweed', school: 'Damselfish', trigger: 'Triggerfish', worms: 'Boring worms', other: 'Other' };
@@ -1117,6 +1123,7 @@ function runRows() {
   const R = runReport(), rows = [['Time played', mmss(R.time)], ['Waiting for energy', `${mmss(R.waitSecs)} (${Math.round(R.waitPct)}%)`], ['Buds by hand / guided', `${R.buds.hand} / ${R.buds.guided}`]];
   if (R.swarms.caught) rows.push(['Swarm plankton caught', `${R.swarms.caught} (+${Math.round(R.swarms.energy)} energy)`]);
   for (const k of Object.keys(LOST_NAMES)) if (R.lost[k]) rows.push([`Polyps lost to ${LOST_NAMES[k].toLowerCase()}`, R.lost[k]]);
+  if (R.front.waves > 0) rows.push(['Outbreak fronts held', `${R.front.answered} / ${R.front.waves}`]);
   return rows;
 }
 function openEnding() {
@@ -1715,6 +1722,12 @@ window.devWorms = () => {   // dev: boring worms now (from the Reef crest stage)
   H.p = Math.max(H.p, hzPressure()); hzStart('worms');
   return wormCells().length;
 };
+window.devFront = () => {   // dev: an outbreak front now (from the Atoll stage); a running wave is replaced. Returns the number of starfish
+  if (game.goals.stage < 5) devStage(5);
+  const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.wm = null; H.fr = null; H.cur = null; game.starfish = game.starfish.filter(s => !s.front); }
+  H.p = Math.max(H.p, hzPressure()); hzStart('front');
+  return frontStars().length;
+};
 window.devSchool = side => {   // dev: a damselfish school now (from the Reef stage), from 'east' or 'west'; a running wave is replaced
   if (game.goals.stage < 3) devStage(3);
   const H = hzState(); if (H.cur) { H.sc = null; H.tf = null; H.wm = null; H.cur = null; }
@@ -1827,6 +1840,7 @@ function freeLarva(c0, r0, inv) {
 // a polyp that lost all its health: it becomes a skeleton, and if it was the active one the player moves on
 function killPolyp(p, why, cause) {   // why: the toast for a polyp that was not the active one ('' for none); cause: for the run report, one of the keys of stats.lost (default 'other')
   game.stats.polypsLost++; lostBy(cause || 'other', 1);
+  if (frontOn() && (cause === 'starfish' || cause === 'school' || cause === 'trigger')) { game.hz.fr.lost++; game.stats.frontLost = (game.stats.frontLost || 0) + 1; }   // the outbreak front shares one quota
   const cc = drawPos(p), was = p === game.active && game.stage === 'polyp';
   toSkeleton(p);
   game.fx.push({ kind: 'ring', x: cc.x, y: cc.y, t: 0, life: 0.7, red: true });
@@ -3217,6 +3231,7 @@ function hzStart(id, side) {
 function hzEnd(H) {
   H.log.push(Object.assign({ id: H.cur, at: Math.round(H.start), p: +H.pAt.toFixed(1) }, HZ_TIERS[H.cur].result()));
   if (H.log.length > 30) H.log.shift();
+  if (HZ_TIERS[H.cur].end) HZ_TIERS[H.cur].end();
   H.cur = null; H.last = game.season.t; H.next = -1;
 }
 function hzKeptNote(T) {   // a kept-away tier: the first time, say why nothing came
@@ -3253,8 +3268,8 @@ function updateHazards(dt) {
 }
 function hzLine() {   // [text, class] for the season widget while a wave is warned of or running, else null
   const H = hzState(), t = game.season.t;
-  if (H.cur) return [HZ_TIERS[H.cur].status(), 'warn'];
-  if (H.pend && H.pend.at > t && H.pend.at - t <= CONFIG.hz.warn + 0.5) { const Z = HZ_TIERS[H.pend.id]; return [Z.inside ? `${Z.name} are stirring in ${mmss(H.pend.at - t)}` : `${Z.name} in ${mmss(H.pend.at - t)}, from the ${H.pend.side}`, 'warn']; }
+  if (H.cur) return [HZ_TIERS[H.cur].status(), H.cur === 'front' ? 'warn front' : 'warn'];
+  if (H.pend && H.pend.at > t && H.pend.at - t <= CONFIG.hz.warn + 0.5) { const Z = HZ_TIERS[H.pend.id]; if (Z.both) return [`${Z.name} in ${mmss(H.pend.at - t)}`, 'warn front']; return [Z.inside ? `${Z.name} are stirring in ${mmss(H.pend.at - t)}` : `${Z.name} in ${mmss(H.pend.at - t)}, from the ${H.pend.side}`, 'warn']; }
   return null;
 }
 function pressureHtml() {
@@ -3441,7 +3456,70 @@ const HZ_TIERS = {
     result: () => { const W = hzState().wm; return W ? { size: W.n, bored: W.bored, quota: W.quota, cleared: W.cleared, how: Object.assign({}, W.how), died: W.died, secs: Math.round(W.t) } : {}; },
     live: () => [],   // nothing to sting: they are inside the coral
   },
+  front: {
+    name: 'Outbreak front', both: true, can: frontCan, spawn: frontSpawn, update: frontUpdate, done: frontDone, end: frontEnd,
+    status: () => { const fr = hzState().fr; if (!fr) return 'The front is passing'; const a = frontStars().filter(s => s.mode !== 'leave').length, b = schoolLive().length, c = trigLive().length; return a + b + c ? `Outbreak front: ${a} starfish${b ? `, ${b} damselfish` : ''}${c ? `, ${c} triggerfish` : ''}` : 'The front is passing'; },
+    result: () => { const fr = hzState().fr; return fr ? { size: fr.n, killed: fr.killed, lost: fr.lost, quota: fr.quota, answered: !!fr.answered, forced: fr.why || '', secs: Math.round(fr.t) } : {}; },
+    live: () => frontStars(),
+  },
 };
+/* ----- tier 5: the outbreak front. Starfish (the crown-of-thorns ones) creep in from both edges at once; CONFIG.hz.front.schoolAfter s later a damselfish school comes in on the side with fewer of them, and at high pressure a triggerfish on the other.
+   Each part is the ordinary one, so its own answer still works. They share ONE quota of lost polyps (cap x the polyps at the start): when it is spent, or after leaveAfter s, every attacker left leaves.
+   The front is answered if every starfish is killed, the school is scattered and the triggerfish is driven off before that; that pays reward.bp. Its parts are tagged s.front on the starfish, and kept in hzState().fr, H.sc, H.tf. ----- */
+const frontOn = () => !!(game.hz && game.hz.cur === 'front' && game.hz.fr);
+const frontStars = () => game.starfish.filter(s => s.front && !s.dead);
+function frontCan() { const F = game.fin; return !riseOn() && !(cycloneWaiting() && F.cycAt - game.season.t < CONFIG.hz.warn + CONFIG.hz.front.leaveAfter + 20); }   // not in the island rise, and not so close to the final cyclone that the front would run into it
+function frontSpawn() {
+  const H = hzState(), K = CONFIG.hz.front, st = game.stats, n = Math.round(lerp(K.star[0], K.star[1], hzSeverity(H.p)));
+  H.sc = null; H.tf = null;
+  H.fr = { t: 0, n, quota: Math.max(1, Math.floor(K.cap * game.polyps.length)), found: game.polyps.length, lost: 0, killed: 0, parts: false, over: false, why: '', answered: false, tn: H.p >= K.triggerAt ? K.trigger[1] : K.trigger[0], ss: '', ts: '' };
+  for (let i = 0; i < n; i++) { const s = spawnStar(i % 2 ? 1 : -1, K.near); s.front = true; s.fside = i % 2 ? 1 : -1; }
+  st.frontWaves = (st.frontWaves || 0) + 1;
+  if (!(st.frontSeen || 0)) toast('An outbreak front: starfish along the floor, a school behind them. Hold every side');
+  st.frontSeen = (st.frontSeen || 0) + 1;
+  banner('Outbreak front', `${n} starfish creep in from both edges`, '#ffb4b4'); sfx('rumble');
+}
+function frontLeave(fr, why) {   // the quota is spent, time is up or a storm came: every attacker left goes
+  fr.over = true; fr.why = fr.why || why;
+  for (const s of game.starfish) if (s.front && !s.dead && s.mode !== 'leave') { s.mode = 'leave'; s.leaveT = 0; s.tgt = null; s.path = []; }
+  const S = hzState().sc; if (S && !S.over) schoolLeave(S, false);
+  const T = hzState().tf; if (T && !T.over) trigLeaveAll(T);
+}
+function frontAnswered(fr) {
+  const S = hzState().sc, T = hzState().tf;
+  return fr.parts && !fr.over && fr.killed >= fr.n && (!fr.ss || !!(S && S.scattered)) && (!fr.ts || !!(T && T.driven >= T.n));
+}
+function frontUpdate(dt) {
+  const H = hzState(), fr = H.fr, K = CONFIG.hz.front, st = game.stats; if (!fr) return;
+  fr.t += dt;
+  if (!fr.over) {
+    if (fr.lost >= fr.quota) frontLeave(fr, 'quota');
+    else if (fr.t > K.leaveAfter) frontLeave(fr, 'time');
+    else if (game.storm) frontLeave(fr, 'storm');
+    else if (game.polyps.length <= CONFIG.nibblerSpare) frontLeave(fr, 'spare');
+  }
+  if (!fr.parts && (fr.over || fr.t >= K.schoolAfter)) {   // the school (and the triggerfish) arrive behind the starfish
+    fr.parts = true;
+    if (!fr.over) {
+      const w = frontStars().filter(s => s.fside < 0).length, e = frontStars().filter(s => s.fside > 0).length;
+      const ss = w < e ? 'west' : e < w ? 'east' : (Math.random() < 0.5 ? 'west' : 'east'), other = ss === 'east' ? 'west' : 'east';
+      if (K.school) { schoolSpawn(ss); H.sc.quota = 1e9; fr.ss = ss; }
+      if (fr.tn > 0) { trigSpawn(K.school ? other : ss); const T = H.tf; T.fish.length = Math.min(T.fish.length, fr.tn); T.n = T.fish.length; T.quota = 1e9; fr.ts = K.school ? other : ss; }
+    }
+  }
+  schoolUpdate(dt); trigUpdate(dt);
+  if (!fr.answered && frontAnswered(fr)) {
+    fr.answered = true; st.frontAnswered = (st.frontAnswered || 0) + 1; game.bp += K.reward.bp; st.bpMade += K.reward.bp;
+    const c = hzCentre(); game.fx.push({ kind: 'text', x: c.x, y: c.y - 60, t: 0, life: 2, text: `Front held! +${K.reward.bp} BP` });
+    toast(`The outbreak front is held. +${K.reward.bp} BP`); sfx('catch', c.x, c.y);
+  }
+}
+function frontDone() {
+  const H = hzState(), fr = H.fr; if (!fr) return true;
+  if (fr.t > CONFIG.hz.front.leaveAfter + 60) { for (const s of game.starfish) if (s.front) s.dead = true; if (H.sc) H.sc.fish.length = 0; if (H.tf) H.tf.fish.length = 0; }
+  return fr.parts && !frontStars().length && !schoolFish().length && !trigFish().length;
+}
+function frontEnd() { game.hz.fr = null; }
 /* ----- tier 4: boring worms. They live INSIDE thick old coral. A wave marks the oldest, thickest polyps (off the bare rock) as bored: they hold CONFIG.hz.worms.strCut x as firm, so the next storm snaps them,
    and a bored cell counts extra toward a sagging overhang. Every `spread` s an unanswered wave bores one more neighbouring cell, up to the lossCap quota of cells; the worms die off after `life` s.
    Answers: a Snap that cuts bored cells off, or a home cleaner shrimp (one bored cell in its reach every shrimpEvery s). With S4 cemented cells (beside rock or rooted dead coral, corners included) are never bored.
@@ -6621,7 +6699,7 @@ const devGroups = [
   ['Ending', ['<button data-a="endatoll">Atoll, crest ready</button><button data-a="endcyc">start cyclone now</button><button data-a="endwin">win the cyclone</button><button data-a="endrise">rise the island</button><button data-a="endlife">skip island life</button><button data-a="endcard">ending card</button> <span id="endread" style="color:#8aa0b2"></span>']],
   ['Reef stage', ['<button data-a="rs" data-v="1">Polyp</button><button data-a="rs" data-v="2">Colony</button><button data-a="rs" data-v="3">Reef</button><button data-a="rs" data-v="4">Reef crest</button><button data-a="rs" data-v="5">Atoll</button><button data-a="rs" data-v="6">Island</button><button data-a="rsnext">next stage</button> <span id="rsread" style="color:#8aa0b2"></span>']],
   ['Seasons', [
-    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="trigger">triggerfish now</button><button data-a="worms">boring worms now</button><button data-a="sport">make sport</button>',
+    '<button data-a="stormnow">storm now</button><button data-a="stormfc">forecast storm</button><button data-a="skipseason">skip to next season</button><button data-a="swarm">plankton swarm</button><button data-a="school">school now</button><button data-a="trigger">triggerfish now</button><button data-a="worms">boring worms now</button><button data-a="front">outbreak front now</button><button data-a="sport">make sport</button>',
     '<label><input type="checkbox" data-t="noStorms"> storms off</label><label><input type="checkbox" data-t="struct"> structure overlay</label> <span id="seasread" style="color:#8aa0b2"></span>']],
   ['Performance', ['<button data-a="perfreset">reset</button> <span style="color:#8aa0b2">frame times per moment: fps, 1% low, sim and draw ms, frames over 33 ms</span>', '<div id="perfread" style="white-space:pre;font:11px/1.45 ui-monospace,monospace;color:#cfe3ee"></div>']],
   ['Day/Night', [
@@ -6684,6 +6762,7 @@ function devBuild() {
     else if (a === 'school') devSchool();
     else if (a === 'trigger') devTrigger();
     else if (a === 'worms') devWorms();
+    else if (a === 'front') devFront();
     else if (a === 'stormnow') { if (game.goals.stage < 2) devStage(2); game.storm ? 0 : startStorm(1); }
     else if (a === 'stormfc') devForecast();
     else if (a === 'skipseason') { if (game.goals.stage < 2) devStage(2); game.season.t = seasonStart(seasonAbs(game.season.t) + 1); toast('Season: ' + SEASONS[seasonIdx(game.season.t)].name, true); }
@@ -6925,6 +7004,7 @@ const yearPhase = () => { const t = game.season.t, a = seasonAbs(t); return (sea
 function seasonText() {   // [name, forecast line, class]
   const S = game.season, nm = SEASONS[seasonIdx(S.t)].name;
   if (game.storm) return [nm, `${game.storm.cyc ? 'Cyclone' : 'Storm'}! ${mmss(game.storm.len - game.storm.t)} left`, 'storm'];
+  const fh = hzLine(); if (fh && fh[1].includes('front')) return [nm, fh[0], fh[1]];   // an outbreak front shows before the cyclone countdown
   const fcl = finForecast(); if (fcl) return [nm, fcl, 'storm'];
   const s = nextStormStart(S.t);
   if (s !== null && s - S.t <= CONFIG.forecastSecs) return [nm, `Storm in ${mmss(s - S.t)}`, 'warn'];
@@ -8176,13 +8256,13 @@ function starPath(s) {   // breadth first over crawlable cells to the nearest ce
   return null;
 }
 function starDie(s, by) {
-  s.dead = true; game.stats.starfishKilled++;
+  s.dead = true; game.stats.starfishKilled++; if (s.front && frontOn()) game.hz.fr.killed++;
   game.fx.push({ kind: 'ring', x: s.x, y: s.y, t: 0, life: 0.7 }); spawnParts('spark', s.x, s.y, 10); sfx('crunch', s.x, s.y);
   if (!game.progress.starKill) { game.progress.starKill = true; toast('A starfish is dead'); }
 }
 function updateStar(dt) {
   const T = game.thr, St = T.star, C = CONFIG.threat.star, a = seasonAbs(game.season.t);
-  if (a % SEASONS.length === THREAT.star.idx && T.plan.star[a] === true && St.ran !== a && game.goals.stage >= 4 && (game.dn.t % CONFIG.dayCycle) >= CONFIG.dayLen - CONFIG.dayFade) startStar(a);   // at dusk
+  if (a % SEASONS.length === THREAT.star.idx && T.plan.star[a] === true && St.ran !== a && game.goals.stage >= 4 && !frontOn() && (game.dn.t % CONFIG.dayCycle) >= CONFIG.dayLen - CONFIG.dayFade) startStar(a);   // at dusk
   if (!game.starfish.length) return;
   const act = 1 - daylight(), sp = C.speed * lerp(C.day, 1, act), eatNeed = has('D3') ? C.eatD3 : C.eat;
   for (const s of game.starfish) {
@@ -8190,7 +8270,7 @@ function updateStar(dt) {
     if (s.mode === undefined) Object.assign(s, { mode: 'move', path: [], pathT: 0, tgt: null, eat: 0, rot: 0, seed: Math.random() * 10, hurt: 0, alpha: 1, lx: s.x, ly: s.y, hp: s.hp === undefined ? CONFIG.threat.star.hp : s.hp });   // a bare {x, y, hp} (a test hook) gets the rest
     s.hurt = Math.max(0, s.hurt - dt);
     if (s.hp <= 0) { starDie(s); continue; }
-    if (s.mode !== 'leave' && game.season.t >= St.endAt && St.endAt >= 0) { s.mode = 'leave'; s.leaveT = 0; }
+    if (s.mode !== 'leave' && game.season.t >= St.endAt && St.endAt >= 0 && !(s.front && frontOn())) { s.mode = 'leave'; s.leaveT = 0; }
     if (s.mode === 'leave') { s.leaveT += dt; s.alpha = 1 - s.leaveT / C.leaveSecs; if (s.leaveT >= C.leaveSecs) s.dead = true; continue; }
     if (isRock(Math.floor(s.x / CELL), Math.floor(s.y / CELL))) { s.x = s.lx; s.y = s.ly; } else { s.lx = s.x; s.ly = s.y; }
     s.pathT -= dt;
@@ -8200,7 +8280,7 @@ function updateStar(dt) {
       else {
         const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL, k = 1 - Math.exp(-4 * dt);
         s.x = lerp(s.x, px, k); s.y = lerp(s.y, py, k); s.rot += dt * 0.5;
-        s.eat += dt * lerp(C.day, 1, act);
+        s.eat += dt * (s.front && frontOn() ? 1 : lerp(C.day, 1, act));
         if (Math.random() < dt * 3) spawnParts('dust', px, py, 1);
         if (s.eat >= eatNeed) { s.eat = 0; game.stats.starfishEaten = (game.stats.starfishEaten || 0) + 1; killPolyp(p, game.progress.starEat ? '' : 'A starfish has eaten a polyp', 'starfish'); game.progress.starEat = true; s.mode = 'move'; s.tgt = null; s.path = []; s.pathT = 0; }
         continue;
@@ -8213,12 +8293,13 @@ function updateStar(dt) {
     if (s.tgt && (s.tgt.dead || !game.polyps.includes(s.tgt))) { s.tgt = null; s.path = []; s.pathT = 0; }
     if (s.path.length) {
       const n = s.path[0], dx = n.x - s.x, dy = n.y - s.y, d = Math.hypot(dx, dy);
-      if (d < 3) s.path.shift(); else { const m = Math.min(d, sp * dt); s.x += dx / d * m; s.y += dy / d * m; s.rot += dt * 0.35; }
+      if (d < 3) s.path.shift(); else { const m = Math.min(d, (s.front && frontOn() ? C.speed : sp) * dt); s.x += dx / d * m; s.y += dy / d * m; s.rot += dt * 0.35; }
     } else if (s.tgt) s.mode = 'eat';
   }
   game.starfish = game.starfish.filter(s => !s.dead);
-  if (St.ran >= 0 && !game.starfish.length && St.n !== -1) { St.n = -1; toast('The starfish are gone'); if ((game.stats.starfishEaten || 0) - (St.eaten0 || 0) < 10) award('A9'); }
-  if (game.starfish.length) St.n = 0;
+  const seasonal = game.starfish.some(s => !s.front);
+  if (St.ran >= 0 && !seasonal && St.n !== -1) { St.n = -1; toast('The starfish are gone'); if ((game.stats.starfishEaten || 0) - (St.eaten0 || 0) < 10) award('A9'); }
+  if (seasonal) St.n = 0;
 }
 // D2 sweeper tentacles: an edge polyp stings a nibbler or starfish within 20 px of its edge every 4 s (1 damage), and clears one seaweed cell it touches every 15 s
 function updateSweepers(dt) {
