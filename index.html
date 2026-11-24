@@ -306,10 +306,10 @@ const CONFIG = {
   nibblerStart: 3, nibblerFirst: 45, nibblerInterval: 60, nibblerGrace: 120, nibblerSpare: 2, nibblerPerPolyps: 6, nibblerMaxCap: 3, nibblerLife: 150,
   nibblerSpeed: 70, nibblerFleeSpeed: 190, nibblerRadius: 8, nibblerBiteEvery: 1.6, nibblerBite: 0.8, nibblerFlee: 8,
   // the hazard ladder (P-42): pressure rises as the reef grows (clock minutes since Colony x time + polyps x polyps + species x species) and schedules attack waves.
-  // Each tier unlocks at a stage and a pressure; waves come every waveEvery[0] s (at pressure pRange[0]) down to waveEvery[1] s (at pRange[1]) after the last one ended.
+  // Each tier unlocks at a stage and a pressure, and not until grace s of play after that stage was reached (time to meet the new species first); waves come every waveEvery[0] s (at pressure pRange[0]) down to waveEvery[1] s (at pRange[1]) after the last one ended.
   // Waves never start in a quiet season, in or within stormGap s of a storm wave, during a starfish outbreak or an event calm. A wave eats at most lossCap of the polyps it found (min 1).
-  hz: { tick: 1, base: { time: 0.06, polyps: 1 / 40, species: 0.5 }, pRange: [3, 12], waveEvery: [90, 60], quietSeasons: ['Calm'], stormGap: 10, lossCap: 0.05, warn: 20, newest: 2,
-    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 3, pressure: 5.5, w: 1 }, { id: 'worms', stage: 4, pressure: 7, w: 1 }, { id: 'front', stage: 5, pressure: 9, w: 1.5 }],   // w: pick weight; the newest unlocked tier gets x newest
+  hz: { tick: 1, base: { time: 0.06, polyps: 1 / 40, species: 0.5 }, pRange: [3, 12], waveEvery: [150, 100], grace: 150, quietSeasons: ['Calm'], stormGap: 10, lossCap: 0.05, warn: 20, newest: 2,
+    tiers: [{ id: 'school', stage: 3, pressure: 3, w: 1 }, { id: 'trigger', stage: 4, pressure: 5.5, w: 1 }, { id: 'worms', stage: 4, pressure: 7, w: 1 }, { id: 'front', stage: 5, pressure: 9, w: 1.5 }],   // w: pick weight; the newest unlocked tier gets x newest
     school: { size: [8, 12], speed: 80, radius: 6, biteEvery: 1.6, bite: 0.8, scatter: 0.4, d2Hits: 1, d2Flee: 5, leaveAfter: 60, flank: 3, spread: 34, reward: { bp: 5 } },
     // tier 3: the triggerfish. Armoured: stings do nothing. It bites branch tips (chunk polyps per bite), prefers tips no guard crab covers, and is driven off by crab shoves (hp), a moray strike or a Snap. crabWard live guard crabs keep it away altogether
     trigger: { count: [1, 2], speed: 60, radius: 10, biteEvery: 3, chunk: 1, hp: 3, leaveAfter: 75, fleeSpeed: 150, shoveFlee: 2.5, orbit: 90, snapNear: 2, crabWard: 2, reward: { bp: 8 } },
@@ -3206,7 +3206,7 @@ const hzSeverity = p => clamp((p - CONFIG.hz.pRange[0]) / (CONFIG.hz.pRange[1] -
 const hzInterval = p => lerp(CONFIG.hz.waveEvery[0], CONFIG.hz.waveEvery[1], hzSeverity(p));
 const hzQuiet = t => CONFIG.hz.quietSeasons.includes(SEASONS[seasonIdx(t)].name);
 const hzBlocked = () => !!game.storm || starN() > 0 || game.time < game.ev.calm;   // a storm wave, a starfish outbreak or an event calm keeps waves away
-function hzUnlocked() { const H = hzState(); return CONFIG.hz.tiers.filter(T => HZ_TIERS[T.id] && game.goals.stage >= T.stage && H.p >= T.pressure && (!HZ_TIERS[T.id].can || HZ_TIERS[T.id].can())); }
+function hzUnlocked() { const H = hzState(); return CONFIG.hz.tiers.filter(T => HZ_TIERS[T.id] && game.goals.stage >= T.stage && game.time - ((game.goals.at || [])[T.stage - 1] ?? -1e9) >= CONFIG.hz.grace && H.p >= T.pressure && (!HZ_TIERS[T.id].can || HZ_TIERS[T.id].can())); }
 function hzFit(x) {   // the first time at or after x that is not in a quiet season and not in or within stormGap s of a storm wave
   const C = CONFIG.hz;
   for (let i = 0; i < 60; i++) {
