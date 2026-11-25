@@ -341,7 +341,7 @@ const CONFIG = {
   lightPower: 0.75, dimBelow: 0.35, brightAbove: 0.65,
   currentAmp: 22, currentLarvaFactor: 0.8,
   // plankton
-  plankton: 240, planktonEnergy: 3, handCatchBud: 12, silt: { k: 0.5, low: 2 }, treeBuds: [2, 4, 6], planktonRadius: 3.2,
+  plankton: 240, planktonEnergy: 3, handCatchBud: 12, silt: { k: 0.5, low: 2 }, treeBuds: [1, 1.6, 2.2], treeCapShare: 0.9, planktonRadius: 3.2,
   // plankton swarms (P-41): from stage `from` a few bright swarms drift through each season; hand catches pay `worth` x the next branch bud, polyps `polypShare` of that
   swarm: { from: 2, perSeason: [2, 2, 3, 3], life: 15, count: 26, worth: 0.032, polypShare: 0.25, warn: 4, speed: 36, spread: 55, first: 120, toasts: 3 },
   bloomFirst: 6, bloomInterval: 50, bloomSize: 45, bloomSpread: 70, bloomMinPlayerDist: 800, bloomFloorClear: 350,
@@ -595,10 +595,13 @@ function budCalcium(tp = game.nextType) { tp = tyN(tp); return has('G1') ? CONFI
 // null when a price {e, ca, bp} can be paid, otherwise what is missing (buds pay energy and calcium, unlocks may also cost BP)
 // P-41: a plankton caught by hand is worth a share of the next bud (never less than the flat amount), so being there pays at any size
 const handCatch = () => Math.max(CONFIG.planktonEnergy, budCost(false) / CONFIG.handCatchBud);
-// P-32: a tip's energy price is a set number of buds' worth for its tier (CONFIG.treeBuds), never below its listed price
+// P-32: a tip's energy price is a set number of buds' worth for its tier (CONFIG.treeBuds), never below its listed price,
+// and never above treeCapShare of the energy cap (the cap is capBudMult buds, so a price over it could never be paid)
 function costOf(id) {
   const c = CONFIG.cost[id], d = TREE.find(x => x.id === id), m = d ? (CONFIG.treeBuds || [])[d.tier - 1] || 0 : 0;
-  return c.e && m ? Object.assign({}, c, { e: Math.max(c.e, Math.round(m * budCost(false))) }) : c;
+  if (!c.e) return c;
+  const e = Math.min(Math.floor(CONFIG.treeCapShare * energyCap()), m ? Math.max(c.e, Math.round(m * budCost(false))) : c.e);
+  return e === c.e ? c : Object.assign({}, c, { e });
 }
 function shortOf(c) {
   if (game.energy < (c.e || 0)) return `Need ${Math.ceil(c.e)} energy`;
