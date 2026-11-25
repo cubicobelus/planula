@@ -215,6 +215,28 @@
   #achpanel .ag { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; } #achpanel .ai { display: flex; gap: 8px; padding: 5px 7px; border-radius: 7px; background: rgba(120, 190, 220, 0.07); opacity: 0.6; }
   #achpanel .ai u { text-decoration: none; width: 18px; height: 18px; flex: none; border-radius: 9px; border: 1.5px solid #4c6b7e; text-align: center; line-height: 16px; font-size: 12px; color: #1c1405; }
   #achpanel .ai.got { opacity: 1; background: rgba(255, 214, 120, 0.12); } #achpanel .ai.got u { background: #ffd679; border-color: #ffd679; } #achpanel .ai.later { opacity: 0.35; }
+  #fgpanel { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 35; display: none; width: 860px; max-width: 96vw; max-height: calc(100vh - 84px); box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(4, 22, 40, 0.96); border: 1px solid rgba(150, 220, 240, 0.35); color: #dbeaf2; font-size: 12.5px; flex-direction: column; }
+  #fgpanel.on { display: flex; }
+  #fgpanel h4 { margin: 0 0 8px; font-size: 15px; color: #ffe3b0; flex: none; } #fgpanel h4 i { float: right; font-style: normal; font-size: 11px; color: #8aa0b2; font-weight: 400; cursor: pointer; }
+  #fgpanel .fgtabs { display: flex; gap: 6px; margin-bottom: 8px; flex: none; } #fgpanel .fgtabs button { flex: 1; padding: 5px 0; border-radius: 8px; border: 1px solid rgba(150, 220, 240, 0.2); background: rgba(120, 190, 220, 0.07); color: #9cc5d6; font: inherit; cursor: pointer; }
+  #fgpanel .fgtabs button.on { background: rgba(255, 214, 120, 0.16); color: #fff; border-color: rgba(255, 214, 120, 0.5); }
+  #fgpanel .fgbody { display: flex; gap: 12px; min-height: 0; flex: 1; }
+  #fgpanel .fgl { width: 300px; flex: none; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
+  #fgpanel .fgt { position: relative; display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(150, 220, 240, 0.14); background: rgba(120, 190, 220, 0.07); color: #dbeaf2; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+  #fgpanel .fgt.sel { border-color: rgba(255, 214, 120, 0.7); } #fgpanel .fgt.fin { background: rgba(255, 214, 120, 0.13); }
+  #fgpanel .fgt b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #fgpanel .fgs { width: 22px; height: 22px; flex: none; border-radius: 11px; background: #7be3b0; box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25); }
+  #fgpanel .fgt.un .fgs { background: #4a5c68; } #fgpanel .fgt.un b { color: #7d909c; } #fgpanel .fgs.res { background: #ffb36b; } #fgpanel .fgs.threat { background: #ff8c8c; } #fgpanel .fgt.un .fgs { background: #4a5c68; }
+  #fgpanel .fgt u { position: absolute; top: 3px; right: 5px; text-decoration: none; color: #ffd679; font-size: 12px; }
+  #fgpanel .fgt i { position: absolute; top: 4px; right: 5px; width: 7px; height: 7px; border-radius: 4px; background: #7be3b0; box-shadow: 0 0 6px #7be3b0; }
+  #fgpanel .fgr { flex: 1; overflow-y: auto; min-width: 0; padding-right: 4px; }
+  #fgpanel .fgr h5 { margin: 0 0 2px; font-size: 16px; color: #fff; } #fgpanel .fgr h6 { margin: 10px 0 3px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #ffe3b0; font-weight: 600; }
+  #fgpanel .fgr p { margin: 0 0 3px; color: #b9d6e2; line-height: 1.4; } #fgpanel .fgr .fgm { color: #8aa0b2; font-style: italic; } #fgpanel .fgr .fgn { color: #ffe3b0; }
+  #fgpanel .fgd { display: flex; gap: 8px; align-items: center; padding: 3px 6px; margin-bottom: 3px; border-radius: 6px; background: rgba(120, 190, 220, 0.07); } #fgpanel .fgd.done { background: rgba(255, 214, 120, 0.12); }
+  #fgpanel .fgd u { text-decoration: none; width: 16px; height: 16px; flex: none; border-radius: 8px; border: 1.5px solid #4c6b7e; text-align: center; line-height: 14px; font-size: 11px; color: #1c1405; } #fgpanel .fgd.done u { background: #ffd679; border-color: #ffd679; }
+  #fgpanel .fgd span { flex: 1; } #fgpanel .fgd em { font-style: normal; color: #9cc5d6; }
+  #fgpanel .fgp { margin-top: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(120, 190, 220, 0.07); color: #8aa0b2; } #fgpanel .fgp.on { background: rgba(255, 214, 120, 0.14); color: #ffe3b0; }
+  @media (max-width: 960px) { #fgpanel .fgl { width: 220px; grid-template-columns: 1fr; } #fgpanel { top: 60px; } }
   #achpanel .ai b { display: block; color: #fff; font-weight: 600; } #achpanel .ai span { color: #9cc5d6; }
   #report .rt { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(150, 220, 240, 0.18); } #report .rt h5 { margin: 0 0 5px; font-size: 12px; color: #cfe6f0; font-weight: 600; }
   #report .rb { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 12px; color: #9cc5d6; } #report .rb span { width: 62px; } #report .rb i { flex: 1; height: 7px; border-radius: 4px; background: rgba(120, 190, 220, 0.14); overflow: hidden; } #report .rb u { display: block; height: 100%; border-radius: 4px; } #report .rb em { width: 24px; text-align: right; font-style: normal; color: #fff; } #report .rb.wk span { color: #ffd9a0; }
@@ -260,7 +282,7 @@
 </div>
 <div id="track"></div><div id="stcard"></div><div id="banner"></div><div id="cyc"></div><div id="title"></div><div id="welcome"></div><div id="ask"></div>
 <div id="hint"></div>
-<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="sportcard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div>
+<div id="season"></div><div id="seasoncard"></div><div id="lincard"></div><div id="sportcard"></div><div id="rescard"></div><div id="report"></div><div id="evcard"></div><div id="achpanel"></div><div id="fgpanel"></div>
 <div id="abar" class="bgrp"></div><div id="pbar" class="bgrp"></div><div id="vbar" class="bgrp"></div><div id="gmenu"></div>
 <div id="toasts"></div>
 <div id="looklist"></div>
@@ -273,6 +295,7 @@
 const CONFIG = {
   worldW: 4628, lagoonW: 2800, slopeCol: 108, flatCol: 148, worldH: 1500, cell: 26,   // the lagoon is columns 0 to 107 (2800 px), then 40 columns of reef slope, then 30 of reef flat (regions)
   seed: 7,
+  guide: { hintAfter: 1, fullHintAfter: 3, nudgeAfter: 3 },   // the field guide: seasons until a missing resident's one-word hint / full hint; meetings with losses before a threat's nudge
   title: 'Planula', showTitle: true,   // the public name (2026-11-17); the title card is skipped with #notitle in the URL
   // reef stages (see STAGES): income boost per stage, and the goal sizes
   // the ending (content.md 9): crest columns and sand for the Atoll, the final cyclone, the island and its life
@@ -449,6 +472,7 @@ const game = {
   sting: { cd: 0 },
   nextType: 'branch', clown: { t: null, fish: [] },
   guide: null,               // { path, target, t, wait } while the colony grows by itself
+  fguide: fgFresh(),         // the field guide (B): met / done / answered pages, nudges and hints (saved; never confuse with `guide`, guided growth)
   fx: [], parts: [],
   slow: null, kick: null, nudge: null,   // moment state: time scale, camera kick, camera nudge
   keys: new Set(),
@@ -1599,7 +1623,7 @@ function updatePlankton(dt) {
       else {
         const s = Math.max(d, 1), v = Math.max(d / 0.12, 60) * dt;
         p.x += (c.x - p.x) / s * Math.min(v, d); p.y += (c.y - p.y) / s * Math.min(v, d);
-        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (p.cap.poly.bl) p.cap.poly.bl.n++; if (p.sw) swarmCatch(p, false, p.cap.poly, c.x, c.y - 14); else gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank * (1 + CONFIG.gen.feedCatch * (linOf(p.cap.poly).traits.feed - 3)), c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
+        if (d < 6) { p.dead = true; const nt = isNight(); if (nt) game.stats.nightPlankton++; if (flowOf(p.cap.poly) >= CONFIG.edgeFlow) game.stats.edgeCatch++; if (typeOf(p.cap.poly) === 'fan') fgBump('fanFed'); if (p.cap.poly.bl) p.cap.poly.bl.n++; if (p.sw) swarmCatch(p, false, p.cap.poly, c.x, c.y - 14); else gain((nt && has('F4') ? CONFIG.nightAutoEnergy : CONFIG.autoEnergy) * TY(typeOf(p.cap.poly)).plank * (1 + CONFIG.gen.feedCatch * (linOf(p.cap.poly).traits.feed - 3)), c.x, c.y - 14); sfx('auto', c.x, c.y); spawnParts('puff', c.x, c.y - 6, CONFIG.juice.autoPuffs); }
         continue;
       }
     }
@@ -1752,6 +1776,7 @@ function addPolyp(c, r, type, from) {   // from: the polyp it buds from (it inhe
   if (from && from.plan) p.plan = from.plan;   // G4: a bud keeps its colony's plan
   game.polyps.push(p); game.seaweed.delete(key(c, r));
   game.cells.set(key(c, r), { kind: 'polyp', ref: p });
+  fgGrow(p.type);
   return p;
 }
 function setActive(p) {
@@ -1795,6 +1820,7 @@ function trySettle() {
     game.cells.delete(key(t.c, t.r));
   }
   const p = addPolyp(t.c, t.r);
+  if (game.goals.stage >= 3) fgBump('cleanSettles');   // field guide: a swim as a larva after Reef that ended in a settle
   game.stage = 'polyp'; saveSoon();
   setActive(p);
   if (!game.progress.settled) { game.progress.settled = true; toast('Settled. Hold the mouse to catch plankton'); }
@@ -1806,7 +1832,7 @@ function trySettle() {
   sfx('thud');
   return true;
 }
-function lostBy(k, n) { const L = game.stats.lost || (game.stats.lost = {}); L[k] = (L[k] || 0) + n; }   // run report: polyps lost, by cause
+function lostBy(k, n) { const L = game.stats.lost || (game.stats.lost = {}); L[k] = (L[k] || 0) + n; fgLoss(k); }   // run report: polyps lost, by cause
 function toSkeleton(p) {
   p.dead = true;
   game.polyps = game.polyps.filter(q => q !== p);
@@ -2104,7 +2130,7 @@ function doSting() {
   game.sting.cd = CONFIG.stingCooldown;
   let hit = 0;
   for (const n of game.nibblers) {
-    if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; }
+    if (distSeg(n.x, n.y, cc.x, sy, ex, ey) <= CONFIG.stingRadius) { driveOff(n, cc.x, cc.y, CONFIG.nibblerFlee); hit++; fgBump('nibStung'); }
   }
   trigSting(cc.x, sy, ex, ey);   // armoured: clinks and does nothing
   if (schoolSting(cc.x, sy, ex, ey)) hit++;   // a damselfish school: enough fish hit scatters the whole shoal
@@ -2183,7 +2209,7 @@ function updateClown(dt) {
     let tx, ty, sp;
     if (tgt) {
       f.mode = 'chase'; tx = tgt.x; ty = tgt.y; sp = CONFIG.clownChaseSpeed;
-      if (bd < 18) { driveOff(tgt, f.x, f.y, CONFIG.clownFlee, false); f.cool = 1.6; }
+      if (bd < 18) { driveOff(tgt, f.x, f.y, CONFIG.clownFlee, false); f.cool = 1.6; fgBump('clownDrive'); }
     } else if (f.aside && game.time < f.aside.until) {   // stung aside: it keeps clear of the spot for a while
       f.mode = 'home'; tx = f.aside.x; ty = f.aside.y; sp = CONFIG.res.asideSpeed;
     } else {
@@ -2400,6 +2426,7 @@ function spawnRes(kind, h, dev) {
     t: 0, threatAt: -999, seen: -999, job: 0, tm: 0, tm2: 0, act: null, trail: [], pos: 0, alpha: 1 };
   if (kind === 'turtle') { r.visitor = true; r.hap = r.hapT = 100; }
   R.list.push(r); if (h) h.res.push(r);
+  fgMeet(kind);
   const first = resN(kind) === 1;
   r.first = first;
   syncSpecies();
@@ -2438,7 +2465,7 @@ function clownRec() {
   let r = game.res.list.find(q => q.kind === 'clown');
   if (!r) {
     r = { kind: 'clown', hab: null, home: null, dev: false, x: 0, y: 0, vx: 0, vy: 0, head: 0, face: 1, mode: 'home', hap: CONFIG.res.hapStart, hapT: CONFIG.res.hapStart, parts: null, lowT: 0, seed: 1, born: game.time, t: 0, threatAt: -999, seen: -999, job: 0, tm: 0, tm2: 0, act: null, trail: [], pos: 0, alpha: 1 };
-    game.res.list.push(r);
+    game.res.list.push(r); fgMeet('clown');
   }
   return r;
 }
@@ -2499,9 +2526,10 @@ function calcBio() {
 }
 const bioMult = () => 1 + CONFIG.bio.mult * game.bio.B;
 // polyp damage factor: a goby's alarm halves it near the burrow
-function dmgFactor(p) {
+function dmgFactor(p, base) {   // base: the hp the bite would take; what the alarm spares is counted for the field guide
   let f = 1;
   for (const r of game.res.list) if (r.kind === 'goby' && r.alarm > 0 && resLive(r) && Math.hypot((p.c + 0.5) * CELL - r.x, (p.r + 0.5) * CELL - r.y) <= CONFIG.res.goby.alarmRange * CELL) f = Math.min(f, CONFIG.res.goby.alarmDmg);
+  if (f < 1 && base) fgBump('gobySaved', base * (1 - f));
   return f;
 }
 // a thicket guarded by crabs: starfish (a later slice) never pick a polyp here
@@ -2591,7 +2619,7 @@ function jobCrab(r, dt, m) {
   for (const s of game.starfish) {   // a starfish in the thicket is pushed out and hurt (starfish arrive in a later slice)
     const d = Math.hypot(s.x - hc.x, s.y - hc.y); if (d >= C.guard * CELL) continue;
     s.x += (s.x - hc.x) / (d || 1) * C.shove * dt; s.y += (s.y - hc.y) / (d || 1) * C.shove * 0.5 * dt;
-    if ((r.tm2 -= dt) <= 0) { r.tm2 = C.pushEvery / m; s.hp = (s.hp === undefined ? 3 : s.hp) - C.pushHp; r.job = 0.7; r.fight = true; }
+    if ((r.tm2 -= dt) <= 0) { r.tm2 = C.pushEvery / m; s.hp = (s.hp === undefined ? 3 : s.hp) - C.pushHp; r.job = 0.7; r.fight = true; fgBump('crabStar'); }
   }
   r.job = Math.max(0, r.job - dt);
 }
@@ -2658,7 +2686,7 @@ function jobParrot(r, dt, m) {
           if (!game.res.sandToast) { game.res.sandToast = true; toast('Parrotfish are grinding dead coral into sand'); }
           if (s.bites >= C.bites) { game.skeletons = game.skeletons.filter(q => q !== s); game.cells.delete(key(s.c, s.r)); game.fx.push({ kind: 'ring', x: T.x, y: T.y, t: 0, life: 0.6 }); spawnParts('dust', T.x, T.y, 8); }
           const sw = seaweedNear(T, C.reach).sort((p, q) => Math.hypot(p.c - s.c, p.r - s.r) - Math.hypot(q.c - s.c, q.r - s.r))[0];
-          if (sw) game.seaweed.delete(key(sw.c, sw.r));   // seaweed is cleared too (a later slice grows it)
+          if (sw) { game.seaweed.delete(key(sw.c, sw.r)); fgBump('weedCleared'); }   // seaweed is cleared too (a later slice grows it)
           r.biteT = C.bite;
         } else {
           const p = a.p; p.hp -= C.scrapeHp * (devs.god ? 0 : 1); p.hurt = 0.5; p.lastHit = now; sfx('bite', T.x, T.y); spawnParts('dust', T.x, T.y, 5);
@@ -2686,7 +2714,7 @@ function jobUrchin(r, dt, m) {
   if (near) {
     r.noWeedT = 0; r.chewing = false;
     const T = cellCenter(near.c, near.r), d = crawl(r, T.x, T.y + 6, C.speed, dt);
-    if (d < CELL && r.eatT <= 0) { game.seaweed.delete(key(near.c, near.r)); r.eatT = C.graze; r.job = 0.8; spawnParts('puff', T.x, T.y, 4); sfx('crunch', T.x, T.y); }
+    if (d < CELL && r.eatT <= 0) { game.seaweed.delete(key(near.c, near.r)); fgBump('weedCleared'); fgBump('weedUrchin'); fgBump('weedUT'); r.eatT = C.graze; r.job = 0.8; spawnParts('puff', T.x, T.y, 4); sfx('crunch', T.x, T.y); }
     return;
   }
   if (fed) r.noWeedT = 0; else r.noWeedT = (r.noWeedT || 0) + dt;
@@ -2716,7 +2744,7 @@ function jobMoray(r, dt, m) {
   r.job = Math.max(0, r.job - dt);
   for (const f of game.fish) {   // predator fish never come near the mouth
     const d = Math.hypot(f.x - M.x, f.y - M.y); if (d >= R) continue;
-    r.seen = now;
+    r.seen = now; if (now - (f.mscare === undefined ? -99 : f.mscare) > 20) fgBump('morayScare'); f.mscare = now;
     const nx = (f.x - M.x) / (d || 1), ny = (f.y - M.y) / (d || 1); f.x = M.x + nx * R; f.y = M.y + ny * R;
     if (f.vx * nx + f.vy * ny < 0) { f.vx = 0; f.vy = 0; }
     if (f.mode === 'patrol') pickWaypoint(f);
@@ -2782,7 +2810,7 @@ function jobTurtle(r, dt) {
   r.eatT = (r.eatT === undefined ? C.graze : r.eatT) - dt;
   if (r.eatT <= 0) {
     const w = seaweedNear(r, C.grazeRange)[0]; r.eatT = C.graze;
-    if (w) { game.seaweed.delete(key(w.c, w.r)); r.job = 0.8; spawnParts('puff', r.x, r.y, 3); }
+    if (w) { game.seaweed.delete(key(w.c, w.r)); fgBump('weedCleared'); fgBump('weedTurtle'); fgBump('weedUT'); r.job = 0.8; spawnParts('puff', r.x, r.y, 3); }
   }
 }
 const JOBS = { crab: jobCrab, shrimp: jobShrimp, parrot: jobParrot, urchin: jobUrchin, moray: jobMoray, goby: jobGoby, turtle: jobTurtle };
@@ -2942,6 +2970,7 @@ function updateFish(dt) {
     const canChase = game.stage === 'larva' && L.inv <= 0 && f.cool <= 0;
     if (f.mode === 'chase') { if (!canChase || d > CONFIG.fishGiveUp) { f.mode = 'patrol'; pickWaypoint(f); } }
     else if (canChase && d < CONFIG.fishSense) f.mode = 'chase';
+    if (f.mode === 'chase' && !f.gch) { f.gch = true; fgMeet('hunter'); } else if (f.mode !== 'chase') f.gch = false;
     let tx = f.tx, ty = f.ty, sp = CONFIG.fishPatrolSpeed;
     if (f.pickNew) { f.pickNew = false; f.mode = 'patrol'; f.cool = Math.max(f.cool, 2); pickWaypoint(f); tx = f.tx; ty = f.ty; }
     if (f.mode === 'chase') { tx = L.x; ty = L.y; sp = CONFIG.fishChaseSpeed; }
@@ -2965,6 +2994,7 @@ function updateFish(dt) {
       f.vx = -dx / m * 60; f.vy = -dy / m * 60;
       game.fx.push({ kind: 'ring', x: L.x, y: L.y, t: 0, life: 0.5, red: true });
       toast(`Caught! Lost ${Math.round(lost)} energy`);
+      fgBump('larvaCaught'); if (game.goals.stage >= 3) game.stats.cleanSettles = 0; fgLoss('caught');
     }
   }
 }
@@ -3101,6 +3131,7 @@ function spawnNibbler() {
     const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d * 0.6;
     if (x < 60 || x > LAG - 60 || y < 80 || blockedAt(x, y, CONFIG.nibblerRadius + 4, '')) continue;
     game.nibblers.push({ x, y, vx: 0, vy: 0, head: 0, mode: 'seek', tgt: null, ap: null, bite: 0, chomp: 0, age: 0, fleeT: 0, fx: x, fy: y, stung: 0, seed: Math.random() * 10 });
+    fgMeet('nibbler');
     return;
   }
 }
@@ -3172,7 +3203,7 @@ function updateNibblers(dt) {
               n.bite = 0; n.chomp = 0.3;
               const p = n.tgt;
               if (game.polyps.length <= CONFIG.nibblerSpare) { n.mode = 'leave'; n.tgt = null; continue; }
-              p.hp -= devs.god ? 0 : CONFIG.nibblerBite * dmgFactor(p); p.hurt = 0.5; p.lastHit = game.time;
+              p.hp -= devs.god ? 0 : CONFIG.nibblerBite * dmgFactor(p, CONFIG.nibblerBite); p.hurt = 0.5; p.lastHit = game.time;
               sfx('bite', cc.x, cc.y);
               game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
               if (game.stats.nibbles++ === 0) toast('A nibbler is eating your polyps');
@@ -3237,6 +3268,7 @@ function hzPick(open) {   // the newest unlocked tier is CONFIG.hz.newest times 
 function hzStart(id, side) {
   const H = hzState(); H.cur = id; H.pend = null; H.waves++; H.start = game.season.t; H.pAt = H.p;
   HZ_TIERS[id].spawn(side || hzSide());
+  fgMeet(id);
 }
 function hzEnd(H) {
   H.log.push(Object.assign({ id: H.cur, at: Math.round(H.start), p: +H.pAt.toFixed(1) }, HZ_TIERS[H.cur].result()));
@@ -3245,7 +3277,7 @@ function hzEnd(H) {
   H.cur = null; H.last = game.season.t; H.next = -1;
 }
 function hzKeptNote(T) {   // a kept-away tier: the first time, say why nothing came
-  const st = game.stats, H = HZ_TIERS[T.id]; st.hzKept = (st.hzKept || 0) + 1;
+  const st = game.stats, H = HZ_TIERS[T.id]; st.hzKept = (st.hzKept || 0) + 1; fgBump('kept_' + T.id);
   if (st.hzKept === 1 && H.keptToast) toast(H.keptToast);
 }
 const hzKept = T => !!(HZ_TIERS[T.id].kept && HZ_TIERS[T.id].kept());
@@ -3411,7 +3443,7 @@ function schoolUpdate(dt) {
             if (f.bite >= K.biteEvery) {
               f.bite = 0; f.chomp = 0.3;
               const p = f.tgt;
-              p.hp -= devs.god ? 0 : K.bite * dmgFactor(p); p.hurt = 0.5; p.lastHit = game.time;
+              p.hp -= devs.god ? 0 : K.bite * dmgFactor(p, K.bite); p.hurt = 0.5; p.lastHit = game.time;
               if (f.voice) sfx('bite', cc.x, cc.y);
               game.fx.push({ kind: 'bite', x: cc.x, y: cc.y, t: 0, life: 0.55 });
               if (p.hp <= 0) {
@@ -3529,7 +3561,11 @@ function frontDone() {
   if (fr.t > CONFIG.hz.front.leaveAfter + 60) { for (const s of game.starfish) if (s.front) s.dead = true; if (H.sc) H.sc.fish.length = 0; if (H.tf) H.tf.fish.length = 0; }
   return fr.parts && !frontStars().length && !schoolFish().length && !trigFish().length;
 }
-function frontEnd() { game.hz.fr = null; }
+function frontEnd() {   // a front is over: how many polyps it cost, for the field guide
+  const fr = game.hz.fr;
+  if (fr) { fgBump('frontsEnded'); if (fr.lost <= 0.05 * fr.found) fgBump('frontSmall'); if (!fr.lost) fgBump('frontZero'); }
+  game.hz.fr = null;
+}
 /* ----- tier 4: boring worms. They live INSIDE thick old coral. A wave marks the oldest, thickest polyps (off the bare rock) as bored: they hold CONFIG.hz.worms.strCut x as firm, so the next storm snaps them,
    and a bored cell counts extra toward a sagging overhang. Every `spread` s an unanswered wave bores one more neighbouring cell, up to the lossCap quota of cells; the worms die off after `life` s.
    Answers: a Snap that cuts bored cells off, or a home cleaner shrimp (one bored cell in its reach every shrimpEvery s). With S4 cemented cells (beside rock or rooted dead coral, corners included) are never bored.
@@ -6283,6 +6319,7 @@ const BAR_ICON = {
   bail: svgI('<circle cx="6" cy="8" r="2.2" stroke="#d6f2ff" stroke-width="1.6"/><path d="M3.8 8c-1-1.2-2 .8-2.8 0" stroke="#d6f2ff" stroke-width="1.4"/><path d="M10 5h4M10.5 8h3.5M10 11h4" stroke="#7be3b0" stroke-width="1.4"/>'),
   tree: svgI('<path d="M8 4.5V7.5M8 7.5L4.5 10M8 7.5l3.5 2.5" stroke="#d6f2ff" stroke-width="1.6"/><circle cx="8" cy="3.2" r="1.7" stroke="#fff3d6" stroke-width="1.6"/><circle cx="4" cy="11.5" r="1.7" stroke="#7be3b0" stroke-width="1.6"/><circle cx="12" cy="11.5" r="1.7" stroke="#7be3b0" stroke-width="1.6"/>'),
   report: svgI('<rect x="3.2" y="3" width="9.6" height="11" rx="1.8" stroke="#d6f2ff" stroke-width="1.6"/><path d="M6 3V2h4v1" stroke="#d6f2ff" stroke-width="1.6"/><path d="M5.8 7h4.4M5.8 9.8h2.4" stroke="#d6f2ff" stroke-width="1.4"/><circle cx="10.6" cy="10.8" r="1" fill="#7be3b0" stroke="none"/>'),
+  fguide: svgI('<path d="M3 3.2c2-.9 3.9-.8 5 .6 1.1-1.4 3-1.5 5-.6v9.4c-2-.9-3.9-.8-5 .6-1.1-1.4-3-1.5-5-.6z" stroke="#fff3d6" stroke-width="1.5"/><path d="M8 3.8v9.4" stroke="#d6f2ff" stroke-width="1.4"/>'),
   ach: svgI('<path d="M8 1.8l1.9 3.9 4.2.6-3.1 3 .8 4.2L8 11.5l-3.8 2 .8-4.2-3.1-3 4.2-.6z" stroke="#fff3d6" stroke-width="1.6"/>'),
   genome: svgI('<path d="M5 2c0 3.2 6 4 6 6s-6 2.8-6 6" stroke="#d6f2ff" stroke-width="1.6"/><path d="M11 2c0 3.2-6 4-6 6s6 2.8 6 6" stroke="#fff3d6" stroke-width="1.6"/><path d="M5.8 4.6h4.4M5.8 11.4h4.4" stroke="#7be3b0" stroke-width="1.2"/>'),
   struct: svgI('<path d="M8 2l6 3-6 3-6-3z" stroke="#fff3d6" stroke-width="1.6"/><path d="M2 8l6 3 6-3M2 11l6 3 6-3" stroke="#d6f2ff" stroke-width="1.6"/>'),
@@ -6321,6 +6358,7 @@ const BAR = [
   { id: 'frag', grp: 'act', label: () => 'Snap', key: () => 'F', show: () => has('G3'), dis: () => !polypNow() ? 'Settle first' : game.time < game.g3.next ? `Recharging (${Math.ceil(game.g3.next - game.time)} s)` : '', on: () => game.arm === 'frag', tip: 'Click, then click the reef to throw a snapped branch tip there (F: at the cursor)', arm: 'frag', cd: () => Math.max(0, (game.g3.next - game.time) / CONFIG.unl.g3.cd), go: () => toggleArm('frag') },
   { id: 'plan', grp: 'act', label: () => 'Plan: ' + PLAN_NAME[game.plans.cur || 'off'], key: () => 'P', show: () => has('G4'), on: () => !!game.plans.cur && game.plans.cur !== 'off', dis: () => polypNow() ? '' : 'Settle first', tip: 'Set a growth plan for this colony: Up, Wide, Thicken, Off', go: () => cyclePlan() },
   { id: 'ach', grp: 'panel', label: () => 'Awards', key: () => 'J', show: () => game.goals.stage >= 2, on: () => achEl.style.display === 'block', dis: () => '', tip: 'Achievements earned this run', go: () => toggleAch() },
+  { id: 'fguide', grp: 'panel', label: () => 'Field guide', key: () => 'B', show: () => fgAnyMet(), on: () => fgOpen(), dot: () => !!game.fguide.dot, dis: () => '', tip: () => `${fgDoneN()}/${GUIDE.length} pages finished`, go: () => toggleGuideBook() },
   { id: 'genome', grp: 'panel', label: () => 'Genome', key: () => 'Shift+click', show: () => polypNow() && (!!game.active.lin || has('X1')), dis: () => '', tip: 'Show this lineage: its traits and colour', go: () => openLinCard(game.active) },
   { id: 'zoom', grp: 'view', label: () => 'Reef view', key: () => 'Z', show: () => game.polyps.length >= 2, on: () => game.reefView, dis: () => '', tip: 'Zoom out to see the whole reef. Mouse wheel zooms in and out', go: () => toggleReefView() },
   { id: 'tree', grp: 'panel', label: () => 'Tree', key: () => 'T', show: () => true, dot: () => treeAffordable(), dis: () => '', tip: 'Open the tech tree', go: () => openTree() },
@@ -6330,7 +6368,7 @@ const BAR = [
 ];
 const BAR_ORDER = {
   act: ['settle', 'bud', 'sting', 'guide', 'frag', 'plan', 'bail', 'type'],
-  panel: ['tree', 'report', 'ach', 'genome'],
+  panel: ['tree', 'report', 'ach', 'fguide', 'genome'],
   view: ['struct', 'zoom'],
   menu: ['mute', 'new', 'dev'],
 };
@@ -6916,10 +6954,12 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyX' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleX(); return; }
   if (e.code === 'KeyL' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) toggleLinView(); return; }
   if (e.code === 'KeyJ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && game.goals.stage >= 2) toggleAch(); return; }
+  if (e.code === 'KeyB' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open && !game.titleOn) toggleGuideBook(); return; }
   if (e.code === 'KeyZ' && !e.ctrlKey && !e.metaKey && !e.altKey) { if (!e.repeat && !game.tree.open) toggleReefView(); return; }
   if (e.code === 'Escape' && game.reefView) { toggleReefView(false); return; }
   if (e.code === 'KeyT') { e.preventDefault(); if (!e.repeat) game.tree.open ? closeTree() : openTree(); return; }
   if (e.code === 'Escape' && achEl.style.display === 'block') { achEl.style.display = 'none'; return; }
+  if (e.code === 'Escape' && fgOpen()) { toggleGuideBook(false); return; }
   if (e.code === 'Escape' && game.arm) { setArm(null); return; }
   if (e.code === 'Escape' && game.guide) { cancelGuide('Guided growth cancelled'); return; }
   if (e.code === 'Escape') { if (game.tree.open) { e.preventDefault(); closeTree(); } return; }
@@ -6990,7 +7030,7 @@ function updateSeason(dt) {
   if (game.goals.stage < 2) return;   // paused until the reef is a colony
   const S = game.season; S.t += dt;
   const ab = seasonAbs(S.t);
-  if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { const prev = S.abs; S.abs = ab; achSeason(prev, ab); reportAuto(); flowSeason(ab); }
+  if (S.abs === undefined) S.abs = ab; else if (ab !== S.abs) { const prev = S.abs; S.abs = ab; achSeason(prev, ab); fgSeason(prev, ab); reportAuto(); flowSeason(ab); }
   if (cycloneWaiting()) return;   // the final cyclone takes the place of the storms until it has come
   const s = nextStormStart(S.t); if (s === null) return;
   if (S.t < s && s - S.t <= CONFIG.forecastSecs && S.fc !== s) {
@@ -7669,7 +7709,8 @@ const stormEnv = S => { const u = S.t / S.len; return u < 0.25 ? sm01(u / 0.25) 
 function startStorm(base) {
   if (game.storm) return;
   game.storm = { t: 0, len: CONFIG.stormSecs, base: base !== undefined ? base : game.stats.storms === 0 ? CONFIG.firstStormPower : 1, tick: 0, lost: 0, rooted: 0, rum: 0, dir: Math.random() < 0.5 ? -1 : 1, ended: false };
-  game.stats.storms++;
+  game.stats.storms++; game.storm.n0 = game.polyps.length; game.storm.worms0 = typeof wormCells === 'function' ? wormCells().length : 0;   // field guide: what the storm began with
+  fgMeet('storm');
   toast('The storm hits. Hold on'); beat(0.4, 0.5);
 }
 function stormSurge(x, y, t) { return game.storm ? game.storm.dir * CONFIG.stormCurrent * game.stormPw * (0.6 + 0.4 * Math.sin(t * 1.7 + y * 0.01)) : 0; }
@@ -7686,6 +7727,7 @@ function updateStorm(dt) {
   } else if (env >= 0.999) { S.tick += dt; while (S.tick >= CONFIG.stormTick) { S.tick -= CONFIG.stormTick; stormBreak(S.base); } }
   if (S.t >= S.len) {
     S.ended = true; game.storm = null; game.stormPw = 0; game.stats.stormsSurvived++;
+    fgStormEnd(S);
     stormReport(S);
   }
 }
@@ -7784,6 +7826,7 @@ function makeFrag(polys, skels) {
   game.polyps = game.polyps.filter(a => !a.frag);
   game.skeletons = game.skeletons.filter(a => !skels.includes(a));
   game.frags.push(f);
+  if (game.storm) { if (polys.some(a => typeOf(a) === 'plate')) game.storm.plateLost = true; if (polys.some(a => a.worm)) game.storm.wormLost = true; }   // field guide
   game.stats.stormLost += polys.length; game.stats.polypsLost += polys.length; lostBy(polys.some(a => a.worm) ? 'worms' : 'storm', polys.length); if (game.storm) game.storm.lost += polys.length;
   const a = game.active;
   if (a && a.frag === f && game.stage === 'polyp') {   // the player rides it
@@ -7967,13 +8010,14 @@ function bleachChance(p) {
   return C.base * heatRegionK(p) * heatDepth(p) * (has('F3') ? C.f3 : 1) * Math.max(0, 1 - C.heatK * (linOf(p).traits.heat - 3)) * (has('C1') && lg < C.c1Light ? C.c1 : 1) * (has('C2') ? C.c2 : 1) * (has('C4') && lightOf(p) >= CONFIG.unl.c4.light ? CONFIG.unl.c4.bleach : 1) * evBleach(p);
 }
 function startHeat(a) {
-  const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.ran = a === undefined ? -2 : a; H.lost0 = game.stats.polypsLost; H.lit = game.polyps.filter(p => lightOf(p) >= 0.5).length;
+  const H = game.thr.heat; H.on = true; H.t = 0; H.checkT = 0; H.hit = []; H.gdone = false; fgMeet('heat'); H.ran = a === undefined ? -2 : a; H.lost0 = game.stats.polypsLost; H.lit = game.polyps.filter(p => lightOf(p) >= 0.5).length;
   banner('Heat wave', 'The shallows are too warm. Bright coral may bleach', '#ffd9a0');
   toast('A heat wave has begun: shallow coral may bleach'); sfx('forecast');
 }
 function endHeat() {
   const H = game.thr.heat, T = game.thr, C = CONFIG.threat; H.on = false;
   toast('The heat wave has passed');
+  fgBump('heatEnded'); if (H.hit.length && game.stats.polypsLost - H.lost0 < 10) fgBump('heatLight');
   if (H.lit >= 30 && game.stats.polypsLost === H.lost0) award('A8');
   if (game.goals.stage >= 4 && H.hit.length && Math.random() < C.dis.chance) T.dis.startAt = game.season.t + C.dis.delay;   // disease may follow
 }
@@ -8051,6 +8095,7 @@ function startWeed(a, force) {   // the bloom: 3 cells on bare rock far from any
     const s = pool[Math.floor(Math.random() * pool.length)]; game.seaweed.add(key(s[0], s[1])); n++;
     for (let i = 0; i < 30 && n < C.seeds; i++) { const q = [...game.seaweed].map(k => k.split(',').map(Number)); const b = q[Math.floor(Math.random() * q.length)], nx = weedSpread(b[0], b[1]); if (nx) { game.seaweed.add(key(nx[0], nx[1])); n++; } }
   }
+  fgMeet('weed');
   banner('Seaweed bloom', 'Runoff feeds the algae. It creeps over bare rock and weak coral', '#c8e89a');
   toast('A seaweed bloom has begun'); sfx('forecast');
 }
@@ -8133,7 +8178,7 @@ function infect(p, first) {
   p.inf = { t: 0, cure: 0 }; const D = game.thr.dis;
   if (!D.on) D.lost0 = game.stats.diseaseLost;
   if (!D.on || first) {
-    D.on = true;
+    D.on = true; fgBump('diseaseOutbreaks'); fgMeet('disease');
     banner('White band disease', 'A white band is creeping across your coral. Cut a gap ahead of it, or bring it near a cleaner shrimp', '#f4efe6');
     toast('White band disease has broken out'); sfx('rumble');
   }
@@ -8157,7 +8202,7 @@ function updateDisease(dt) {
   }
   if (!D.on) return;
   const sick = game.polyps.filter(p => p.inf);
-  if (!sick.length) { D.on = false; toast('The white band disease has run its course'); if (game.stats.diseaseLost - (D.lost0 || 0) <= 8) award('A10'); return; }
+  if (!sick.length) { D.on = false; toast('The white band disease has run its course'); if (game.stats.diseaseLost - (D.lost0 || 0) < 10) fgBump('diseaseSmall'); if (game.stats.diseaseLost - (D.lost0 || 0) <= 8) award('A10'); return; }
   const shr = game.res.list.filter(r => r.kind === 'shrimp' && resLive(r) && r.mode !== 'arrive'), rad = (has('R3') ? CONFIG.res.shrimp.r3Radius : CONFIG.res.shrimp.radius) * CELL;
   for (const p of sick) {
     const px = (p.c + 0.5) * CELL, py = (p.r + 0.5) * CELL;
@@ -8262,6 +8307,7 @@ function startStar(a, dev) {
   const T = game.thr, St = T.star, n = starCount(), C = CONFIG.threat.star;
   St.eaten0 = game.stats.starfishEaten || 0; St.ran = a; St.endAt = dev ? game.season.t + 240 : seasonStart(a + 1) + CONFIG.dayLen;
   for (let i = 0; i < n; i++) spawnStar(i % 2 ? 1 : -1);
+  fgMeet('starfish');
   banner('Crown-of-thorns', `${n} starfish are creeping in along the floor. Sting them, or guard your branches with crabs`, '#ffb4b4');
   toast(`${n} crown-of-thorns starfish have arrived`); sfx('rumble');
 }
@@ -8325,7 +8371,7 @@ function updateStar(dt) {
   }
   game.starfish = game.starfish.filter(s => !s.dead);
   const seasonal = game.starfish.some(s => !s.front);
-  if (St.ran >= 0 && !seasonal && St.n !== -1) { St.n = -1; toast('The starfish are gone'); if ((game.stats.starfishEaten || 0) - (St.eaten0 || 0) < 10) award('A9'); }
+  if (St.ran >= 0 && !seasonal && St.n !== -1) { St.n = -1; toast('The starfish are gone'); if ((game.stats.starfishEaten || 0) - (St.eaten0 || 0) < 10) award('A9'); if ((game.stats.starfishEaten || 0) === (St.eaten0 || 0)) fgBump('starClean'); }
   if (seasonal) St.n = 0;
 }
 // D2 sweeper tentacles: an edge polyp stings a nibbler or starfish within 20 px of its edge every 4 s (1 damage), and clears one seaweed cell it touches every 15 s
@@ -8348,7 +8394,7 @@ function updateSweepers(dt) {
     }
     if (p.d2w <= 0 && game.seaweed.size) {
       const k = NB_DIRS.map(([dc, dr]) => key(p.c + dc, p.r + dr)).find(x => game.seaweed.has(x));
-      if (k) { game.seaweed.delete(k); p.d2w = C.weed.d2; } else p.d2w = 1;
+      if (k) { game.seaweed.delete(k); fgBump('weedCleared'); p.d2w = C.weed.d2; } else p.d2w = 1;
     }
   }
 }
@@ -8428,7 +8474,7 @@ const EVENTS = [
     doA() {
       const L = evLedge(), C = CONFIG.res.turtle; let crushed = 0;
       if (L) for (let c = L.c0; c <= L.c1 && crushed < 3; c++) { const p = livePolypAt(c, L.r); if (p) { killPolyp(p, ''); crushed++; } }
-      const r = spawnRes('turtle', null, true); r.dev = false;
+      const r = spawnRes('turtle', null, true); r.dev = false; fgBump('turtleRest');
       if (L) r.home = { x: (L.c0 + L.c1 + 1) / 2 * CELL, y: (L.r - 2.5) * CELL };
       return crushed ? `The turtle settles on the ledge and crushes ${crushed} polyp${crushed > 1 ? 's' : ''}` : 'The turtle settles on the ledge';
     },
@@ -8602,7 +8648,7 @@ function updateEvents(dt) {
       for (const s of game.skeletons) if (Math.hypot(s.c - ctr.c, s.r - ctr.r) <= C9.range) near.push({ s });
       if (!near.length) { sc.tickT = 0; break; }
       const q = near[Math.floor(Math.random() * near.length)];
-      if (q.w) { game.seaweed.delete(q.k); const [c, r] = q.k.split(',').map(Number); spawnParts('puff', (c + 0.5) * CELL, (r + 0.5) * CELL, 3); }
+      if (q.w) { game.seaweed.delete(q.k); fgBump('weedCleared'); const [c, r] = q.k.split(',').map(Number); spawnParts('puff', (c + 0.5) * CELL, (r + 0.5) * CELL, 3); }
       else { game.skeletons = game.skeletons.filter(a => a !== q.s); game.cells.delete(key(q.s.c, q.s.r)); spawnParts('dust', (q.s.c + 0.5) * CELL, (q.s.r + 0.5) * CELL, 3); }
       sc.cleared++; sc.sand++; game.sand += 1; game.stats.sandMade += 1;
     }
@@ -9026,6 +9072,295 @@ function toggleAch() { const on = achEl.style.display !== 'block'; if (on) { ren
 achEl.addEventListener('click', () => { achEl.style.display = 'none'; });
 for (const ev of ['mousedown', 'wheel', 'contextmenu']) achEl.addEventListener(ev, e => e.stopPropagation());
 
+/* ---------- the field guide (B): a page for every coral, resident and threat (notes/field-guide.md) ----------
+   game.fguide: met (page seen), done (3 deeds done), answered (a threat answered once), nudge (hint line shown), lossMeet (meetings that cost polyps while unanswered),
+   hintSeen (resident hint level 0..2), metAt (clock time), plus flag (this meeting already counted), wait (seasons a resident was missing), dd (deeds done), dot, yr (year snapshot).
+   Hooks: fgMeet(id) where a thing starts, fgLoss(cause) from lostBy, fgBump(stat) for counters in game.stats, fgSeason on each season change, fgStormEnd. */
+function fgFresh() { return { met: {}, done: {}, answered: {}, nudge: {}, lossMeet: {}, hintSeen: {}, metAt: {}, flag: {}, wait: {}, dd: {}, dot: false, yr: { nib: 0, out: 0, sch: 0 } }; }
+const fgStat = k => game.stats[k] || 0;
+function fgBump(k, n = 1) { game.stats[k] = (game.stats[k] || 0) + n; }
+const fgGrown = t => (game.stats.grown && game.stats.grown[t]) || 0;
+const fgLive = k => game.res.list.some(r => r.kind === k && resLive(r));
+const fgAnyMet = () => Object.keys(game.fguide.met).length > 0;
+const FG_LOSS = { storm: 'storm', nibbler: 'nibbler', bleach: 'heat', disease: 'disease', starfish: 'starfish', smother: 'weed', school: 'school', trigger: 'trigger', worms: 'worms', caught: 'hunter' };
+const fgD = (label, cur, need) => ({ label, cur, need });
+const GUIDE = [
+  // ----- corals: the three deeds are ranks I, II and III; the perk text is the three rank traits
+  { id: 'branch', tab: 'coral', name: 'Branching coral', desc: 'The fast, thin, upright coral that you start with.',
+    good: 'Reaching for light and spreading quickly.',
+    how: ['It buds fingers up and sideways from every polyp.', 'A long thin run with nothing under it sags and snaps.', 'Dense thickets of it are what guard crabs live in.'],
+    deeds: [fgD('Rank I: grow 40 branching polyps', () => fgGrown('branch'), 40), fgD('Rank II: grow 150', () => fgGrown('branch'), 150), fgD('Rank III: grow 400', () => fgGrown('branch'), 400)],
+    perk: 'I: buds 10% faster. II: a sideways run can go 2 cells further before it sags. III: the finger tips catch a little plankton.' },
+  { id: 'plate', tab: 'coral', name: 'Plate coral', desc: 'A broad, flat coral that drinks the light.',
+    good: 'Catching sunlight in the bright shallows.',
+    how: ['It spreads sideways in flat sheets.', 'It makes more sun than branching coral but catches less plankton.', 'A sheet shades the coral under it.'],
+    deeds: [fgD('Rank I: grow 20 plate polyps', () => fgGrown('plate'), 20), fgD('Rank II: grow 80', () => fgGrown('plate'), 80), fgD('Rank III: plates come through a storm with none lost', () => fgStat('plateStorms'), 1)],
+    perk: 'I: shades the coral under it less. II: a plate holds up the cell beside it. III: plates gather more light at dusk.' },
+  { id: 'brain', tab: 'coral', name: 'Brain coral', desc: 'A slow, round, strong coral that stores calcium.',
+    good: 'Standing firm and holding calcium.',
+    how: ['It grows slowly but is stronger than branching coral.', 'It buds only into a nook that touches solid cells.', 'It stores calcium for the reef.'],
+    deeds: [fgD('Rank I: grow 10 brain polyps', () => fgGrown('brain'), 10), fgD('Rank II: grow 40', () => fgGrown('brain'), 40), fgD('Rank III: a brain polyp survives 3 storms', () => fgStat('brainStorms'), 3)],
+    perk: 'I: brain buds 25% faster. II: makes calcium a little faster. III: a brain next to a branch makes that branch tougher.' },
+  { id: 'fan', tab: 'coral', name: 'Sea fan', desc: 'A lacy fan that sieves the current for food.',
+    good: 'Catching plankton from the passing current.',
+    how: ['It catches much more plankton than other corals.', 'It makes no calcium and holds nothing up.', 'It bends in storms and leans with the current.'],
+    deeds: [fgD('Rank I: grow 10 fans', () => fgGrown('fan'), 10), fgD('Rank II: grow 30', () => fgGrown('fan'), 30), fgD('Rank III: fans catch 500 plankton', () => fgStat('fanFed'), 500)],
+    perk: 'I: catches plankton further up the current. II: no longer breaks easily in storms. III: polyps downstream of a fan get a share of its catch.' },
+  { id: 'anemone', tab: 'coral', name: 'Anemone', desc: 'A soft stinging polyp that clownfish call home.',
+    good: 'Giving a home to clownfish.',
+    how: ['It needs open water on at least two sides.', 'Clownfish move in once one is healthy.', 'It is the only coral that is also a shelter.'],
+    deeds: [fgD('Rank I: host clownfish', () => game.fguide.met.clown ? 1 : 0, 1), fgD('Rank II: keep them for a full year', () => fgStat('clownSeasons'), 4), fgD('Rank III: 3 anemones at once', () => fgStat('anemonePeak'), 3)],
+    perk: 'I: clownfish chase nibblers further. II: anemones heal faster. III: a second clown pair can move in.' },
+  // ----- residents: Home and Does come from RES
+  { id: 'clown', tab: 'res', name: 'Clownfish', desc: 'A pair of bright fish that shelter in an anemone.',
+    how: ['They stay close to their anemone.', 'They chase nibblers that come near it.', 'They are unhappy if the anemone is hurt.'],
+    deeds: [fgD('Host clownfish', () => game.fguide.met.clown ? 1 : 0, 1), fgD('They drive off 20 nibblers', () => fgStat('clownDrive'), 20), fgD('Keep them through a storm', () => fgStat('clownStorms'), 1)],
+    perk: 'Clownfish also chase the orange hunter fish away.' },
+  { id: 'crab', tab: 'res', name: 'Guard crab', desc: 'A small crab that holds a branching thicket.',
+    how: ['It needs the thicket in the current to stay fed.', 'It shoves pests out of the cells around it.', 'A guarded thicket is passed over by starfish.'],
+    deeds: [fgD('Host guard crabs', () => game.fguide.met.crab ? 1 : 0, 1), fgD('2 thickets with crabs at once', () => fgStat('crabPeak'), 2), fgD('Crabs fight off a starfish', () => fgStat('crabStar'), 1)],
+    perk: 'Crabs guard one cell further around their thicket.' },
+  { id: 'shrimp', tab: 'res', name: 'Cleaner shrimp', desc: 'A tiny shrimp that picks at wounds and parasites.',
+    how: ['It heals the polyps around its cave.', 'It needs a fish nearby to clean.', 'It picks boring worms out of coral in its reach.'],
+    deeds: [fgD('Host cleaner shrimp', () => game.fguide.met.shrimp ? 1 : 0, 1), fgD('They heal 200 polyp health', () => Math.floor(fgStat('shrimpHeal')), 200), fgD('They clean 10 fish', () => fgStat('fishCleaned'), 10)],
+    perk: 'Shrimp also cure white band disease next to their cave.' },
+  { id: 'parrot', tab: 'res', name: 'Parrotfish', desc: 'A beaked fish that grinds dead coral into sand.',
+    how: ['It bites dead coral by day.', 'What it grinds becomes sand.', 'At night it sleeps in a sheltered spot.'],
+    deeds: [fgD('Host parrotfish', () => game.fguide.met.parrot ? 1 : 0, 1), fgD('They make 300 sand', () => Math.floor(fgStat('sandMade')), 300), fgD('They sleep in your reef 5 nights', () => fgStat('parrotNights'), 5)],
+    perk: 'Sand piles brace the coral that sits on them.' },
+  { id: 'urchin', tab: 'res', name: 'Sea urchin', desc: 'A spiny grazer that crops algae.',
+    how: ['It eats seaweed and leaves a few cells of its patch.', 'It goes for seaweed that touches coral first.', 'With no seaweed left it turns to live coral.'],
+    deeds: [fgD('Host sea urchins', () => game.fguide.met.urchin ? 1 : 0, 1), fgD('They clear 50 seaweed', () => fgStat('weedUrchin'), 50), fgD('A full year without chewing coral (seasons)', () => Math.floor(fgStat('urchinCalm') / CONFIG.seasonSecs), 4)],
+    perk: 'Urchins never chew live coral.' },
+  { id: 'moray', tab: 'res', name: 'Moray eel', desc: 'A long eel that lurks in a tunnel.',
+    how: ['No hunter fish come near its tunnel mouth.', 'It strikes at a triggerfish passing the mouth.', 'At night it hunts nibblers.'],
+    deeds: [fgD('Host a moray', () => game.fguide.met.moray ? 1 : 0, 1), fgD('It scares off 10 hunter fish', () => fgStat('morayScare'), 10), fgD('It eats 10 nibblers at night', () => fgStat('eelEaten'), 10)],
+    perk: 'Its tunnel counts as a safe spot: polyps beside it take half storm damage.' },
+  { id: 'goby', tab: 'res', name: 'Goby and pistol shrimp', desc: 'A pair that share a sandy burrow.',
+    how: ['The goby watches while the shrimp digs.', 'They sound an alarm when something attacks nearby.', 'They keep seaweed off their patch of sand.'],
+    deeds: [fgD('Host a goby and pistol shrimp', () => game.fguide.met.goby ? 1 : 0, 1), fgD('Their alarm spares 100 polyp health', () => Math.floor(fgStat('gobySaved')), 100), fgD('Keep their sand clear for a year (seasons)', () => fgStat('gobySeasons'), 4)],
+    perk: 'The alarm also warns of storms early.' },
+  { id: 'turtle', tab: 'res', name: 'Green sea turtle', desc: 'A big visitor from the open sea.',
+    how: ['It does not move in; it comes to visit.', 'While it is here it grazes seaweed.', 'It is heavy and can crush coral on its ledge.'],
+    deeds: [fgD('Have it visit', () => game.fguide.met.turtle ? 1 : 0, 1), fgD('Let it rest on your ledge', () => fgStat('turtleRest'), 1), fgD('It grazes 30 seaweed', () => fgStat('weedTurtle'), 30)],
+    perk: 'Turtles visit every year, not by chance.' },
+  // ----- threats: the first deed answers it; How to stop it opens once answered
+  { id: 'nibbler', tab: 'threat', name: 'Nibbler', desc: 'Small fish that bite polyps one at a time.',
+    how: ['They come to the reef once it has a few polyps.', 'Each one picks a polyp with open water beside it and bites until it dies.', 'A dead polyp leaves a skeleton.'],
+    stop: ['Sting them: right-click or E toward one and it flees.', 'Clownfish chase them off near their anemone.', 'Crabs shove them out of a thicket, and a moray hunts them at night.'],
+    nudge: 'Hint: they will not stay where they are poked.', answered: () => fgStat('nibStung') >= 1,
+    deeds: [fgD('Sting 30 nibblers', () => fgStat('nibStung'), 30), fgD('A year with fewer than 5 polyps lost to them', () => fgStat('nibYears'), 1), fgD('Let residents handle 30', () => fgStat('clownDrive') + fgStat('eelEaten') + fgStat('crabFights'), 30)],
+    perk: 'Stung nibblers flee for longer.' },
+  { id: 'hunter', tab: 'threat', name: 'Orange hunter fish', desc: 'Big orange fish that patrol the lagoon.',
+    how: ['They patrol and chase a swimming larva that comes close.', 'A catch costs energy and knocks you back.', 'They never chase a polyp that is settled.'],
+    stop: ['Sting one: it is knocked back and gives up the chase for a while.', 'Settle quickly rather than swim in the open.', 'A moray keeps them away from its tunnel mouth.'],
+    nudge: 'Hint: they only go for a swimmer, and they do not like being poked.', answered: () => fgStat('fishStung') >= 1,
+    deeds: [fgD('Sting one', () => fgStat('fishStung'), 1), fgD('After Reef, swim and settle 3 times without being caught', () => fgStat('cleanSettles'), 3), fgD('A moray keeps one off', () => fgStat('morayScare'), 1)],
+    perk: 'Hunter fish give up the chase sooner.' },
+  { id: 'storm', tab: 'threat', name: 'Storm', desc: 'Surge that tears at thin, unsupported coral.',
+    how: ['Two storms roll through each Storm season.', 'The surge snaps weak, thin branches off as fragments.', 'Fragments drift, and some take root where they land.'],
+    stop: ['Thicken the base and tie it to rock.', 'Shorten long thin runs and brace overhangs.', 'Fans and flexible branches bend rather than snap.'],
+    nudge: 'Hint: what snaps is thin and unsupported. The structure view (V) shows it.', answered: () => fgStat('stormsSurvived') >= 1,
+    deeds: [fgD('Survive 5 storms', () => fgStat('stormsSurvived'), 5), fgD('A clean storm: under 10% lost', () => fgStat('cleanStorms'), 1), fgD('3 fragments take root', () => fgStat('rooted'), 3)],
+    perk: 'Snapped fragments take root more often.' },
+  { id: 'heat', tab: 'threat', name: 'Heat wave', desc: 'Warm water that bleaches bright shallow coral.',
+    how: ['It comes in the Warm season.', 'Bright shallow coral may bleach: it turns white and makes no sun.', 'Bleached polyps recover after a while, or die.'],
+    stop: ['Deep coral and heat-tolerant lineages bleach less.', 'Coral in the shade stays safer.', 'Most polyps come back if you wait it out.'],
+    nudge: 'Hint: the harm follows the light. The deep stays cooler.', answered: () => fgStat('heatEnded') >= 1,
+    deeds: [fgD('Survive one', () => fgStat('heatEnded'), 1), fgD('Lose under 10 polyps in one', () => fgStat('heatLight'), 1), fgD('Every bleached polyp recovers', () => fgStat('heatAllBack'), 1)],
+    perk: 'Bleached polyps recover twice as fast.' },
+  { id: 'disease', tab: 'threat', name: 'White band disease', desc: 'A pale band that creeps across coral and kills it.',
+    how: ['It can follow a heat wave, starting on a bleached polyp.', 'The band kills a polyp in a short time.', 'It spreads to touching polyps.'],
+    stop: ['Cleaner shrimp cure infected polyps near their cave.', 'Cut a gap ahead of it so it has nothing to cross.', 'A sealed link carries no disease.'],
+    nudge: 'Hint: it only travels between touching polyps, and something small cleans coral.', answered: () => fgStat('diseaseCured') >= 1,
+    deeds: [fgD('Cure a polyp', () => fgStat('diseaseCured'), 1), fgD('Stop an outbreak under 10 lost', () => fgStat('diseaseSmall'), 1), fgD('A year with none', () => fgStat('diseaseYears'), 1)],
+    perk: 'Disease spreads half as fast.' },
+  { id: 'starfish', tab: 'threat', name: 'Crown-of-thorns starfish', desc: 'Spiny starfish that eat coral from the floor up.',
+    how: ['They arrive at dusk in the Wet season.', 'They creep along the floor, slowly.', 'A starfish eats a polyp over a few seconds.'],
+    stop: ['Sting them: a few stings kill one.', 'Crabs push them out of their thicket.', 'Edge polyps can sting nearby ones with the right unlock.'],
+    nudge: 'Hint: they are slow, and something that lives in thickets will not let them in.', answered: () => fgStat('starfishKilled') >= 1,
+    deeds: [fgD('See an outbreak', () => fgStat('starfishSeen') >= 1 ? 1 : 0, 1), fgD('Remove 10 starfish', () => fgStat('starfishKilled'), 10), fgD('End an outbreak with no coral lost', () => fgStat('starClean'), 1)],
+    perk: 'Starfish show up on the forecast a season ahead.' },
+  { id: 'weed', tab: 'threat', name: 'Seaweed bloom', desc: 'Algae that smothers weak coral.',
+    how: ['A bloom starts on bare rock in the Wet season.', 'It spreads over rock, skeletons and weak polyps.', 'It shades coral and blocks budding.'],
+    stop: ['Grazers eat it: urchins, parrotfish and turtles.', 'Edge polyps can clear a touching cell with the right unlock.', 'Healthy coral is not smothered.'],
+    nudge: 'Hint: something that eats it will move in beside a small patch.', answered: () => fgStat('weedCleared') >= 1,
+    deeds: [fgD('Clear 50 seaweed', () => fgStat('weedCleared'), 50), fgD('Keep the seaweed off for a season', () => fgStat('weedFreeSeasons'), 1), fgD('Urchins and turtles clear 50', () => fgStat('weedUT'), 50)],
+    perk: 'Seaweed spreads more slowly.' },
+  { id: 'school', tab: 'threat', name: 'Damselfish school', desc: 'A tight blue shoal that bites like many nibblers.',
+    how: ['They swim in at the colony\'s depth.', 'They pick one flank and bite polyps there.', 'They eat only part of what they found, then leave.'],
+    stop: ['Sting into the shoal: hit enough fish and the whole school scatters.', 'One fish is not enough; aim at the middle.', 'Sweeper tentacles scatter them too.'],
+    nudge: 'Hint: one sting at one fish does little. They scare as a group.', answered: () => fgStat('schoolsScattered') >= 1,
+    deeds: [fgD('Scatter one', () => fgStat('schoolsScattered'), 1), fgD('Scatter 5', () => fgStat('schoolsScattered'), 5), fgD('A year with none lost to them', () => fgStat('schoolYears'), 1)],
+    perk: 'A sting that hits a quarter of the shoal scatters it.' },
+  { id: 'trigger', tab: 'threat', name: 'Triggerfish', desc: 'An armoured fish that bites off branch tips.',
+    how: ['It swims in alone, sometimes with a second.', 'It picks a branch tip that no crab covers and bites it off.', 'A wave takes a share, then leaves.'],
+    stop: ['Stings clink off its armour.', 'Guard crabs shove it away, a moray strikes it, or a Snap cuts its branch.', 'With enough guard crabs it never comes.'],
+    nudge: 'Hint: it ignores your sting. Other animals and tools move it.', answered: () => fgStat('triggersDriven') >= 1,
+    deeds: [fgD('Drive one off', () => fgStat('triggersDriven'), 1), fgD('Drive off 5', () => fgStat('triggersDriven'), 5), fgD('Keep a wave away with guard crabs', () => fgStat('kept_trigger'), 1)],
+    perk: 'One guard crab is enough to keep a wave away.' },
+  { id: 'worms', tab: 'threat', name: 'Boring worms', desc: 'Worms that hollow out old, thick coral.',
+    how: ['They live inside your oldest, thickest coral.', 'Bored polyps are weaker, so a storm snaps them first.', 'A wave bores more neighbours until the worms die off.'],
+    stop: ['Snap the bored branch off.', 'A cleaner shrimp picks worms out of bored cells in its reach.', 'Coral cemented beside rock is never bored.'],
+    nudge: 'Hint: they are inside the coral, where a sting cannot reach.', answered: () => fgStat('wormsCleared') >= 1,
+    deeds: [fgD('Clear one wave (Snap or shrimp)', () => fgStat('wormsCleared'), 1), fgD('Clear 5', () => fgStat('wormsCleared'), 5), fgD('A storm with no bored coral lost', () => fgStat('wormStorms'), 1)],
+    perk: 'Worm-bored coral keeps 3/4 of its strength.' },
+  { id: 'front', tab: 'threat', name: 'Outbreak front', desc: 'Starfish, damselfish and triggerfish arriving together.',
+    how: ['Starfish creep in from both edges at once.', 'A damselfish school follows, and at high pressure a triggerfish.', 'They share one limit of lost polyps, then all leave.'],
+    stop: ['Answer each part the way you already know.', 'Do it before the limit is spent and the front is held.'],
+    nudge: 'Hint: every part of it has an answer you already know.', answered: () => fgStat('frontAnswered') >= 1,
+    deeds: [fgD('Hold a front', () => fgStat('frontAnswered'), 1), fgD('End one under 5% lost', () => fgStat('frontSmall'), 1), fgD('End one with no coral lost', () => fgStat('frontZero'), 1)],
+    perk: 'The front is forecast a full season ahead.' },
+];
+const GUIDE_BY = {}; for (const g of GUIDE) GUIDE_BY[g.id] = g;
+for (const id of RESKINDS) if (!GUIDE_BY[id]) console.error('field guide: no page for ' + id);
+
+function fgMeet(id, quiet) {   // a thing is on the reef: its page opens the first time, and a new meeting starts (for the nudge count)
+  const F = game.fguide, g = GUIDE_BY[id]; if (!F || !g) return;
+  F.flag[id] = false;
+  if (F.met[id]) return;
+  F.met[id] = true; F.metAt[id] = game.time;
+  if (!quiet) toast(`New field guide page: ${g.name} (B)`);
+  if (fgOpen()) fgRender();
+}
+function fgGrow(type) {   // a polyp of this coral type grew
+  const S = game.stats, G = S.grown || (S.grown = {}); G[type] = (G[type] || 0) + 1;
+  if (G[type] === 1) fgMeet(type);
+}
+function fgLoss(cause) {   // polyps (or a larva) were lost to this: the first loss of a meeting counts once, while the threat is unanswered
+  const F = game.fguide; if (!F) return;
+  const ids = [FG_LOSS[cause]];
+  if (frontOn() && (cause === 'starfish' || cause === 'school' || cause === 'trigger')) ids.push('front');
+  for (const id of ids) {
+    const g = GUIDE_BY[id]; if (!g || !F.met[id] || F.answered[id] || F.flag[id]) continue;
+    if (cause === 'storm' && !game.storm) continue;   // a Snap is not a storm
+    F.flag[id] = true; F.lossMeet[id] = (F.lossMeet[id] || 0) + 1;
+  }
+}
+function fgStormEnd(S) {
+  const F = game.fguide; if (!F) return;
+  const t0 = game.time - S.t;
+  if (fgLive('clown')) fgBump('clownStorms');
+  if (!S.plateLost && game.polyps.some(p => !p.dead && typeOf(p) === 'plate' && p.born < t0)) fgBump('plateStorms');
+  if (game.polyps.some(p => !p.dead && typeOf(p) === 'brain' && p.born < t0)) fgBump('brainStorms');
+  if (S.n0 >= 10 && S.lost * 10 < S.n0) fgBump('cleanStorms');
+  if (S.worms0 > 0 && !S.wormLost) fgBump('wormStorms');
+}
+function fgSeason(prev, next) {   // every season change
+  const F = game.fguide, C = CONFIG.guide, n = SEASONS.length; if (!F) return;
+  for (const id of RESKINDS) {   // hints for residents not met yet
+    if (F.met[id] || game.goals.stage < CONFIG.res[id].stage) continue;
+    F.wait[id] = (F.wait[id] || 0) + 1;
+    const lv = F.wait[id] >= C.fullHintAfter ? 2 : F.wait[id] >= C.hintAfter ? 1 : 0;
+    if (lv > (F.hintSeen[id] || 0)) { F.hintSeen[id] = lv; F.dot = true; }
+  }
+  if (fgLive('clown')) fgBump('clownSeasons');
+  if (fgLive('goby')) fgBump('gobySeasons');
+  if (F.met.weed && game.seaweed.size === 0) fgBump('weedFreeSeasons');
+  if (next % n === 0) {   // a year is over: judge it, and start the next
+    const L = game.stats.lost || {}, Y = F.yr;
+    if (F.met.nibbler && (L.nibbler || 0) - Y.nib < 5) fgBump('nibYears');
+    if (F.met.disease && fgStat('diseaseOutbreaks') === Y.out) fgBump('diseaseYears');
+    if (F.met.school && (L.school || 0) === Y.sch) fgBump('schoolYears');
+    F.yr = { nib: L.nibbler || 0, out: fgStat('diseaseOutbreaks'), sch: L.school || 0 };
+  }
+}
+function fgHint(id) {   // '' or the hint line for a resident not met yet
+  const lv = game.fguide.hintSeen[id] || 0, K = RES[id];
+  return lv >= 2 ? `Hint: it moves in near ${K.shape}.` : lv === 1 ? `Hint: lives in ${/^[aeiou]/.test(K.home) ? 'an' : 'a'} ${K.home}.` : '';
+}
+function fgCheck() {   // peaks, one-off judgements, answers, nudges and finished pages
+  const F = game.fguide; if (!F) return;
+  const mx = (k, v) => { if (v > fgStat(k)) game.stats[k] = v; };
+  mx('anemonePeak', anemones().length);
+  mx('crabPeak', new Set(game.res.list.filter(r => r.kind === 'crab' && resLive(r)).map(r => r.hab || r)).size);
+  const H = game.thr.heat;
+  if (!H.on && H.hit && H.hit.length && !H.gdone && H.hit.every(p => !p.bl)) { H.gdone = true; if (H.hit.every(p => game.polyps.includes(p))) fgBump('heatAllBack'); }
+  for (const g of GUIDE) {
+    if (g.answered && !F.answered[g.id] && g.answered()) F.answered[g.id] = true;
+    if (g.stop && !F.nudge[g.id] && !F.answered[g.id] && (F.lossMeet[g.id] || 0) >= CONFIG.guide.nudgeAfter) { F.nudge[g.id] = true; F.dot = true; }
+    if (!F.met[g.id]) continue;
+    let all = true;
+    g.deeds.forEach((d, i) => { const k = g.id + i; if (!F.dd[k] && d.cur() >= d.need) F.dd[k] = true; if (!F.dd[k]) all = false; });
+    if (all && !F.done[g.id]) { F.done[g.id] = true; toast(`Field guide page finished: ${g.name}`); sfx('species'); }
+  }
+}
+const fgA = { t: 1 };
+function updateFieldGuide(dt) {   // once a second: timed deeds, then the checks
+  const F = game.fguide; fgA.t -= dt; if (fgA.t > 0 || !F) return; fgA.t = 1;
+  if (game.goals.stage >= 2) {
+    const sh = game.res.list.filter(r => r.kind === 'shrimp' && resLive(r));
+    if (sh.length) for (const r of game.res.list) {   // a fish within reach of a shrimp for 20 s counts as cleaned once
+      if (!resLive(r) || r.kind === 'clown' || !RES[r.kind].fish || r.x === undefined) continue;
+      if (sh.some(o => wdist(o, r) <= CONFIG.res.cleanCells * CELL)) { if ((r.gcl = (r.gcl || 0) + 1) >= 20) { r.gcl = 0; fgBump('fishCleaned'); } }
+    }
+    if (isNight() && game.res.list.some(r => r.kind === 'parrot' && resLive(r) && r.asleep) && F.slN !== game.dn.nights) { F.slN = game.dn.nights; fgBump('parrotNights'); }
+    if (fgLive('urchin')) { const c = game.res.urchinChew || -1e9; if (c > (F.chewSeen === undefined ? -1e9 : F.chewSeen)) { F.chewSeen = c; game.stats.urchinCalm = 0; } else fgBump('urchinCalm'); }
+  }
+  fgCheck();
+  if (fgOpen()) fgRender();
+}
+// a save from before the field guide (or none): start fresh, and open the pages for what the reef already has
+function fgApplied(fresh) {
+  if (fresh) {
+    game.fguide = fgFresh(); const F = game.fguide, L = (game.stats && game.stats.lost) || {};
+    for (const p of game.polyps) F.met[typeOf(p)] = true;
+    for (const r of game.res.list) F.met[r.kind] = true;
+    const S = game.stats || {};
+    const seen = { nibbler: S.nibbles || S.nibStung, hunter: S.fishStung, storm: S.storms, heat: S.bleached, disease: S.diseaseLost || S.diseaseCured, starfish: S.starfishSeen, weed: S.smothered || S.weedCleared, school: S.schoolsSeen, trigger: S.triggersSeen, worms: S.wormWaves, front: S.frontSeen };
+    for (const id in seen) if (seen[id]) F.met[id] = true;
+    F.yr = { nib: L.nibbler || 0, out: S.diseaseOutbreaks || 0, sch: L.school || 0 };
+    for (const k in F.met) F.metAt[k] = game.time;
+  }
+  const F = game.fguide, B = fgFresh(); for (const k in B) if (F[k] === undefined) F[k] = B[k];
+  fgHtml = '';
+}
+// ----- the panel
+const fgEl = document.getElementById('fgpanel');
+let fgTab = 'coral', fgSel = 'branch', fgHtml = '';
+const FG_TABS = [['coral', 'Corals'], ['res', 'Residents'], ['threat', 'Threats']];
+const fgDoneN = () => GUIDE.filter(g => game.fguide.done[g.id]).length;
+const fgOpen = () => fgEl.classList.contains('on');
+const fgEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function fgPage(g) {
+  const F = game.fguide;
+  if (!F.met[g.id]) { const h = g.tab === 'res' ? fgHint(g.id) : ''; return `<h5>???</h5><p class="fgm">You have not found this one yet.</p>${h ? `<p class="fgn">${fgEsc(h)}</p>` : ''}`; }
+  let h = `<h5>${g.name}</h5><p>${g.desc}</p>`;
+  if (g.tab === 'coral') h += `<h6>Good at</h6><p>${g.good}</p>`;
+  if (g.tab === 'res') h += `<h6>Home</h6><p>${fgEsc(RES[g.id].shape.replace(/^./, c => c.toUpperCase()))}.</p><h6>Does</h6><p>${fgEsc(RES[g.id].job)}.</p>`;
+  h += `<h6>How it works</h6>` + g.how.map(l => `<p>${fgEsc(l)}</p>`).join('');
+  if (g.stop) h += `<h6>How to stop it</h6>` + (F.answered[g.id] ? g.stop.map(l => `<p>${fgEsc(l)}</p>`).join('') : `<p class="fgm">You have not stopped one yet.</p>${F.nudge[g.id] ? `<p class="fgn">${fgEsc(g.nudge)}</p>` : ''}`);
+  h += `<h6>${g.tab === 'coral' ? 'Mastery' : 'Deeds'}</h6>` + g.deeds.map((d, i) => { const done = !!F.dd[g.id + i]; return `<div class="fgd${done ? ' done' : ''}"><u>${done ? '&#10003;' : ''}</u><span>${fgEsc(d.label)}</span>${done ? '' : `<em>${Math.min(d.cur(), d.need)}/${d.need}</em>`}</div>`; }).join('');
+  const fin = !!F.done[g.id];
+  h += `<div class="fgp${fin ? ' on' : ''}">${fin ? 'Page finished. ' : ''}${g.tab === 'coral' ? 'Rank traits' : 'Perk'}: ${fgEsc(g.perk)}${fin ? '' : ' (finish the page to earn it)'}</div>`;
+  return h;
+}
+function fgRender(force) {
+  const F = game.fguide, list = GUIDE.filter(g => g.tab === fgTab);
+  if (!GUIDE_BY[fgSel] || GUIDE_BY[fgSel].tab !== fgTab) fgSel = list[0].id;
+  const html = `<h4>Field guide ${fgDoneN()}/${GUIDE.length}<i data-fg="close">B or Esc closes</i></h4><div class="fgtabs">` +
+    FG_TABS.map(([k, n]) => `<button data-fg="tab" data-id="${k}" class="${k === fgTab ? 'on' : ''}">${n}</button>`).join('') +
+    `</div><div class="fgbody"><div class="fgl">` +
+    list.map(g => { const met = !!F.met[g.id], fin = !!F.done[g.id], hint = !met && g.tab === 'res' && F.hintSeen[g.id]; return `<button data-fg="page" data-id="${g.id}" class="fgt ${met ? 'met' : 'un'}${fin ? ' fin' : ''}${g.id === fgSel ? ' sel' : ''}"><span class="fgs ${g.tab}"></span><b>${met ? g.name : '???'}</b>${fin ? '<u>&#10003;</u>' : hint ? '<i></i>' : ''}</button>`; }).join('') +
+    `</div><div class="fgr">${fgPage(GUIDE_BY[fgSel])}</div></div>`;
+  if (!force && html === fgHtml) return;
+  const old = fgEl.querySelector('.fgr'), ol = fgEl.querySelector('.fgl'), ot = old ? old.scrollTop : 0, lt = ol ? ol.scrollTop : 0;
+  fgHtml = html; fgEl.innerHTML = html;
+  const nr = fgEl.querySelector('.fgr'), nl = fgEl.querySelector('.fgl'); if (nr) nr.scrollTop = ot; if (nl) nl.scrollTop = lt;
+}
+function toggleGuideBook(on) {
+  const open = on === undefined ? !fgOpen() : on;
+  if (open) { fgCheck(); game.fguide.dot = false; fgRender(true); fgEl.classList.add('on'); } else fgEl.classList.remove('on');
+}
+fgEl.addEventListener('click', e => {
+  const b = e.target.closest('[data-fg]'); if (!b) return;
+  if (b.dataset.fg === 'close') toggleGuideBook(false);
+  else if (b.dataset.fg === 'tab') { fgTab = b.dataset.id; fgRender(true); }
+  else if (b.dataset.fg === 'page') { fgSel = b.dataset.id; fgRender(true); }
+});
+for (const ev of ['mousedown', 'wheel', 'contextmenu']) fgEl.addEventListener(ev, e => e.stopPropagation());
+window.devGuide = () => { for (const g of GUIDE) fgMeet(g.id, true); fgCheck(); if (fgOpen()) fgRender(true); return Object.keys(game.fguide.met).length; };   // dev: every page met (no toasts)
+
 /* ---------- slice 6b unlocks: tree stats, G3 fragmenting, G4 growth plans, S4 cement ---------- */
 function updateTreeStats(dt) {
   const S = game.stats;
@@ -9194,6 +9529,7 @@ function saveDecode(text) {
 function saveApply(st) {
   for (const k of Object.keys(st)) if (!SAVE.skip.has(k)) game[k] = st[k];
   if (!st.hz) game.hz = hzFresh();   // a save from before the hazard ladder
+  fgApplied(!st.fguide);   // a save from before the field guide gets a fresh one (caught up with what it already has)
   if (!st.flow) game.flow = { dir: 1, next: null };   // a save from before the current could turn
   CONFIG.flowDir = game.flow.dir;
   for (const q of game.newRock) if (inBounds(q.c, q.r)) game.grid[q.r * game.cols + q.c] = 1;   // S4 turned these into rock
@@ -9321,7 +9657,7 @@ function step(dt) {
   updatePolyps(dt);
   updateBud(dt);
   updateGuide(dt);
-  updateSeason(dt); updateEvents(dt); updateAch(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSag(dt); updateSand(dt); updateFin(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
+  updateSeason(dt); updateEvents(dt); updateAch(dt); updateFieldGuide(dt); updateTreeStats(dt); updateS4(dt); updatePlans(dt); updateThreats(dt); updateStorm(dt); updateSag(dt); updateSand(dt); updateFin(dt); updateFrags(dt); updateReport(dt); updateSportPick(dt); updateSpawn(dt); updateRegions(dt); if (game.xOpen && (game.tstX = (game.tstX || 0) - dt) <= 0) { game.tstX = 0.5; renderX(); } if (game.linView && (game.tstL = (game.tstL || 0) - dt) <= 0) { game.tstL = 0.5; renderLinView(); }
   game.sting.cd = Math.max(0, game.sting.cd - dt);
   checkReveals();
   if ((game.goals.chk -= dt) <= 0) { game.goals.chk = 0.25; checkStage(); }
