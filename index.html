@@ -75,7 +75,7 @@
   @keyframes hflash { 0% { box-shadow: 0 0 0 0 rgba(255,226,176,0); } 25% { box-shadow: 0 0 22px 3px rgba(255,226,176,0.75); } 100% { box-shadow: 0 0 0 0 rgba(255,226,176,0); } }
   #hud.flash { animation: hflash 1s ease-out; }
   @keyframes tnote { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
-  #toasts { z-index: 30; }
+  #toasts { z-index: 30; } body.fgopen #toasts { z-index: 36; }   /* above the field guide panel (35) while it is open */
   body.treeopen #toasts { top: auto; bottom: 18px; }
   body.treeopen .toast:not(.now) { display: none; }
   #tree { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 20; color: #d6f2ff; cursor: default;
@@ -215,28 +215,45 @@
   #achpanel .ag { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; } #achpanel .ai { display: flex; gap: 8px; padding: 5px 7px; border-radius: 7px; background: rgba(120, 190, 220, 0.07); opacity: 0.6; }
   #achpanel .ai u { text-decoration: none; width: 18px; height: 18px; flex: none; border-radius: 9px; border: 1.5px solid #4c6b7e; text-align: center; line-height: 16px; font-size: 12px; color: #1c1405; }
   #achpanel .ai.got { opacity: 1; background: rgba(255, 214, 120, 0.12); } #achpanel .ai.got u { background: #ffd679; border-color: #ffd679; } #achpanel .ai.later { opacity: 0.35; }
-  #fgpanel { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); z-index: 35; display: none; width: 860px; max-width: 96vw; max-height: calc(100vh - 84px); box-sizing: border-box; padding: 12px 14px; border-radius: 12px; background: rgba(4, 22, 40, 0.96); border: 1px solid rgba(150, 220, 240, 0.35); color: #dbeaf2; font-size: 12.5px; flex-direction: column; }
+  #fgpanel { position: fixed; left: 50%; top: 110px; transform: translateX(-50%); z-index: 35; display: none; width: 900px; max-width: 96vw; height: 600px; box-sizing: border-box; padding: 12px 14px 14px; border-radius: 12px; background: rgba(4, 22, 40, 0.96); border: 1px solid rgba(150, 220, 240, 0.35); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); color: #dbeaf2; font-size: 12.5px; flex-direction: column; }
   #fgpanel.on { display: flex; }
-  #fgpanel h4 { margin: 0 0 8px; font-size: 15px; color: #ffe3b0; flex: none; } #fgpanel h4 i { float: right; font-style: normal; font-size: 11px; color: #8aa0b2; font-weight: 400; cursor: pointer; }
-  #fgpanel .fgtabs { display: flex; gap: 6px; margin-bottom: 8px; flex: none; } #fgpanel .fgtabs button { flex: 1; padding: 5px 0; border-radius: 8px; border: 1px solid rgba(150, 220, 240, 0.2); background: rgba(120, 190, 220, 0.07); color: #9cc5d6; font: inherit; cursor: pointer; }
+  #fgpanel .fghead { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; flex: none; }
+  #fgpanel h4 { margin: 0; font-size: 15px; color: #ffe3b0; }
+  #fgpanel .fgbar { flex: 0 0 150px; height: 4px; border-radius: 2px; background: rgba(150, 200, 220, 0.2); overflow: hidden; } #fgpanel .fgbar i { display: block; height: 100%; border-radius: 2px; background: linear-gradient(90deg, #7be3b0, #ffd679); }
+  #fgpanel .fgcnt { color: #9cc5d6; font-size: 11.5px; } #fgpanel .fgx { margin-left: auto; color: #8aa0b2; font-size: 11px; cursor: pointer; }
+  #fgpanel .fgtabs { display: flex; gap: 6px; margin-bottom: 10px; flex: none; } #fgpanel .fgtabs button { flex: 1; padding: 5px 0; border-radius: 8px; border: 1px solid rgba(150, 220, 240, 0.2); background: rgba(120, 190, 220, 0.07); color: #9cc5d6; font: inherit; cursor: pointer; }
+  #fgpanel .fgtabs button small { margin-left: 5px; color: #7d909c; font-size: 11px; } #fgpanel .fgtabs button.on small { color: #ffe3b0; }
   #fgpanel .fgtabs button.on { background: rgba(255, 214, 120, 0.16); color: #fff; border-color: rgba(255, 214, 120, 0.5); }
-  #fgpanel .fgbody { display: flex; gap: 12px; min-height: 0; flex: 1; }
-  #fgpanel .fgl { width: 300px; flex: none; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
-  #fgpanel .fgt { position: relative; display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 8px; border: 1px solid rgba(150, 220, 240, 0.14); background: rgba(120, 190, 220, 0.07); color: #dbeaf2; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
-  #fgpanel .fgt.sel { border-color: rgba(255, 214, 120, 0.7); } #fgpanel .fgt.fin { background: rgba(255, 214, 120, 0.13); }
-  #fgpanel .fgt b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #fgpanel .fgs { width: 22px; height: 22px; flex: none; border-radius: 11px; background: #7be3b0; box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25); }
-  #fgpanel .fgt.un .fgs { background: #4a5c68; } #fgpanel .fgt.un b { color: #7d909c; } #fgpanel .fgs.res { background: #ffb36b; } #fgpanel .fgs.threat { background: #ff8c8c; } #fgpanel .fgt.un .fgs { background: #4a5c68; }
-  #fgpanel .fgt u { position: absolute; top: 3px; right: 5px; text-decoration: none; color: #ffd679; font-size: 12px; }
-  #fgpanel .fgt i { position: absolute; top: 4px; right: 5px; width: 7px; height: 7px; border-radius: 4px; background: #7be3b0; box-shadow: 0 0 6px #7be3b0; }
-  #fgpanel .fgr { flex: 1; overflow-y: auto; min-width: 0; padding-right: 4px; }
-  #fgpanel .fgr h5 { margin: 0 0 2px; font-size: 16px; color: #fff; } #fgpanel .fgr h6 { margin: 10px 0 3px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #ffe3b0; font-weight: 600; }
-  #fgpanel .fgr p { margin: 0 0 3px; color: #b9d6e2; line-height: 1.4; } #fgpanel .fgr .fgm { color: #8aa0b2; font-style: italic; } #fgpanel .fgr .fgn { color: #ffe3b0; }
-  #fgpanel .fgd { display: flex; gap: 8px; align-items: center; padding: 3px 6px; margin-bottom: 3px; border-radius: 6px; background: rgba(120, 190, 220, 0.07); } #fgpanel .fgd.done { background: rgba(255, 214, 120, 0.12); }
-  #fgpanel .fgd u { text-decoration: none; width: 16px; height: 16px; flex: none; border-radius: 8px; border: 1.5px solid #4c6b7e; text-align: center; line-height: 14px; font-size: 11px; color: #1c1405; } #fgpanel .fgd.done u { background: #ffd679; border-color: #ffd679; }
-  #fgpanel .fgd span { flex: 1; } #fgpanel .fgd em { font-style: normal; color: #9cc5d6; }
-  #fgpanel .fgp { margin-top: 8px; padding: 6px 8px; border-radius: 8px; background: rgba(120, 190, 220, 0.07); color: #8aa0b2; } #fgpanel .fgp.on { background: rgba(255, 214, 120, 0.14); color: #ffe3b0; }
-  @media (max-width: 960px) { #fgpanel .fgl { width: 220px; grid-template-columns: 1fr; } #fgpanel { top: 60px; } }
+  #fgpanel .fgbody { display: flex; gap: 14px; min-height: 0; flex: 1; }
+  #fgpanel .fgl { width: 360px; flex: none; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; padding: 1px 4px 1px 1px; }
+  #fgpanel .fgt { position: relative; display: flex; align-items: center; gap: 8px; padding: 5px 6px 5px 5px; border-radius: 10px; border: 1px solid rgba(150, 220, 240, 0.14); background: rgba(120, 190, 220, 0.07); color: #dbeaf2; font: inherit; text-align: left; cursor: pointer; min-width: 0; }
+  #fgpanel .fgt:hover { background: rgba(120, 190, 220, 0.13); }
+  #fgpanel .fgt.sel { border-color: rgba(255, 214, 120, 0.7); background: rgba(255, 214, 120, 0.08); } #fgpanel .fgt.fin { border-color: rgba(255, 214, 120, 0.32); }
+  #fgpanel .fgt b { flex: 1; min-width: 0; font-weight: 600; line-height: 1.15; white-space: normal; }
+  #fgpanel .fgt.un b { color: #7d909c; font-weight: 500; }
+  #fgpanel .fgtc { width: 56px; height: 40px; flex: none; border-radius: 7px; display: block; box-shadow: 0 0 0 1px rgba(150, 220, 240, 0.18); }
+  #fgpanel .fgseal { position: absolute; top: -4px; right: -3px; width: 16px; height: 16px; border-radius: 50%; background: #ffd679; color: #1c1405; font-size: 11px; line-height: 16px; text-align: center; box-shadow: 0 0 0 2px rgba(4, 22, 40, 0.96), 0 0 8px rgba(255, 214, 120, 0.5); }
+  #fgpanel .fgdot { position: absolute; top: 4px; right: 5px; width: 7px; height: 7px; border-radius: 4px; background: #7be3b0; box-shadow: 0 0 6px #7be3b0; }
+  #fgpanel .fgr { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  #fgpanel .fgart { position: relative; flex: none; height: 150px; border-radius: 10px; overflow: hidden; border: 1px solid rgba(150, 220, 240, 0.28); box-shadow: inset 0 0 22px rgba(2, 16, 32, 0.6); }
+  #fgpanel .fgart canvas { display: block; width: 100%; height: 100%; }
+  #fgpanel .fgcap { position: absolute; left: 10px; bottom: 6px; color: rgba(225, 242, 250, 0.6); font-size: 11px; font-style: italic; text-shadow: 0 1px 3px rgba(2, 16, 32, 0.8); }
+  #fgpanel .fgstamp { position: absolute; right: 12px; top: 10px; width: 66px; height: 66px; box-sizing: border-box; border-radius: 50%; border: 2px solid #ffd679; color: #ffd679; background: rgba(4, 22, 40, 0.5); transform: rotate(-13deg); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 0 6px rgba(255, 214, 120, 0.5); box-shadow: 0 0 12px rgba(255, 214, 120, 0.25); }
+  #fgpanel .fgstamp::before { content: ''; position: absolute; inset: 3px; border-radius: 50%; border: 1px dashed rgba(255, 214, 120, 0.6); } #fgpanel .fgstamp span { font-size: 15px; line-height: 1; letter-spacing: 0; }
+  #fgpanel .fgtxt { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  #fgpanel .fgtxt h5 { margin: 9px 0 1px; font-size: 17px; color: #fff; font-weight: 600; }
+  #fgpanel .fgsub { color: #9cc5d6; font-style: italic; margin-bottom: 7px; }
+  #fgpanel .fgtxt p { margin: 0 0 6px; color: #b9d6e2; line-height: 1.45; } #fgpanel .fgtxt .fgm { color: #8aa0b2; font-style: italic; }
+  #fgpanel .fgtxt .fgn { color: #ffe3b0; font-style: italic; border-left: 2px solid rgba(255, 214, 120, 0.5); padding-left: 8px; }
+  #fgpanel .fgtxt .fgh { color: #8fb3c4; font-style: italic; }
+  #fgpanel .fglab { margin: 11px 0 4px; font-size: 11.5px; color: #8fb3c4; font-weight: 600; }
+  #fgpanel .fgd { display: flex; gap: 8px; align-items: flex-start; padding: 4px 7px; margin-bottom: 3px; border-radius: 7px; background: rgba(120, 190, 220, 0.07); } #fgpanel .fgd.done { background: rgba(255, 214, 120, 0.1); }
+  #fgpanel .fgd u { text-decoration: none; width: 16px; height: 16px; flex: none; margin-top: 1px; border-radius: 8px; border: 1.5px solid #4c6b7e; text-align: center; line-height: 14px; font-size: 11px; color: #1c1405; } #fgpanel .fgd.done u { background: #ffd679; border-color: #ffd679; }
+  #fgpanel .fgd div { flex: 1; min-width: 0; } #fgpanel .fgd em { font-style: normal; color: #9cc5d6; margin-top: 1px; }
+  #fgpanel .fgd small { display: block; font-size: 11.5px; line-height: 1.35; color: #6f8ea2; } #fgpanel .fgd small.on { color: #ffe3b0; }
+  #fgpanel .fgd i { font-style: normal; color: #8aa0b2; margin-right: 5px; font-weight: 600; } #fgpanel .fgd.done i { color: #ffd679; }
+  #fgpanel .fgp { margin-top: 8px; padding: 6px 9px; border-radius: 8px; background: rgba(120, 190, 220, 0.07); color: #8fb3c4; } #fgpanel .fgp.on { background: rgba(255, 214, 120, 0.13); color: #ffe3b0; }
+  @media (max-width: 960px), (max-height: 760px) { #fgpanel .fgl { width: 214px; grid-template-columns: 1fr; gap: 4px; } #fgpanel .fgtc { width: 42px; height: 30px; } #fgpanel .fgt { padding: 3px 6px 3px 3px; } #fgpanel .fgart { height: 112px; } #fgpanel .fgstamp { width: 54px; height: 54px; font-size: 8.5px; } #fgpanel .fgstamp span { font-size: 12px; } }
   #achpanel .ai b { display: block; color: #fff; font-weight: 600; } #achpanel .ai span { color: #9cc5d6; }
   #report .rt { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(150, 220, 240, 0.18); } #report .rt h5 { margin: 0 0 5px; font-size: 12px; color: #cfe6f0; font-weight: 600; }
   #report .rb { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 12px; color: #9cc5d6; } #report .rb span { width: 62px; } #report .rb i { flex: 1; height: 7px; border-radius: 4px; background: rgba(120, 190, 220, 0.14); overflow: hidden; } #report .rb u { display: block; height: 100%; border-radius: 4px; } #report .rb em { width: 24px; text-align: right; font-style: normal; color: #fff; } #report .rb.wk span { color: #ffd9a0; }
@@ -9182,7 +9199,7 @@ function morayK(p) {   // moray perk: a polyp beside its tunnel takes less storm
    game.fguide: met (page seen), done (3 deeds done), answered (a threat answered once), nudge (hint line shown), lossMeet (meetings that cost polyps while unanswered),
    hintSeen (resident hint level 0..2), metAt (clock time), plus flag (this meeting already counted), wait (seasons a resident was missing), dd (deeds done), dot, yr (year snapshot).
    Hooks: fgMeet(id) where a thing starts, fgLoss(cause) from lostBy, fgBump(stat) for counters in game.stats, fgSeason on each season change, fgStormEnd. */
-function fgFresh() { return { met: {}, done: {}, answered: {}, nudge: {}, lossMeet: {}, hintSeen: {}, metAt: {}, flag: {}, wait: {}, dd: {}, rk: {}, dot: false, yr: { nib: 0, out: 0, sch: 0 } }; }
+function fgFresh() { return { met: {}, done: {}, answered: {}, nudge: {}, lossMeet: {}, hintSeen: {}, metAt: {}, flag: {}, wait: {}, dd: {}, rk: {}, dot: false, told: false, yr: { nib: 0, out: 0, sch: 0 } }; }
 const fgStat = k => game.stats[k] || 0;
 function fgBump(k, n = 1) { game.stats[k] = (game.stats[k] || 0) + n; }
 const fgGrown = t => (game.stats.grown && game.stats.grown[t]) || 0;
@@ -9191,137 +9208,135 @@ const fgAnyMet = () => Object.keys(game.fguide.met).length > 0;
 const FG_LOSS = { storm: 'storm', nibbler: 'nibbler', bleach: 'heat', disease: 'disease', starfish: 'starfish', smother: 'weed', school: 'school', trigger: 'trigger', worms: 'worms', caught: 'hunter' };
 const fgD = (label, cur, need) => ({ label, cur, need });
 const GUIDE = [
-  // ----- corals: the three deeds are ranks I, II and III; the perk text is the three rank traits
-  { id: 'branch', tab: 'coral', name: 'Branching coral', desc: 'The fast, thin, upright coral that you start with.',
-    good: 'Reaching for light and spreading quickly.',
-    how: ['It buds fingers up and sideways from every polyp.', 'A long thin run with nothing under it sags and snaps.', 'Dense thickets of it are what guard crabs live in.'],
-    deeds: [fgD('Rank I: grow 40 branching polyps', () => fgGrown('branch'), 40), fgD('Rank II: grow 150', () => fgGrown('branch'), 150), fgD('Rank III: grow 400', () => fgGrown('branch'), 400)],
-    short: 'Branching', traits: ['buds 10% faster', 'a sideways run can go 2 cells further before it sags', 'the finger tips catch a little plankton'],
-    perk: 'I: buds 10% faster. II: a sideways run can go 2 cells further before it sags. III: the finger tips catch a little plankton.' },
-  { id: 'plate', tab: 'coral', name: 'Plate coral', desc: 'A broad, flat coral that drinks the light.',
-    good: 'Catching sunlight in the bright shallows.',
-    how: ['It spreads sideways in flat sheets.', 'It makes more sun than branching coral but catches less plankton.', 'A sheet shades the coral under it.'],
-    deeds: [fgD('Rank I: grow 20 plate polyps', () => fgGrown('plate'), 20), fgD('Rank II: grow 80', () => fgGrown('plate'), 80), fgD('Rank III: plates come through a storm with none lost', () => fgStat('plateStorms'), 1)],
-    short: 'Plate', traits: ['shades the coral under it less', 'a plate holds up the cell beside it', 'plates gather more light at dusk'],
-    perk: 'I: shades the coral under it less. II: a plate holds up the cell beside it. III: plates gather more light at dusk.' },
-  { id: 'brain', tab: 'coral', name: 'Brain coral', desc: 'A slow, round, strong coral that stores calcium.',
-    good: 'Standing firm and holding calcium.',
-    how: ['It grows slowly but is stronger than branching coral.', 'It buds only into a nook that touches solid cells.', 'It stores calcium for the reef.'],
-    deeds: [fgD('Rank I: grow 10 brain polyps', () => fgGrown('brain'), 10), fgD('Rank II: grow 40', () => fgGrown('brain'), 40), fgD('Rank III: a brain polyp survives 3 storms', () => fgStat('brainStorms'), 3)],
-    short: 'Brain', traits: ['brain buds 25% faster', 'makes calcium a little faster', 'a brain next to a branch makes that branch tougher'],
-    perk: 'I: brain buds 25% faster. II: makes calcium a little faster. III: a brain next to a branch makes that branch tougher.' },
-  { id: 'fan', tab: 'coral', name: 'Sea fan', desc: 'A lacy fan that sieves the current for food.',
-    good: 'Catching plankton from the passing current.',
-    how: ['It catches much more plankton than other corals.', 'It makes no calcium and holds nothing up.', 'It bends in storms and leans with the current.'],
-    deeds: [fgD('Rank I: grow 10 fans', () => fgGrown('fan'), 10), fgD('Rank II: grow 30', () => fgGrown('fan'), 30), fgD('Rank III: fans catch 500 plankton', () => fgStat('fanFed'), 500)],
-    short: 'Fan', traits: ['catches plankton further up the current', 'no longer breaks easily in storms', 'polyps downstream of a fan get a share of its catch'],
-    perk: 'I: catches plankton further up the current. II: no longer breaks easily in storms. III: polyps downstream of a fan get a share of its catch.' },
-  { id: 'anemone', tab: 'coral', name: 'Anemone', desc: 'A soft stinging polyp that clownfish call home.',
-    good: 'Giving a home to clownfish.',
-    how: ['It needs open water on at least two sides.', 'Clownfish move in once one is healthy.', 'It is the only coral that is also a shelter.'],
-    deeds: [fgD('Rank I: host clownfish', () => game.fguide.met.clown ? 1 : 0, 1), fgD('Rank II: keep them for a full year', () => fgStat('clownSeasons'), 4), fgD('Rank III: 3 anemones at once', () => fgStat('anemonePeak'), 3)],
-    short: 'Anemone', traits: ['clownfish chase nibblers further', 'anemones heal faster', 'a second clown pair can move in'],
-    perk: 'I: clownfish chase nibblers further. II: anemones heal faster. III: a second clown pair can move in.' },
-  // ----- residents: Home and Does come from RES
-  { id: 'clown', tab: 'res', name: 'Clownfish', desc: 'A pair of bright fish that shelter in an anemone.',
-    how: ['They stay close to their anemone.', 'They chase nibblers that come near it.', 'They are unhappy if the anemone is hurt.'],
-    deeds: [fgD('Host clownfish', () => game.fguide.met.clown ? 1 : 0, 1), fgD('They drive off 20 nibblers', () => fgStat('clownDrive'), 20), fgD('Keep them through a storm', () => fgStat('clownStorms'), 1)],
-    perk: 'Clownfish also chase the orange hunter fish away.' },
-  { id: 'crab', tab: 'res', name: 'Guard crab', desc: 'A small crab that holds a branching thicket.',
-    how: ['It needs the thicket in the current to stay fed.', 'It shoves pests out of the cells around it.', 'A guarded thicket is passed over by starfish.'],
-    deeds: [fgD('Host guard crabs', () => game.fguide.met.crab ? 1 : 0, 1), fgD('2 thickets with crabs at once', () => fgStat('crabPeak'), 2), fgD('Crabs fight off a starfish', () => fgStat('crabStar'), 1)],
-    perk: 'Crabs guard one cell further around their thicket.' },
-  { id: 'shrimp', tab: 'res', name: 'Cleaner shrimp', desc: 'A tiny shrimp that picks at wounds and parasites.',
-    how: ['It heals the polyps around its cave.', 'It needs a fish nearby to clean.', 'It picks boring worms out of coral in its reach.'],
-    deeds: [fgD('Host cleaner shrimp', () => game.fguide.met.shrimp ? 1 : 0, 1), fgD('They heal 200 polyp health', () => Math.floor(fgStat('shrimpHeal')), 200), fgD('They clean 10 fish', () => fgStat('fishCleaned'), 10)],
-    perk: 'Shrimp also cure white band disease next to their cave.' },
-  { id: 'parrot', tab: 'res', name: 'Parrotfish', desc: 'A beaked fish that grinds dead coral into sand.',
-    how: ['It bites dead coral by day.', 'What it grinds becomes sand.', 'At night it sleeps in a sheltered spot.'],
-    deeds: [fgD('Host parrotfish', () => game.fguide.met.parrot ? 1 : 0, 1), fgD('They make 300 sand', () => Math.floor(fgStat('sandMade')), 300), fgD('They sleep in your reef 5 nights', () => fgStat('parrotNights'), 5)],
-    perk: 'Sand piles brace the coral that sits on them.' },
-  { id: 'urchin', tab: 'res', name: 'Sea urchin', desc: 'A spiny grazer that crops algae.',
-    how: ['It eats seaweed and leaves a few cells of its patch.', 'It goes for seaweed that touches coral first.', 'With no seaweed left it turns to live coral.'],
-    deeds: [fgD('Host sea urchins', () => game.fguide.met.urchin ? 1 : 0, 1), fgD('They clear 50 seaweed', () => fgStat('weedUrchin'), 50), fgD('A full year without chewing coral (seasons)', () => Math.floor(fgStat('urchinCalm') / CONFIG.seasonSecs), 4)],
-    perk: 'Urchins never chew live coral.' },
-  { id: 'moray', tab: 'res', name: 'Moray eel', desc: 'A long eel that lurks in a tunnel.',
-    how: ['No hunter fish come near its tunnel mouth.', 'It strikes at a triggerfish passing the mouth.', 'At night it hunts nibblers.'],
-    deeds: [fgD('Host a moray', () => game.fguide.met.moray ? 1 : 0, 1), fgD('It scares off 10 hunter fish', () => fgStat('morayScare'), 10), fgD('It eats 10 nibblers at night', () => fgStat('eelEaten'), 10)],
-    perk: 'Its tunnel counts as a safe spot: polyps beside it take half storm damage.' },
-  { id: 'goby', tab: 'res', name: 'Goby and pistol shrimp', desc: 'A pair that share a sandy burrow.',
-    how: ['The goby watches while the shrimp digs.', 'They sound an alarm when something attacks nearby.', 'They keep seaweed off their patch of sand.'],
-    deeds: [fgD('Host a goby and pistol shrimp', () => game.fguide.met.goby ? 1 : 0, 1), fgD('Their alarm spares 100 polyp health', () => Math.floor(fgStat('gobySaved')), 100), fgD('Keep their sand clear for a year (seasons)', () => fgStat('gobySeasons'), 4)],
-    perk: 'The alarm also warns of storms early.' },
-  { id: 'turtle', tab: 'res', name: 'Green sea turtle', desc: 'A big visitor from the open sea.',
-    how: ['It does not move in; it comes to visit.', 'While it is here it grazes seaweed.', 'It is heavy and can crush coral on its ledge.'],
-    deeds: [fgD('Have it visit', () => game.fguide.met.turtle ? 1 : 0, 1), fgD('Let it rest on your ledge', () => fgStat('turtleRest'), 1), fgD('It grazes 30 seaweed', () => fgStat('weedTurtle'), 30)],
-    perk: 'Turtles visit every year, not by chance.' },
-  // ----- threats: the first deed answers it; How to stop it opens once answered
-  { id: 'nibbler', tab: 'threat', name: 'Nibbler', desc: 'Small fish that bite polyps one at a time.',
-    how: ['They come to the reef once it has a few polyps.', 'Each one picks a polyp with open water beside it and bites until it dies.', 'A dead polyp leaves a skeleton.'],
-    stop: ['Sting them: right-click or E toward one and it flees.', 'Clownfish chase them off near their anemone.', 'Crabs shove them out of a thicket, and a moray hunts them at night.'],
-    nudge: 'Hint: they will not stay where they are poked.', answered: () => fgStat('nibStung') >= 1,
-    deeds: [fgD('Sting 30 nibblers', () => fgStat('nibStung'), 30), fgD('A year with fewer than 5 polyps lost to them', () => fgStat('nibYears'), 1), fgD('Let residents handle 30', () => fgStat('clownDrive') + fgStat('eelEaten') + fgStat('crabFights'), 30)],
-    perk: 'Stung nibblers flee for longer.' },
-  { id: 'hunter', tab: 'threat', name: 'Orange hunter fish', desc: 'Big orange fish that patrol the lagoon.',
-    how: ['They patrol and chase a swimming larva that comes close.', 'A catch costs energy and knocks you back.', 'They never chase a polyp that is settled.'],
-    stop: ['Sting one: it is knocked back and gives up the chase for a while.', 'Settle quickly rather than swim in the open.', 'A moray keeps them away from its tunnel mouth.'],
-    nudge: 'Hint: they only go for a swimmer, and they do not like being poked.', answered: () => fgStat('fishStung') >= 1,
-    deeds: [fgD('Sting one', () => fgStat('fishStung'), 1), fgD('After Reef, swim and settle 3 times without being caught', () => fgStat('cleanSettles'), 3), fgD('A moray keeps one off', () => fgStat('morayScare'), 1)],
-    perk: 'Hunter fish give up the chase sooner.' },
-  { id: 'storm', tab: 'threat', name: 'Storm', desc: 'Surge that tears at thin, unsupported coral.',
-    how: ['Two storms roll through each Storm season.', 'The surge snaps weak, thin branches off as fragments.', 'Fragments drift, and some take root where they land.'],
-    stop: ['Thicken the base and tie it to rock.', 'Shorten long thin runs and brace overhangs.', 'Fans and flexible branches bend rather than snap.'],
-    nudge: 'Hint: what snaps is thin and unsupported. The structure view (V) shows it.', answered: () => fgStat('stormsSurvived') >= 1,
-    deeds: [fgD('Survive 5 storms', () => fgStat('stormsSurvived'), 5), fgD('A clean storm: under 10% lost', () => fgStat('cleanStorms'), 1), fgD('3 fragments take root', () => fgStat('rooted'), 3)],
-    perk: 'Snapped fragments take root more often.' },
-  { id: 'heat', tab: 'threat', name: 'Heat wave', desc: 'Warm water that bleaches bright shallow coral.',
-    how: ['It comes in the Warm season.', 'Bright shallow coral may bleach: it turns white and makes no sun.', 'Bleached polyps recover after a while, or die.'],
-    stop: ['Deep coral and heat-tolerant lineages bleach less.', 'Coral in the shade stays safer.', 'Most polyps come back if you wait it out.'],
-    nudge: 'Hint: the harm follows the light. The deep stays cooler.', answered: () => fgStat('heatEnded') >= 1,
-    deeds: [fgD('Survive one', () => fgStat('heatEnded'), 1), fgD('Lose under 10 polyps in one', () => fgStat('heatLight'), 1), fgD('Every bleached polyp recovers', () => fgStat('heatAllBack'), 1)],
-    perk: 'Bleached polyps recover twice as fast.' },
-  { id: 'disease', tab: 'threat', name: 'White band disease', desc: 'A pale band that creeps across coral and kills it.',
-    how: ['It can follow a heat wave, starting on a bleached polyp.', 'The band kills a polyp in a short time.', 'It spreads to touching polyps.'],
-    stop: ['Cleaner shrimp cure infected polyps near their cave.', 'Cut a gap ahead of it so it has nothing to cross.', 'A sealed link carries no disease.'],
-    nudge: 'Hint: it only travels between touching polyps, and something small cleans coral.', answered: () => fgStat('diseaseCured') >= 1,
-    deeds: [fgD('Cure a polyp', () => fgStat('diseaseCured'), 1), fgD('Stop an outbreak under 10 lost', () => fgStat('diseaseSmall'), 1), fgD('A year with none', () => fgStat('diseaseYears'), 1)],
-    perk: 'Disease spreads half as fast.' },
-  { id: 'starfish', tab: 'threat', name: 'Crown-of-thorns starfish', desc: 'Spiny starfish that eat coral from the floor up.',
-    how: ['They arrive at dusk in the Wet season.', 'They creep along the floor, slowly.', 'A starfish eats a polyp over a few seconds.'],
-    stop: ['Sting them: a few stings kill one.', 'Crabs push them out of their thicket.', 'Edge polyps can sting nearby ones with the right unlock.'],
-    nudge: 'Hint: they are slow, and something that lives in thickets will not let them in.', answered: () => fgStat('starfishKilled') >= 1,
+  // ----- corals: the three notes are ranks I, II and III; each rank earns a trait (traits[i])
+  { id: 'branch', tab: 'coral', name: 'Branching coral', tile: 'Branching', desc: 'Fast, thin and upright: the coral you begin with.',
+    how: 'It buds fingers up and sideways from every polyp, quick to reach the light. A long thin run with nothing beneath it will sag and snap, but a dense thicket is where guard crabs settle.',
+    deeds: [fgD('Grow 40 branching polyps', () => fgGrown('branch'), 40), fgD('Grow 150 branching polyps', () => fgGrown('branch'), 150), fgD('Grow 400 branching polyps', () => fgGrown('branch'), 400)],
+    short: 'Branching', traits: ['buds 10% faster', 'a sideways run can go 2 cells further before it sags', 'the finger tips catch a little plankton'] },
+  { id: 'plate', tab: 'coral', name: 'Plate coral', tile: 'Plate', desc: 'Broad and flat, it drinks the light.',
+    how: 'It spreads sideways in flat sheets, making more sunlight than branching coral but catching less plankton. A sheet shades whatever grows beneath it.',
+    deeds: [fgD('Grow 20 plate polyps', () => fgGrown('plate'), 20), fgD('Grow 80 plate polyps', () => fgGrown('plate'), 80), fgD('Bring your plates through a storm with none lost', () => fgStat('plateStorms'), 1)],
+    short: 'Plate', traits: ['shades the coral under it less', 'a plate holds up the cell beside it', 'plates gather more light at dusk'] },
+  { id: 'brain', tab: 'coral', name: 'Brain coral', tile: 'Brain', desc: 'Slow, round and strong, with calcium stored inside.',
+    how: 'It grows slowly but holds firm, and only buds into a nook that touches solid ground. All the while it stores calcium for the reef.',
+    deeds: [fgD('Grow 10 brain polyps', () => fgGrown('brain'), 10), fgD('Grow 40 brain polyps', () => fgGrown('brain'), 40), fgD('Have a brain polyp ride out 3 storms', () => fgStat('brainStorms'), 3)],
+    short: 'Brain', traits: ['brain buds 25% faster', 'makes calcium a little faster', 'a brain next to a branch makes that branch tougher'] },
+  { id: 'fan', tab: 'coral', name: 'Sea fan', tile: 'Sea fan', desc: 'A lacy fan that sieves the passing current.',
+    how: 'It catches far more plankton than any other coral, though it makes no calcium and holds nothing up. In a storm it bends and leans with the current instead of snapping.',
+    deeds: [fgD('Grow 10 sea fans', () => fgGrown('fan'), 10), fgD('Grow 30 sea fans', () => fgGrown('fan'), 30), fgD('Catch 500 plankton with your fans', () => fgStat('fanFed'), 500)],
+    short: 'Fan', traits: ['catches plankton further up the current', 'no longer breaks easily in storms', 'polyps downstream of a fan get a share of its catch'] },
+  { id: 'anemone', tab: 'coral', name: 'Anemone', tile: 'Anemone', desc: 'A soft, stinging polyp that clownfish call home.',
+    how: 'It needs open water on at least two sides, and clownfish move in once one is healthy. It is the only coral that is also a shelter.',
+    deeds: [fgD('Host clownfish', () => game.fguide.met.clown ? 1 : 0, 1), fgD('Keep clownfish for a full year', () => fgStat('clownSeasons'), 4), fgD('Have 3 anemones at once', () => fgStat('anemonePeak'), 3)],
+    short: 'Anemone', traits: ['clownfish chase nibblers further', 'anemones heal faster', 'a second clown pair can move in'] },
+  // ----- residents: home is what the page says once met; hint[0], hint[1] are what the unmet page says (RES keeps the exact rule)
+  { id: 'clown', tab: 'res', name: 'Clownfish', tile: 'Clownfish', desc: 'A bright pair that shelters in an anemone.',
+    home: 'Lives in an anemone with open water on at least two sides.', hint: ['Lives in an anemone.', 'Look for an anemone with open water on at least two sides.'],
+    how: 'They stay close to their anemone and chase off any nibbler that comes near. If the anemone is hurt, they are unhappy.',
+    deeds: [fgD('Host a pair of clownfish', () => game.fguide.met.clown ? 1 : 0, 1), fgD('Have them drive off 20 nibblers', () => fgStat('clownDrive'), 20), fgD('Keep them through a storm', () => fgStat('clownStorms'), 1)],
+    perk: 'clownfish also chase the orange hunter fish away' },
+  { id: 'crab', tab: 'res', name: 'Guard crab', tile: 'Guard crab', desc: 'A small crab that holds a branching thicket.',
+    home: 'Holds a dense thicket of branching coral, about three cells across.', hint: ['Lives in a thicket.', 'Look for a dense knot of branching coral, about three cells across.'],
+    how: 'It needs a thicket that sits in the current to stay fed, and it shoves pests out of the cells around it. Starfish pass over a guarded thicket.',
+    deeds: [fgD('Host guard crabs', () => game.fguide.met.crab ? 1 : 0, 1), fgD('Hold 2 thickets with crabs at once', () => fgStat('crabPeak'), 2), fgD('See crabs fight off a starfish', () => fgStat('crabStar'), 1)],
+    perk: 'crabs guard one cell further around their thicket' },
+  { id: 'shrimp', tab: 'res', name: 'Cleaner shrimp', tile: 'Cleaner shrimp', desc: 'A tiny shrimp that picks at wounds and parasites.',
+    home: 'Lives in a cave: a hollow under a roof of coral, closed on three sides.', hint: ['Lives in a cave.', 'Look for a small hollow under a roof of coral, closed on three sides and open on the fourth.'],
+    how: 'It heals the polyps around its cave, so long as there is a fish nearby to clean. It also picks boring worms out of any coral within reach.',
+    deeds: [fgD('Host cleaner shrimp', () => game.fguide.met.shrimp ? 1 : 0, 1), fgD('Have them heal 200 polyp health', () => Math.floor(fgStat('shrimpHeal')), 200), fgD('Have them clean 10 fish', () => fgStat('fishCleaned'), 10)],
+    perk: 'shrimp also cure white band disease next to their cave' },
+  { id: 'parrot', tab: 'res', name: 'Parrotfish', tile: 'Parrotfish', desc: 'A beaked fish that grinds dead coral into sand.',
+    home: 'Lives beside a patch of dead coral, next to a bright, open pool.', hint: ['Lives by dead coral.', 'Look for a patch of dead coral with a bright, open pool of water beside it.'],
+    how: 'It bites at dead coral by day, and what it grinds becomes sand. At night it sleeps tucked into a sheltered spot.',
+    deeds: [fgD('Host parrotfish', () => game.fguide.met.parrot ? 1 : 0, 1), fgD('Have them make 300 sand', () => Math.floor(fgStat('sandMade')), 300), fgD('Have them sleep in your reef 5 nights', () => fgStat('parrotNights'), 5)],
+    perk: 'sand piles brace the coral that sits on them' },
+  { id: 'urchin', tab: 'res', name: 'Sea urchin', tile: 'Sea urchin', desc: 'A spiny grazer that crops algae.',
+    home: 'Lives in a patch of seaweed, close to a crevice in the rock.', hint: ['Lives in seaweed.', 'Look for a small patch of seaweed growing close to a crevice in the rock.'],
+    how: 'It eats seaweed but leaves a few cells of its patch, taking the ones that touch coral first. With no seaweed left, it turns to live coral.',
+    deeds: [fgD('Host sea urchins', () => game.fguide.met.urchin ? 1 : 0, 1), fgD('Have them clear 50 seaweed', () => fgStat('weedUrchin'), 50), fgD('Go a full year without them chewing coral', () => Math.floor(fgStat('urchinCalm') / CONFIG.seasonSecs), 4)],
+    perk: 'urchins never chew live coral' },
+  { id: 'moray', tab: 'res', name: 'Moray eel', tile: 'Moray eel', desc: 'A long eel that lurks in a tunnel.',
+    home: 'Lives in a tunnel: a short passage through your coral, closed at one end.', hint: ['Lives in a tunnel.', 'Look for a dark tunnel: a short passage through your coral, closed at one end.'],
+    how: 'No hunter fish come near its tunnel mouth, and it strikes at any triggerfish that passes. At night it comes out to hunt nibblers.',
+    deeds: [fgD('Host a moray', () => game.fguide.met.moray ? 1 : 0, 1), fgD('Have it scare off 10 hunter fish', () => fgStat('morayScare'), 10), fgD('Have it eat 10 nibblers at night', () => fgStat('eelEaten'), 10)],
+    perk: 'its tunnel counts as a safe spot, so polyps beside it take half storm damage' },
+  { id: 'goby', tab: 'res', name: 'Goby and pistol shrimp', tile: 'Goby pair', desc: 'A pair that shares a sandy burrow.',
+    home: 'Lives on a flat stretch of sand or rubble, with open water above.', hint: ['Lives on sand.', 'Look for a flat stretch of sand or rubble on the floor, with open water above it.'],
+    how: 'The goby keeps watch while the shrimp digs, and together they sound an alarm when something attacks nearby. They keep seaweed off their patch of sand.',
+    deeds: [fgD('Host a goby and pistol shrimp', () => game.fguide.met.goby ? 1 : 0, 1), fgD('Spare 100 polyp health with their alarm', () => Math.floor(fgStat('gobySaved')), 100), fgD('Keep their sand clear for a year', () => fgStat('gobySeasons'), 4)],
+    perk: 'the alarm also warns of storms early' },
+  { id: 'turtle', tab: 'res', name: 'Green sea turtle', tile: 'Sea turtle', desc: 'A big visitor from the open sea.',
+    home: 'Rests on a broad, bright ledge, with open water above.', hint: ['Rests on a ledge.', 'Look for a broad, bright ledge along the floor, with plenty of open water above it.'],
+    how: 'It does not move in; it only comes to visit, grazing seaweed while it is here. It is heavy, and can crush coral on its ledge.',
+    deeds: [fgD('Have it visit', () => game.fguide.met.turtle ? 1 : 0, 1), fgD('Let it rest on your ledge', () => fgStat('turtleRest'), 1), fgD('Watch it graze 30 seaweed', () => fgStat('weedTurtle'), 30)],
+    perk: 'turtles visit every year, not by chance' },
+  // ----- threats: the first note answers it; the way to stop it opens once answered
+  { id: 'nibbler', tab: 'threat', name: 'Nibbler', tile: 'Nibbler', desc: 'Small fish that bite polyps one at a time.',
+    how: 'They come once the reef has a few polyps, each picking one with open water beside it and biting until it dies. A dead polyp leaves a skeleton behind.',
+    stop: 'Sting one (right-click or E toward it) and it flees. Clownfish chase them off near their anemone, crabs shove them out of a thicket, and a moray hunts them at night.',
+    nudge: 'They will not stay where they are poked.', answered: () => fgStat('nibStung') >= 1,
+    deeds: [fgD('Sting 30 nibblers', () => fgStat('nibStung'), 30), fgD('Go a year losing fewer than 5 polyps to them', () => fgStat('nibYears'), 1), fgD('Let your residents handle 30', () => fgStat('clownDrive') + fgStat('eelEaten') + fgStat('crabFights'), 30)],
+    perk: 'stung nibblers flee for longer' },
+  { id: 'hunter', tab: 'threat', name: 'Orange hunter fish', tile: 'Hunter fish', desc: 'Big orange fish that patrol the lagoon.',
+    how: 'They chase a swimming larva that strays too close, and a catch costs you energy and knocks you back. Once you have settled, they leave you alone.',
+    stop: 'Sting one and it is knocked back, giving up the chase for a while. Better still, settle quickly rather than swim in the open, or stay near a moray tunnel.',
+    nudge: 'They only go for a swimmer, and they do not like being poked.', answered: () => fgStat('fishStung') >= 1,
+    deeds: [fgD('Sting one', () => fgStat('fishStung'), 1), fgD('After Reef, settle 3 times without being caught', () => fgStat('cleanSettles'), 3), fgD('Have a moray keep one away', () => fgStat('morayScare'), 1)],
+    perk: 'hunter fish give up the chase sooner' },
+  { id: 'storm', tab: 'threat', name: 'Storm', tile: 'Storm', desc: 'Surge that tears at thin, unsupported coral.',
+    how: 'Two storms roll through each Storm season, snapping weak, thin branches off as fragments. The fragments drift, and some take root where they land.',
+    stop: 'Thicken the base, tie it to rock, shorten long thin runs and brace overhangs. Fans and flexible branches bend instead of snapping.',
+    nudge: 'What snaps is thin and unsupported. The structure view (V) shows it.', answered: () => fgStat('stormsSurvived') >= 1,
+    deeds: [fgD('Survive 5 storms', () => fgStat('stormsSurvived'), 5), fgD('Come through a storm losing under a tenth of your coral', () => fgStat('cleanStorms'), 1), fgD('See 3 fragments take root', () => fgStat('rooted'), 3)],
+    perk: 'snapped fragments take root more often' },
+  { id: 'heat', tab: 'threat', name: 'Heat wave', tile: 'Heat wave', desc: 'Warm water that bleaches bright, shallow coral.',
+    how: 'It comes in the Warm season. Bright shallow coral may bleach white and stop making sun, then recover after a while or die.',
+    stop: 'Deep coral and heat-tolerant lineages bleach less, and so does coral in the shade. Most polyps come back if you wait it out.',
+    nudge: 'The harm follows the light. The deep stays cooler.', answered: () => fgStat('heatEnded') >= 1,
+    deeds: [fgD('Survive a heat wave', () => fgStat('heatEnded'), 1), fgD('Lose under 10 polyps in one', () => fgStat('heatLight'), 1), fgD('See every bleached polyp recover', () => fgStat('heatAllBack'), 1)],
+    perk: 'bleached polyps recover twice as fast' },
+  { id: 'disease', tab: 'threat', name: 'White band disease', tile: 'White band', desc: 'A pale band that creeps across coral and kills it.',
+    how: 'It can follow a heat wave, starting on a bleached polyp and killing it in a short time. From there it spreads to every polyp it touches.',
+    stop: 'Cleaner shrimp cure infected polyps near their cave. Cut a gap ahead of the band so it has nothing to cross: a sealed link carries no disease.',
+    nudge: 'It only travels between touching polyps, and something small cleans coral.', answered: () => fgStat('diseaseCured') >= 1,
+    deeds: [fgD('Cure a polyp', () => fgStat('diseaseCured'), 1), fgD('Stop an outbreak with under 10 lost', () => fgStat('diseaseSmall'), 1), fgD('Go a year with none', () => fgStat('diseaseYears'), 1)],
+    perk: 'disease spreads half as fast' },
+  { id: 'starfish', tab: 'threat', name: 'Crown-of-thorns starfish', tile: 'Crown-of-thorns', desc: 'Spiny starfish that eat coral from the floor up.',
+    how: 'They arrive at dusk in the Wet season and creep slowly along the floor. A starfish takes a few seconds to eat each polyp.',
+    stop: 'Sting them: a few stings kill one. Crabs push them out of their thicket, and with the right unlock your edge polyps can sting nearby ones.',
+    nudge: 'They are slow, and something that lives in thickets will not let them in.', answered: () => fgStat('starfishKilled') >= 1,
     deeds: [fgD('See an outbreak', () => fgStat('starfishSeen') >= 1 ? 1 : 0, 1), fgD('Remove 10 starfish', () => fgStat('starfishKilled'), 10), fgD('End an outbreak with no coral lost', () => fgStat('starClean'), 1)],
-    perk: 'Starfish show up on the forecast a season ahead.' },
-  { id: 'weed', tab: 'threat', name: 'Seaweed bloom', desc: 'Algae that smothers weak coral.',
-    how: ['A bloom starts on bare rock in the Wet season.', 'It spreads over rock, skeletons and weak polyps.', 'It shades coral and blocks budding.'],
-    stop: ['Grazers eat it: urchins, parrotfish and turtles.', 'Edge polyps can clear a touching cell with the right unlock.', 'Healthy coral is not smothered.'],
-    nudge: 'Hint: something that eats it will move in beside a small patch.', answered: () => fgStat('weedCleared') >= 1,
-    deeds: [fgD('Clear 50 seaweed', () => fgStat('weedCleared'), 50), fgD('Keep the seaweed off for a season', () => fgStat('weedFreeSeasons'), 1), fgD('Urchins and turtles clear 50', () => fgStat('weedUT'), 50)],
-    perk: 'Seaweed spreads more slowly.' },
-  { id: 'school', tab: 'threat', name: 'Damselfish school', desc: 'A tight blue shoal that bites like many nibblers.',
-    how: ['They swim in at the colony\'s depth.', 'They pick one flank and bite polyps there.', 'They eat only part of what they found, then leave.'],
-    stop: ['Sting into the shoal: hit enough fish and the whole school scatters.', 'One fish is not enough; aim at the middle.', 'Sweeper tentacles scatter them too.'],
-    nudge: 'Hint: one sting at one fish does little. They scare as a group.', answered: () => fgStat('schoolsScattered') >= 1,
-    deeds: [fgD('Scatter one', () => fgStat('schoolsScattered'), 1), fgD('Scatter 5', () => fgStat('schoolsScattered'), 5), fgD('A year with none lost to them', () => fgStat('schoolYears'), 1)],
-    perk: 'A sting that hits a quarter of the shoal scatters it.' },
-  { id: 'trigger', tab: 'threat', name: 'Triggerfish', desc: 'An armoured fish that bites off branch tips.',
-    how: ['It swims in alone, sometimes with a second.', 'It picks a branch tip that no crab covers and bites it off.', 'A wave takes a share, then leaves.'],
-    stop: ['Stings clink off its armour.', 'Guard crabs shove it away, a moray strikes it, or a Snap cuts its branch.', 'With enough guard crabs it never comes.'],
-    nudge: 'Hint: it ignores your sting. Other animals and tools move it.', answered: () => fgStat('triggersDriven') >= 1,
+    perk: 'starfish show up on the forecast a season ahead' },
+  { id: 'weed', tab: 'threat', name: 'Seaweed bloom', tile: 'Seaweed', desc: 'Algae that smothers weak coral.',
+    how: 'A bloom starts on bare rock in the Wet season and spreads over rock, skeletons and weak polyps. It shades the coral and blocks budding.',
+    stop: 'Grazers eat it: urchins, parrotfish and turtles. Healthy coral is never smothered, and with the right unlock your edge polyps can clear a touching cell.',
+    nudge: 'Something that eats it will move in beside a small patch.', answered: () => fgStat('weedCleared') >= 1,
+    deeds: [fgD('Clear 50 seaweed', () => fgStat('weedCleared'), 50), fgD('Keep the seaweed off for a season', () => fgStat('weedFreeSeasons'), 1), fgD('Let urchins and turtles clear 50', () => fgStat('weedUT'), 50)],
+    perk: 'seaweed spreads more slowly' },
+  { id: 'school', tab: 'threat', name: 'Damselfish school', tile: 'Damselfish', desc: 'A tight blue shoal that bites like many nibblers.',
+    how: 'A shoal swims in at your depth, picks one side of the reef and nibbles it bare in patches. It leaves once it has eaten its fill.',
+    stop: 'Sting into the middle of the shoal: hit enough of them and the whole school scatters. Sweeper tentacles do it for you.',
+    nudge: 'One sting at one fish does little. They scare as a group.', answered: () => fgStat('schoolsScattered') >= 1,
+    deeds: [fgD('Scatter a school', () => fgStat('schoolsScattered'), 1), fgD('Scatter 5 schools', () => fgStat('schoolsScattered'), 5), fgD('Go a year without losing coral to them', () => fgStat('schoolYears'), 1)],
+    perk: 'a sting that hits a quarter of the shoal scatters it' },
+  { id: 'trigger', tab: 'threat', name: 'Triggerfish', tile: 'Triggerfish', desc: 'An armoured fish that bites off branch tips.',
+    how: 'It swims in alone, sometimes with a second, and picks a branch tip that no crab covers. A wave takes its share, then leaves.',
+    stop: 'Stings clink off its armour. Guard crabs shove it away, a moray strikes it, or a Snap cuts its branch; with enough guard crabs it never comes at all.',
+    nudge: 'It ignores your sting. Other animals and tools move it.', answered: () => fgStat('triggersDriven') >= 1,
     deeds: [fgD('Drive one off', () => fgStat('triggersDriven'), 1), fgD('Drive off 5', () => fgStat('triggersDriven'), 5), fgD('Keep a wave away with guard crabs', () => fgStat('kept_trigger'), 1)],
-    perk: 'One guard crab is enough to keep a wave away.' },
-  { id: 'worms', tab: 'threat', name: 'Boring worms', desc: 'Worms that hollow out old, thick coral.',
-    how: ['They live inside your oldest, thickest coral.', 'Bored polyps are weaker, so a storm snaps them first.', 'A wave bores more neighbours until the worms die off.'],
-    stop: ['Snap the bored branch off.', 'A cleaner shrimp picks worms out of bored cells in its reach.', 'Coral cemented beside rock is never bored.'],
-    nudge: 'Hint: they are inside the coral, where a sting cannot reach.', answered: () => fgStat('wormsCleared') >= 1,
-    deeds: [fgD('Clear one wave (Snap or shrimp)', () => fgStat('wormsCleared'), 1), fgD('Clear 5', () => fgStat('wormsCleared'), 5), fgD('A storm with no bored coral lost', () => fgStat('wormStorms'), 1)],
-    perk: 'Worm-bored coral keeps 3/4 of its strength.' },
-  { id: 'front', tab: 'threat', name: 'Outbreak front', desc: 'Starfish, damselfish and triggerfish arriving together.',
-    how: ['Starfish creep in from both edges at once.', 'A damselfish school follows, and at high pressure a triggerfish.', 'They share one limit of lost polyps, then all leave.'],
-    stop: ['Answer each part the way you already know.', 'Do it before the limit is spent and the front is held.'],
-    nudge: 'Hint: every part of it has an answer you already know.', answered: () => fgStat('frontAnswered') >= 1,
-    deeds: [fgD('Hold a front', () => fgStat('frontAnswered'), 1), fgD('End one under 5% lost', () => fgStat('frontSmall'), 1), fgD('End one with no coral lost', () => fgStat('frontZero'), 1)],
-    perk: 'The front is forecast a full season ahead.' },
+    perk: 'one guard crab is enough to keep a wave away' },
+  { id: 'worms', tab: 'threat', name: 'Boring worms', tile: 'Boring worms', desc: 'Worms that hollow out old, thick coral.',
+    how: 'They live inside your oldest, thickest coral, and bored polyps are weaker, so a storm snaps them first. A wave bores more neighbours until the worms die off.',
+    stop: 'Snap the bored branch off, or let a cleaner shrimp pick the worms out of any bored cell in its reach. Coral cemented beside rock is never bored.',
+    nudge: 'They are inside the coral, where a sting cannot reach.', answered: () => fgStat('wormsCleared') >= 1,
+    deeds: [fgD('Clear a wave of worms (Snap or shrimp)', () => fgStat('wormsCleared'), 1), fgD('Clear 5 waves of worms', () => fgStat('wormsCleared'), 5), fgD('Come through a storm with no bored coral lost', () => fgStat('wormStorms'), 1)],
+    perk: 'worm-bored coral keeps three quarters of its strength' },
+  { id: 'front', tab: 'threat', name: 'Outbreak front', tile: 'Outbreak front', desc: 'Starfish, damselfish and triggerfish arriving together.',
+    how: 'Starfish creep in from both edges at once, followed by a damselfish school and, when the pressure is high, a triggerfish. They share one limit of lost polyps, then all leave.',
+    stop: 'Answer each part the way you already know, and do it before the limit is spent: that holds the front.',
+    nudge: 'Every part of it has an answer you already know.', answered: () => fgStat('frontAnswered') >= 1,
+    deeds: [fgD('Hold a front', () => fgStat('frontAnswered'), 1), fgD('End one with under 5% of your polyps lost', () => fgStat('frontSmall'), 1), fgD('End one with no coral lost', () => fgStat('frontZero'), 1)],
+    perk: 'the front is forecast a full season ahead' },
 ];
 const GUIDE_BY = {}; for (const g of GUIDE) GUIDE_BY[g.id] = g;
 for (const id of RESKINDS) if (!GUIDE_BY[id]) console.error('field guide: no page for ' + id);
@@ -9331,7 +9346,7 @@ function fgMeet(id, quiet) {   // a thing is on the reef: its page opens the fir
   F.flag[id] = false;
   if (F.met[id]) return;
   F.met[id] = true; F.metAt[id] = game.time;
-  if (!quiet) toast(`New field guide page: ${g.name} (B)`);
+  if (!quiet) { toast(`Field guide: ${g.name} noted${F.told ? '' : ' (B)'}`); F.told = true; }
   if (fgOpen()) fgRender();
 }
 function fgGrow(type) {   // a polyp of this coral type grew
@@ -9376,9 +9391,9 @@ function fgSeason(prev, next) {   // every season change
     F.yr = { nib: L.nibbler || 0, out: fgStat('diseaseOutbreaks'), sch: L.school || 0 };
   }
 }
-function fgHint(id) {   // '' or the hint line for a resident not met yet
-  const lv = game.fguide.hintSeen[id] || 0, K = RES[id];
-  return lv >= 2 ? `Hint: it moves in near ${K.shape}.` : lv === 1 ? `Hint: lives in ${/^[aeiou]/.test(K.home) ? 'an' : 'a'} ${K.home}.` : '';
+function fgHint(id) {   // '' or the hint line for a resident not met yet (the page's own words; RES keeps the exact rule for the habitat overlay)
+  const lv = game.fguide.hintSeen[id] || 0, g = GUIDE_BY[id];
+  return lv >= 1 && g && g.hint ? g.hint[lv >= 2 ? 1 : 0] : '';
 }
 function fgCheck() {   // peaks, one-off judgements, answers, nudges and finished pages
   const F = game.fguide; if (!F) return;
@@ -9397,7 +9412,7 @@ function fgCheck() {   // peaks, one-off judgements, answers, nudges and finishe
       const n = fgRank(g.id), was = F.rk[g.id] || 0;
       if (n > was) { for (let i = was; i < n; i++) toast(`${g.short} rank ${['I', 'II', 'III'][i]}: ${g.traits[i]}`); F.rk[g.id] = n; sfx('species'); }
     }
-    if (all && !F.done[g.id]) { F.done[g.id] = true; toast(g.traits ? `Field guide page finished: ${g.name}` : `Field guide page finished: ${g.name}. Perk: ${g.perk}`); sfx('species'); }
+    if (all && !F.done[g.id]) { F.done[g.id] = true; toast(g.traits ? `Field guide: ${g.name} recorded` : `Field guide: ${g.name} recorded. Learned: ${g.perk}.`); sfx('species'); }
   }
 }
 const fgA = { t: 1 };
@@ -9431,6 +9446,189 @@ function fgApplied(fresh) {
   if (oldRk && !fresh) for (const g of GUIDE) if (g.traits) F.rk[g.id] = fgRank(g.id);
   fgHtml = '';
 }
+// ----- portraits: every page's creature, drawn with the game's own sprite code in a little window of water
+const FGPAL = { plain: ['#2a86b0', '#0a3556'], storm: ['#1c3b53', '#091828'], heat: ['#7fd4d4', '#2c8da2'], weed: ['#2b8079', '#0c3d3a'] };
+const fgC = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+function fgWith(g, fn) { const old = ctx; ctx = g; try { fn(); } finally { ctx = old; } }   // the sprites draw on the global ctx: point it at the portrait for a moment
+function fgWater(g, W, H, t, pal, ground) {   // soft gradient, a few slow light rays, drifting specks and (for things that sit) a sandy floor
+  const P = FGPAL[pal] || FGPAL.plain, gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, P[0]); gr.addColorStop(1, P[1]);
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  const dim = pal === 'storm' ? 0.4 : 1;
+  for (let i = 0; i < 4; i++) {
+    const x = W * (0.1 + i * 0.27) + Math.sin(t * 0.3 + i * 2.1) * 16, w = 22 + (i % 2) * 16, rg = g.createLinearGradient(x, 0, x + 50, H);
+    rg.addColorStop(0, `rgba(205,246,255,${0.2 * dim})`); rg.addColorStop(1, 'rgba(205,246,255,0)');
+    g.fillStyle = rg; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + w, 0); g.lineTo(x + w + 60, H); g.lineTo(x + 20, H); g.closePath(); g.fill();
+  }
+  for (let i = 0; i < 24; i++) {
+    const px = ((i * 0.618 + 0.13) % 1) * W + Math.sin(t * 0.7 + i) * 3, py = ((((i * 0.371) % 1) - t * (0.012 + (i % 5) * 0.004)) % 1 + 1) % 1 * H;
+    g.fillStyle = `rgba(200,240,255,${(0.16 + 0.12 * Math.sin(t * 1.3 + i * 1.9)) * dim})`; g.beginPath(); g.arc(px, py, 0.8 + (i % 3) * 0.5, 0, 6.3); g.fill();
+  }
+  if (ground) {
+    const y = H * 0.86, sg = g.createLinearGradient(0, y - 6, 0, H); sg.addColorStop(0, 'rgba(225,200,150,0.72)'); sg.addColorStop(1, 'rgba(110,90,62,0.85)');
+    g.fillStyle = sg; g.beginPath(); g.moveTo(0, y + 2); g.quadraticCurveTo(W * 0.25, y - 6, W * 0.5, y); g.quadraticCurveTo(W * 0.78, y + 6, W, y - 2); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fill();
+  }
+}
+function fgOrbit(fn, t, cx, cy, rx, ry, ph, sp, o0) {   // a stand-in swimming round a point; the sprite draws it as it would in the world
+  const a = t * sp + ph, vx = -Math.sin(a) * rx, vy = Math.cos(a) * ry;
+  const o = Object.assign({ x: cx + Math.cos(a) * rx, y: cy + Math.sin(a) * ry, vx, vy: vy * sp, head: vx < 0 ? Math.PI - clamp(vy * 0.5 / (rx * 0.6 + 1), -0.5, 0.5) : clamp(vy * 0.5 / (rx * 0.6 + 1), -0.5, 0.5), face: vx < 0 ? -1 : 1, dir: vx < 0 ? -1 : 1, mode: 'home', seed: ph * 3 + 1, stung: 0, scare: 0, chomp: 0, shove: 0, clink: 0, alarm: 0, job: 0, act: 0, fight: 0, asleep: false, chewing: false, flash: 0, hab: null, trail: [], target: null, alpha: 1, fade: 1 }, o0 || {});
+  fn(o, t);
+}
+const fgSwim = (fn, t, s, ph, sp, o0) => fgOrbit(fn, t, 0, 0, s.W * 0.27, s.H * 0.15, ph, sp || 0.5, o0);
+function fgBranchy(g, t, col, sway, band) {   // a little branching thicket in the game's style: rim, tissue, a light thread and pale tips
+  const segs = [], rim = mix3(col, [70, 20, 50], 0.55), lite = mix3(col, [255, 255, 255], 0.45);
+  const grow = (x, y, a, l, w, d, i) => {
+    const b = a + Math.sin(t * 1.2 + d * 0.8 + i) * sway * (4 - d) * 0.02, x2 = x + Math.cos(b) * l, y2 = y + Math.sin(b) * l;
+    segs.push([x, y, x2, y2, w, d]);
+    if (d > 0) { grow(x2, y2, b - 0.5 - 0.06 * d, l * 0.72, w * 0.74, d - 1, i * 3); grow(x2, y2, b + 0.05, l * 0.78, w * 0.76, d - 1, i * 3 + 1); grow(x2, y2, b + 0.52 + 0.06 * d, l * 0.7, w * 0.74, d - 1, i * 3 + 2); }
+  };
+  grow(0, 2, -Math.PI / 2, 22, 7.5, 3, 1);
+  g.save(); g.lineCap = 'round';
+  for (const [x, y, x2, y2, w] of segs) { g.strokeStyle = fgC(rim, 0.9); g.lineWidth = w + 2.4; g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke(); }
+  for (const [x, y, x2, y2, w] of segs) {
+    const white = band && band((y + y2) / 2, (x + x2) / 2); g.strokeStyle = white ? 'rgba(250,250,245,0.98)' : fgC(col, 1); g.lineWidth = w; g.beginPath(); g.moveTo(x, y); g.lineTo(x2, y2); g.stroke();
+    if (!white) { g.strokeStyle = fgC(lite, 0.5); g.lineWidth = Math.max(0.6, w * 0.28); g.beginPath(); g.moveTo(x - w * 0.15, y); g.lineTo(x2 - w * 0.15, y2); g.stroke(); }
+  }
+  for (const [, , x2, y2, w, d] of segs) if (d === 0) { g.fillStyle = band ? 'rgba(255,240,235,0.9)' : fgC(mix3(col, [255, 255, 255], 0.65), 0.95); g.beginPath(); g.arc(x2, y2, w * 0.55 + 0.5, 0, 6.3); g.fill(); }
+  g.restore();
+}
+function fgPlates(g, t) {
+  const col = TYPE_TINT.plate, rim = mix3(col, [90, 50, 10], 0.6), stalk = mix3(col, [120, 80, 30], 0.55);
+  g.fillStyle = fgC(stalk, 1); g.beginPath(); g.moveTo(-7, 2); g.quadraticCurveTo(-3, -22, -4, -44); g.lineTo(4, -44); g.quadraticCurveTo(3, -22, 7, 2); g.closePath(); g.fill();
+  for (let i = 0; i < 3; i++) {
+    const y = -12 - i * 14 + Math.sin(t * 0.8 + i) * 0.8, rx = 26 + i * 9, ry = 7 + i * 0.8, gr = g.createLinearGradient(0, y - ry, 0, y + ry);
+    gr.addColorStop(0, fgC(mix3(col, [255, 255, 255], 0.5), 1)); gr.addColorStop(1, fgC(col, 1));
+    g.fillStyle = gr; g.strokeStyle = fgC(rim, 0.95); g.lineWidth = 1.6; g.beginPath(); g.ellipse(0, y, rx, ry, 0, 0, 6.3); g.fill(); g.stroke();
+    g.strokeStyle = fgC(mix3(col, [255, 255, 255], 0.7), 0.5); g.lineWidth = 0.9; for (const f of [0.35, 0.65]) { g.beginPath(); g.ellipse(0, y, rx * f, ry * f, 0, 0.15, 3.0); g.stroke(); }
+    g.fillStyle = fgC(mix3(col, [255, 255, 255], 0.8), 0.9); for (let k = 0; k < 7; k++) { const a = k * 0.9 + i; g.beginPath(); g.arc(Math.cos(a) * rx * 0.8, y + Math.sin(a) * ry * 0.7, 1.1, 0, 6.3); g.fill(); }
+  }
+}
+function fgBrain(g, t, col) {
+  const R = 33, rim = mix3(col, [20, 50, 30], 0.6);
+  g.fillStyle = 'rgba(2,10,20,0.28)'; g.beginPath(); g.ellipse(2, 2, R * 1.05, 5, 0, 0, 6.3); g.fill();
+  const dome = () => { g.beginPath(); g.ellipse(0, 0, R, R * 0.82, 0, Math.PI, 0); g.closePath(); };
+  const gr = g.createRadialGradient(-10, -24, 3, 0, -8, R * 1.1); gr.addColorStop(0, fgC(mix3(col, [255, 255, 255], 0.55), 1)); gr.addColorStop(1, fgC(mix3(col, [20, 60, 40], 0.25), 1));
+  g.fillStyle = gr; dome(); g.fill();
+  g.save(); dome(); g.clip(); g.lineCap = 'round';
+  for (let j = 0; j < 7; j++) {
+    const y0 = -3 - j * 4.2; g.beginPath(); for (let x = -R; x <= R; x += 3) { const yy = y0 + Math.sin(x * 0.2 + j * 1.7 + t * 0.35) * 2.1; x === -R ? g.moveTo(x, yy) : g.lineTo(x, yy); }
+    g.strokeStyle = fgC(rim, 0.5); g.lineWidth = 1.5; g.stroke(); g.translate(0, -1.3); g.strokeStyle = fgC(mix3(col, [255, 255, 255], 0.7), 0.4); g.lineWidth = 0.8; g.stroke(); g.translate(0, 1.3);
+  }
+  g.restore(); g.strokeStyle = fgC(rim, 0.85); g.lineWidth = 1.5; dome(); g.stroke();
+}
+function fgFan(g, t) {
+  const col = mix3(TYPE_TINT.fan, [255, 235, 245], 0.15), rim = mix3(col, [60, 20, 80], 0.55), n = 9, rays = [];
+  for (let i = 0; i < n; i++) {
+    const u = i / (n - 1) - 0.5, a = -Math.PI / 2 + u * 1.9, L = 56 * (0.78 + 0.22 * Math.cos(u * Math.PI)), pts = [];
+    for (let k = 0; k <= 5; k++) { const s = k / 5; pts.push([Math.cos(a) * L * s + 0.1 * s * s * L * Math.sin(t * 1.15 + i * 0.5 + s * 1.4), -3 + Math.sin(a) * L * s]); }
+    rays.push(pts);
+  }
+  g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+  const lines = x => { for (const P of rays) { g.moveTo(P[0][0], P[0][1]); for (let k = 1; k < P.length; k++) g.lineTo(P[k][0], P[k][1]); } if (x) for (const k of [2, 4]) { g.moveTo(rays[0][k][0], rays[0][k][1]); for (let i = 1; i < n; i++) g.lineTo(rays[i][k][0], rays[i][k][1]); } };
+  g.strokeStyle = fgC(mix3(col, [70, 40, 70], 0.5), 0.9); g.lineWidth = 3.4; g.beginPath(); g.moveTo(0, 3); g.lineTo(0, -4); g.stroke();
+  g.strokeStyle = fgC(rim, 0.6); g.lineWidth = 3; g.beginPath(); lines(false); g.stroke();
+  g.strokeStyle = fgC(col, 0.95); g.lineWidth = 1.7; g.beginPath(); lines(false); g.stroke();
+  g.strokeStyle = fgC(mix3(col, [255, 255, 255], 0.4), 0.55); g.lineWidth = 0.9; g.beginPath(); lines(true); g.stroke();
+  g.fillStyle = fgC(mix3(col, [255, 255, 255], 0.55), 0.9); for (const P of rays) { g.beginPath(); g.arc(P[5][0], P[5][1], 1.3, 0, 6.3); g.fill(); }
+  g.restore();
+}
+function fgFronds(g, t) {
+  for (let i = 0; i < 12; i++) {
+    const x = (i - 5.5) * 11 + Math.sin(i * 2.7) * 3, h = 34 + (i * 37 % 22), sw = Math.sin(t * 0.9 + i * 0.8) * 7, sw2 = Math.sin(t * 0.9 + i * 0.8 + 1.1) * 9;
+    g.lineCap = 'round'; g.beginPath(); g.moveTo(x, 2); g.bezierCurveTo(x + sw, -h * 0.35, x - sw, -h * 0.7, x + sw2, -h);
+    g.strokeStyle = i % 2 ? '#2c7a38' : '#256a35'; g.lineWidth = 5.2; g.stroke(); g.strokeStyle = i % 2 ? '#74c85e' : '#5fb653'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#8be072'; g.beginPath(); g.ellipse(x + sw2, -h, 3.4, 2.2, sw2 * 0.05, 0, 6.3); g.fill();
+  }
+}
+function fgMound(g, t) {   // old thick coral, riddled with small holes; a pale worm looks out of one
+  const col = [226, 150, 150], rim = mix3(col, [70, 20, 40], 0.55);
+  g.fillStyle = 'rgba(2,10,20,0.28)'; g.beginPath(); g.ellipse(2, 2, 36, 5, 0, 0, 6.3); g.fill();
+  const body = () => { g.beginPath(); g.moveTo(-26, 2); g.bezierCurveTo(-34, -16, -26, -48, -10, -50); g.bezierCurveTo(0, -56, 18, -50, 24, -34); g.bezierCurveTo(34, -18, 30, -4, 28, 2); g.closePath(); };
+  const gr = g.createLinearGradient(-20, -50, 20, 2); gr.addColorStop(0, fgC(mix3(col, [255, 255, 255], 0.45), 1)); gr.addColorStop(1, fgC(mix3(col, [120, 50, 70], 0.3), 1));
+  g.fillStyle = gr; g.strokeStyle = fgC(rim, 0.9); g.lineWidth = 1.6; body(); g.fill(); g.stroke();
+  const holes = [[-12, -38], [4, -42], [14, -28], [-4, -26], [-16, -18], [8, -14], [18, -10], [-6, -8]];
+  holes.forEach(([x, y], i) => { g.fillStyle = 'rgba(60,15,35,0.85)'; g.beginPath(); g.ellipse(x, y, 3.1, 2.4, 0.3, 0, 6.3); g.fill(); g.strokeStyle = fgC(mix3(col, [255, 255, 255], 0.5), 0.7); g.lineWidth = 0.8; g.stroke(); });
+  const [wx, wy] = holes[2], ext = 3 + 3.5 * (0.5 + 0.5 * Math.sin(t * 1.6));
+  g.strokeStyle = '#f6ecd6'; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(wx, wy); g.quadraticCurveTo(wx + 3, wy - ext * 0.6, wx + 2 + Math.sin(t * 3) * 1.5, wy - ext); g.stroke();
+}
+// per page: the water, the floor, the picture (`subj`, drawn in sprite units; also the shape the unmet silhouette is cut from) and any extras (`pre` behind it, `post` over it)
+const FGART = {
+  branch: { ground: 1, y: 0.9, subj: (g, t) => fgBranchy(g, t, [244, 122, 140], 1) },
+  plate: { ground: 1, y: 0.9, subj: (g, t) => fgPlates(g, t) },
+  brain: { ground: 1, y: 0.9, subj: (g, t) => fgBrain(g, t, TYPE_TINT.brain) },
+  fan: { ground: 1, y: 0.9, subj: (g, t) => fgFan(g, t) },
+  anemone: { ground: 1, y: 0.93, k: 1.2, subj: (g, t) => drawAnemoneAt(0, -16, t, 1.3, 1) },
+  clown: { ground: 1, y: 0.88, subj: (g, t) => { drawAnemoneAt(0, -16, t, 1.3, 1); for (let i = 0; i < 2; i++) fgOrbit(drawClown, t, 0, -32, 30, 11, i * Math.PI, 1.1); } },
+  crab: { ground: 1, y: 0.92, k: 1.2, subj: (g, t) => drawCrab({ x: 0, y: -10, face: 1, fight: 0, job: 0, mode: 'home', seed: 2, target: null, act: 0 }, t) },
+  shrimp: { ground: 1, y: 0.9, k: 1.4, subj: (g, t) => drawShrimp({ x: 0, y: -6, face: 1, job: 0, seed: 3, mode: 'home' }, t) },
+  parrot: { k: 1.4, subj: (g, t, s) => fgSwim(drawParrot, t, s, 0, 0.45) },
+  urchin: { ground: 1, y: 0.9, k: 1.7, subj: (g, t) => drawUrchin({ x: 0, y: 0, chewing: false, job: 0, seed: 1, mode: 'home' }, t) },
+  moray: { ground: 1, y: 0.8, k: 1.15, subj: (g, t) => {
+    const M = cellCenter(2, 0), I = cellCenter(1, 0); g.translate(-M.x + 12, -M.y);
+    const hab = { mouth: { c: 2, r: 0 }, inner: { c: 1, r: 0 }, dir: [1, 0] }; g.fillStyle = 'rgba(40,24,22,0.9)'; g.beginPath(); g.ellipse(I.x - 4, M.y, CELL * 0.95, CELL * 0.62, 0, 0, 6.3); g.fill();
+    drawMoray({ hab, mode: 'home', x: M.x + 4 + 5 * Math.sin(t * 0.8), y: M.y + 1.5 * Math.sin(t * 1.3), face: 1, seed: 2, job: 0, act: 0, asleep: false, alarm: 0, flash: 0, chewing: false, trail: [], vy: 0 }, t); } },
+  goby: { ground: 1, y: 0.9, k: 1.6, subj: (g, t) => drawGoby({ x: 0, y: -9, alarm: 0, seed: 1, mode: 'home', job: 0, face: 1, act: 0 }, t) },
+  turtle: { k: 0.9, subj: (g, t, s) => fgSwim(drawTurtle, t, s, 0, 0.3) },
+  nibbler: { k: 1.3, subj: (g, t, s) => { fgSwim(drawNibbler, t, s, 0, 0.55); fgSwim(drawNibbler, t, s, 2.6, 0.5); } },
+  hunter: { k: 1.25, subj: (g, t, s) => fgSwim(drawFish, t, s, 0, 0.4) },
+  storm: { pal: 'storm', ground: 1, y: 0.9,
+    pre: (g, t, W, H) => { for (const [y0, a, al] of [[0.16, 7, 0.5], [0.3, 5, 0.3]]) { g.fillStyle = `rgba(4,12,24,${al})`; g.beginPath(); g.moveTo(0, 0); for (let x = 0; x <= W; x += 8) g.lineTo(x, H * y0 + Math.sin(x * 0.025 + t * 1.8 + y0 * 9) * a); g.lineTo(W, 0); g.closePath(); g.fill(); } },
+    subj: (g, t, s) => { fgBranchy(g, t * 2.2, [220, 110, 130], 3.2); g.save(); g.translate(s.W * 0.26 + ((t * 18) % 40), -38 - ((t * 7) % 14)); g.rotate(t * 1.5); g.scale(0.3, 0.3); fgBranchy(g, t, [220, 110, 130], 0.5); g.restore(); },
+    post: (g, t, W, H) => { g.lineCap = 'round'; for (let i = 0; i < 16; i++) { const x = W + 30 - ((i * 97 + t * 300) % (W + 80)), y = (i * 53) % H; g.strokeStyle = `rgba(200,225,240,${0.14 + 0.1 * (i % 3)})`; g.lineWidth = 1 + (i % 2); g.beginPath(); g.moveTo(x, y); g.lineTo(x + 30 + (i % 4) * 8, y + 6); g.stroke(); } } },
+  heat: { pal: 'heat', ground: 1, y: 0.9,
+    pre: (g, t, W, H) => { const gl = g.createRadialGradient(W * 0.8, -8, 4, W * 0.8, -8, W * 0.55); gl.addColorStop(0, 'rgba(255,252,225,0.95)'); gl.addColorStop(0.3, 'rgba(255,240,190,0.5)'); gl.addColorStop(1, 'rgba(255,230,170,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H); },
+    subj: (g, t) => fgBranchy(g, t, [238, 236, 226], 1),
+    post: (g, t, W, H) => { g.strokeStyle = 'rgba(255,255,240,0.13)'; g.lineWidth = 1.4; for (let j = 0; j < 4; j++) { g.beginPath(); for (let x = 0; x <= W; x += 6) { const y = H * (0.3 + j * 0.16) + Math.sin(x * 0.04 + t * 2 + j) * 2.5; x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); } } },
+  disease: { ground: 1, y: 0.9, subj: (g, t) => fgBranchy(g, t, [244, 122, 140], 1, (y, x) => Math.abs(y + 30 + x * 0.12 + 3 * Math.sin(t * 0.6)) < 7) },
+  starfish: { ground: 1, y: 0.62, k: 1.3, subj: (g, t) => { drawStarOne({ x: -26, y: 4, rot: 0.3 + t * 0.05, alpha: 1, hurt: 0, mode: 'creep', seed: 2 }, t); drawStarOne({ x: 28, y: 10, rot: 1.1 - t * 0.04, alpha: 1, hurt: 0, mode: 'creep', seed: 5 }, t); } },
+  weed: { pal: 'weed', ground: 1, y: 0.9, subj: (g, t) => fgFronds(g, t) },
+  school: { k: 1.35, subj: (g, t, s) => { for (let i = 0; i < 7; i++) fgOrbit(drawDamsel, t, ((i % 3) - 1) * 14, (i % 2 ? 1 : -1) * 9, s.W * 0.2, s.H * 0.1, i * 0.34, 0.5, { seed: i * 2 }); } },
+  trigger: { k: 1.1, subj: (g, t, s) => fgSwim(drawTrigger, t, s, 0, 0.4) },
+  worms: { ground: 1, y: 0.9, subj: (g, t) => fgMound(g, t) },
+  front: { ground: 1, y: 0.64, k: 1.1, subj: (g, t, s) => {
+    const sx = s.W * 0.32 - 8 * (0.5 + 0.5 * Math.sin(t * 0.5));
+    drawStarOne({ x: -sx, y: -2, rot: t * 0.05, alpha: 1, hurt: 0, mode: 'creep', seed: 2 }, t); drawStarOne({ x: sx, y: 2, rot: 2 - t * 0.05, alpha: 1, hurt: 0, mode: 'creep', seed: 5 }, t);
+    for (let i = 0; i < 3; i++) fgOrbit(drawDamsel, t, 0, -34, 44, 9, i * 2.1, 0.5, { seed: i * 2 }); } },
+};
+let fgOff = null;
+function fgDrawArt(g, id, t, W, H, met) {   // one portrait into g (already scaled to css pixels); not met: the subject as a flat dark silhouette on plain water
+  const A = FGART[id]; if (!A) return;
+  const sub = (tg) => { tg.save(); tg.translate(W / 2, H * (A.y || 0.52)); const k = H / 72 * (A.k || 1); tg.scale(k, k); fgWith(tg, () => A.subj(tg, t, { W: W / k, H: H / k })); tg.restore(); };
+  g.save(); fgWater(g, W, H, t, met ? A.pal : 'plain', A.ground);
+  if (met) { if (A.pre) A.pre(g, t, W, H); sub(g); if (A.post) A.post(g, t, W, H); }
+  else {
+    if (!fgOff) fgOff = document.createElement('canvas');
+    const T = g.getTransform(), cw = g.canvas.width, ch = g.canvas.height; if (fgOff.width !== cw || fgOff.height !== ch) { fgOff.width = cw; fgOff.height = ch; }
+    const o = fgOff.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-over'; o.clearRect(0, 0, cw, ch); o.setTransform(T);
+    sub(o); o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = 'source-atop'; o.fillStyle = '#06182b'; o.fillRect(0, 0, cw, ch); o.globalCompositeOperation = 'source-over';
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 0.9; g.drawImage(fgOff, 0, 0);
+  }
+  g.restore();
+}
+const fgTileCache = {};
+function fgTileImg(id, met, dpr, w, h) {   // a tile's little portrait: drawn once, kept
+  const key = `${id}${met ? 'm' : 'u'}${dpr}${w}`; let c = fgTileCache[key];
+  if (!c) { c = fgTileCache[key] = document.createElement('canvas'); c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); fgDrawArt(g, id, 1.2 + GUIDE_BY[id].name.length * 0.37, w, h, met); }
+  return c;
+}
+let fgRaf = 0, fgFrames = 0;
+function fgPaint(ms) {   // the open page's big portrait (animated) and the tiles (static)
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (const cv of fgEl.querySelectorAll('canvas.fgtc')) {
+    const w = cv.clientWidth, h = cv.clientHeight; if (!w) continue;
+    const src = fgTileImg(cv.dataset.id, cv.dataset.met === '1', dpr, w, h);
+    if (cv.width !== src.width || cv.height !== src.height) { cv.width = src.width; cv.height = src.height; cv.getContext('2d').drawImage(src, 0, 0); }
+  }
+  const cv = fgEl.querySelector('canvas.fgpc'); if (!cv) return;
+  const W = cv.clientWidth, H = cv.clientHeight; if (!W) return;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+  fgDrawArt(g, cv.dataset.id, ms / 1000, W, H, cv.dataset.met === '1');
+}
+function fgFrame(ms) {
+  if (!fgOpen()) { fgRaf = 0; return; }
+  fgRaf = requestAnimationFrame(fgFrame); fgFrames++;
+  fgPaint(ms);
+}
 // ----- the panel
 const fgEl = document.getElementById('fgpanel');
 let fgTab = 'coral', fgSel = 'branch', fgHtml = '';
@@ -9438,36 +9636,44 @@ const FG_TABS = [['coral', 'Corals'], ['res', 'Residents'], ['threat', 'Threats'
 const fgDoneN = () => GUIDE.filter(g => game.fguide.done[g.id]).length;
 const fgOpen = () => fgEl.classList.contains('on');
 const fgEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function fgPlace() {   // a fixed size, starting just below the stage track so it never covers it
+  const tr = document.getElementById('track'), r = tr ? tr.getBoundingClientRect() : null, top = r && r.height > 0 ? Math.round(r.bottom) + 8 : 64;
+  fgEl.style.top = top + 'px'; fgEl.style.height = Math.max(320, Math.min(620, window.innerHeight - top - 12)) + 'px';
+}
 function fgPage(g) {
-  const F = game.fguide;
-  if (!F.met[g.id]) { const h = g.tab === 'res' ? fgHint(g.id) : ''; return `<h5>???</h5><p class="fgm">You have not found this one yet.</p>${h ? `<p class="fgn">${fgEsc(h)}</p>` : ''}`; }
-  let h = `<h5>${g.name}</h5><p>${g.desc}</p>`;
-  if (g.tab === 'coral') h += `<h6>Good at</h6><p>${g.good}</p>`;
-  if (g.tab === 'res') h += `<h6>Home</h6><p>${fgEsc(RES[g.id].shape.replace(/^./, c => c.toUpperCase()))}.</p><h6>Does</h6><p>${fgEsc(RES[g.id].job)}.</p>`;
-  h += `<h6>How it works</h6>` + g.how.map(l => `<p>${fgEsc(l)}</p>`).join('');
-  if (g.stop) h += `<h6>How to stop it</h6>` + (F.answered[g.id] ? g.stop.map(l => `<p>${fgEsc(l)}</p>`).join('') : `<p class="fgm">You have not stopped one yet.</p>${F.nudge[g.id] ? `<p class="fgn">${fgEsc(g.nudge)}</p>` : ''}`);
-  h += `<h6>${g.tab === 'coral' ? 'Mastery' : 'Deeds'}</h6>` + g.deeds.map((d, i) => { const done = !!F.dd[g.id + i]; return `<div class="fgd${done ? ' done' : ''}"><u>${done ? '&#10003;' : ''}</u><span>${fgEsc(d.label)}</span>${done ? '' : `<em>${Math.min(d.cur(), d.need)}/${d.need}</em>`}</div>`; }).join('');
-  const fin = !!F.done[g.id];
-  if (g.traits) h += `<div class="fgp${fin ? ' on' : ''}">${fin ? 'Page finished. ' : ''}Rank traits${fgRank(g.id) ? ' (active)' : ''}:` + g.traits.map((t, i) => `<br>${F.dd[g.id + i] && fgRank(g.id) > i ? '&#10003; ' : ''}${['I', 'II', 'III'][i]}: ${fgEsc(t)}${F.dd[g.id + i] && fgRank(g.id) > i ? '' : ' (not earned yet)'}`).join('') + '</div>';
-  else h += `<div class="fgp${fin ? ' on' : ''}">${fin ? 'Page finished. Perk (active)' : 'Perk'}: ${fgEsc(g.perk)}${fin ? '' : ' (finish the page to earn it)'}</div>`;
-  return h;
+  const F = game.fguide, met = !!F.met[g.id], fin = !!F.done[g.id];
+  const art = `<div class="fgart"><canvas class="fgpc" data-id="${g.id}" data-met="${met ? 1 : 0}"></canvas><span class="fgcap">Plate ${GUIDE.indexOf(g) + 1}</span>${fin ? '<div class="fgstamp">Recorded<span>&#10003;</span></div>' : ''}</div>`;
+  if (!met) { const h = g.tab === 'res' ? fgHint(g.id) : ''; return `${art}<div class="fgtxt"><h5>???</h5><p class="fgm">You have not found this one yet.</p>${h ? `<p class="fgn">${fgEsc(h)}</p>` : ''}</div>`; }
+  let h = `${art}<div class="fgtxt"><h5>${g.name}</h5><div class="fgsub">${g.desc}</div><p>${fgEsc(g.how)}</p>`;
+  if (g.home) h += `<p class="fgh">${fgEsc(g.home)}</p>`;
+  if (g.stop) h += `<div class="fglab">Stopping it</div>` + (F.answered[g.id] ? `<p>${fgEsc(g.stop)}</p>` : `<p class="fgm">You have not stopped one yet.</p>${F.nudge[g.id] ? `<p class="fgn">${fgEsc(g.nudge)}</p>` : ''}`);
+  h += `<div class="fglab">${g.traits ? 'Mastery' : 'Field notes'}</div>` + g.deeds.map((d, i) => {
+    const done = !!F.dd[g.id + i], act = g.traits && F.dd[g.id + i] && fgRank(g.id) > i;
+    return `<div class="fgd${done ? ' done' : ''}"><u>${done ? '&#10003;' : ''}</u><div>${g.traits ? `<i>${['I', 'II', 'III'][i]}</i>` : ''}<span>${fgEsc(d.label)}</span>${g.traits ? `<small class="${act ? 'on' : ''}">${act ? '&#10003; ' : ''}${fgEsc(g.traits[i])}</small>` : ''}</div>${done ? '' : `<em>${Math.min(d.cur(), d.need)}/${d.need}</em>`}</div>`;
+  }).join('');
+  if (g.perk) h += `<div class="fgp${fin ? ' on' : ''}">${fin ? 'Learned' : 'Record all three to learn'}: ${fgEsc(g.perk)}.</div>`;
+  return h + '</div>';
 }
 function fgRender(force) {
-  const F = game.fguide, list = GUIDE.filter(g => g.tab === fgTab);
+  const F = game.fguide, list = GUIDE.filter(g => g.tab === fgTab), n = fgDoneN();
   if (!GUIDE_BY[fgSel] || GUIDE_BY[fgSel].tab !== fgTab) fgSel = list[0].id;
-  const html = `<h4>Field guide ${fgDoneN()}/${GUIDE.length}<i data-fg="close">B or Esc closes</i></h4><div class="fgtabs">` +
-    FG_TABS.map(([k, n]) => `<button data-fg="tab" data-id="${k}" class="${k === fgTab ? 'on' : ''}">${n}</button>`).join('') +
+  fgPlace();
+  const html = `<div class="fghead"><h4>Field guide</h4><div class="fgbar"><i style="width:${Math.round(100 * n / GUIDE.length)}%"></i></div><span class="fgcnt">${n} of ${GUIDE.length} recorded</span><span class="fgx" data-fg="close">B or Esc closes</span></div><div class="fgtabs">` +
+    FG_TABS.map(([k, nm]) => { const all = GUIDE.filter(g => g.tab === k); return `<button data-fg="tab" data-id="${k}" class="${k === fgTab ? 'on' : ''}">${nm}<small>${all.filter(g => F.done[g.id]).length}/${all.length}</small></button>`; }).join('') +
     `</div><div class="fgbody"><div class="fgl">` +
-    list.map(g => { const met = !!F.met[g.id], fin = !!F.done[g.id], hint = !met && g.tab === 'res' && F.hintSeen[g.id]; return `<button data-fg="page" data-id="${g.id}" class="fgt ${met ? 'met' : 'un'}${fin ? ' fin' : ''}${g.id === fgSel ? ' sel' : ''}"><span class="fgs ${g.tab}"></span><b>${met ? g.name : '???'}</b>${fin ? '<u>&#10003;</u>' : hint ? '<i></i>' : ''}</button>`; }).join('') +
+    list.map(g => { const met = !!F.met[g.id], fin = !!F.done[g.id], hint = !met && g.tab === 'res' && F.hintSeen[g.id]; return `<button data-fg="page" data-id="${g.id}" class="fgt ${met ? 'met' : 'un'}${fin ? ' fin' : ''}${g.id === fgSel ? ' sel' : ''}"><canvas class="fgtc" data-id="${g.id}" data-met="${met ? 1 : 0}"></canvas><b>${met ? g.tile : '???'}</b>${fin ? '<span class="fgseal">&#10003;</span>' : hint ? '<span class="fgdot"></span>' : ''}</button>`; }).join('') +
     `</div><div class="fgr">${fgPage(GUIDE_BY[fgSel])}</div></div>`;
   if (!force && html === fgHtml) return;
-  const old = fgEl.querySelector('.fgr'), ol = fgEl.querySelector('.fgl'), ot = old ? old.scrollTop : 0, lt = ol ? ol.scrollTop : 0;
+  const old = fgEl.querySelector('.fgtxt'), ol = fgEl.querySelector('.fgl'), ot = old ? old.scrollTop : 0, lt = ol ? ol.scrollTop : 0;
   fgHtml = html; fgEl.innerHTML = html;
-  const nr = fgEl.querySelector('.fgr'), nl = fgEl.querySelector('.fgl'); if (nr) nr.scrollTop = ot; if (nl) nl.scrollTop = lt;
+  const nr = fgEl.querySelector('.fgtxt'), nl = fgEl.querySelector('.fgl'); if (nr) nr.scrollTop = ot; if (nl) nl.scrollTop = lt;
+  if (fgOpen()) fgPaint(performance.now());
 }
 function toggleGuideBook(on) {
   const open = on === undefined ? !fgOpen() : on;
-  if (open) { fgCheck(); game.fguide.dot = false; fgRender(true); fgEl.classList.add('on'); } else fgEl.classList.remove('on');
+  document.body.classList.toggle('fgopen', open);
+  if (open) { fgCheck(); game.fguide.dot = false; fgEl.classList.add('on'); fgRender(true); if (!fgRaf) fgRaf = requestAnimationFrame(fgFrame); }
+  else { fgEl.classList.remove('on'); if (fgRaf) cancelAnimationFrame(fgRaf); fgRaf = 0; }
 }
 fgEl.addEventListener('click', e => {
   const b = e.target.closest('[data-fg]'); if (!b) return;
@@ -9476,6 +9682,7 @@ fgEl.addEventListener('click', e => {
   else if (b.dataset.fg === 'page') { fgSel = b.dataset.id; fgRender(true); }
 });
 for (const ev of ['mousedown', 'wheel', 'contextmenu']) fgEl.addEventListener(ev, e => e.stopPropagation());
+window.addEventListener('resize', () => { if (fgOpen()) fgRender(true); });
 window.devGuide = () => { for (const g of GUIDE) fgMeet(g.id, true); fgCheck(); if (fgOpen()) fgRender(true); return Object.keys(game.fguide.met).length; };   // dev: every page met (no toasts)
 
 /* ---------- slice 6b unlocks: tree stats, G3 fragmenting, G4 growth plans, S4 cement ---------- */
